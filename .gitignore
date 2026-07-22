@@ -1,0 +1,28 @@
+# Backend
+svap-backend/node_modules/
+svap-backend/.env
+svap-backend/dist/
+svap-backend/build/
+
+# Frontend
+svap-frontend/node_modules/
+svap-frontend/.env
+svap-frontend/dist/
+svap-frontend/build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Environment
+.env
+.env.local
+.env.*
+!.env.example
