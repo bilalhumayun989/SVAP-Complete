@@ -1,0 +1,241 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════
+   SVAP BRAND PALETTE
+   Source: Brand guidelines (logo-derived colours)
+═══════════════════════════════════════════════ */
+:root {
+  /* ── SVAP Brand ── */
+  --svap-blue:       #4158D6;
+  --svap-deep-blue:  #1F3FBB;
+  --svap-lime:       #E45821;
+  --svap-vivid-lime: #8DC63F;
+  --svap-white:      #FFFFFF;
+
+  /* ── Light theme ── */
+  --bg:              #ffffff;   /* page background */
+  --bg-section:      #f7ffeb;   /* section background */
+  --bg-alt:          #f9f9f9;   /* alternate bg */
+  --card-bg:         #ffffff;   /* product card background */
+  --navbar-bg:       #ffffff;   /* navbar background */
+  --border:          #E45821;   /* borders */
+  --border-light:    #e0e0e0;   /* light borders */
+  --btn-swap:        #E45821;   /* Swap button (orange) */
+  --btn-cart:        #313C5C;   /* Buy Now button (dark blue) */
+  --text-dark:       #000000;   /* primary text on light bg */
+  --text-mid:        #000000;   /* secondary text */
+  --text-muted:      #8c8542;   /* muted text */
+  --text-on-orange:  #ffffff;   /* text on orange background */
+
+  /* Semantic aliases */
+  --color-primary:        var(--svap-blue);
+  --color-primary-dark:   var(--svap-deep-blue);
+  --color-accent:         var(--btn-cart);
+  --color-bg:             var(--bg);
+  --color-surface:        var(--card-bg);
+  --color-border:         var(--border);
+}
+
+/* Dark theme overrides */
+html[data-theme='dark'] {
+  --bg:              #0a0a0a;   /* page background - very dark */
+  --bg-section:      #141414;   /* section background */
+  --bg-alt:          #1a1a1a;   /* alternate bg */
+  --card-bg:         #1a1a1a;   /* product card background */
+  --navbar-bg:       #0f0f0f;   /* navbar background */
+  --border:          #2a2a2a;   /* borders */
+  --border-light:    #2a2a2a;   /* light borders */
+  --btn-swap:        #E45821;   /* Swap button (keep orange) */
+  --btn-cart:        #4a5a7a;   /* Buy Now button (lighter blue for dark) */
+  --text-dark:       #f5f5f5;   /* primary text on dark bg */
+  --text-mid:        #d0d0d0;   /* secondary text */
+  --text-muted:      #999999;   /* muted text */
+  --text-on-orange:  #ffffff;   /* text on orange background (same) */
+}
+
+/* ── Poppins font stack ── */
+@layer base {
+  html,
+  body,
+  * {
+    font-family: 'Poppins', 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  html, body {
+    background: var(--bg);
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Let Lenis handle smooth scroll — disable browser default */
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  /* Remove any default link underlines */
+  a { text-decoration: none; }
+
+  /* Remove old top-nav spacing — sidebar is now on the left */
+  body { padding-top: 0 !important; }
+
+  /* ── Type scale — screen-adapted from design spec ──
+     28pt → ~37px  Display
+     18pt → ~24px  H1
+     14pt → ~19px  H2
+      9pt → ~14px  Body
+      8pt → ~12px  Label/UI
+      7pt → ~11px  Caption
+  ─────────────────────────────────────────────── */
+
+  .text-display {
+    font-size: clamp(1.75rem, 3vw, 2.3rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+  .text-h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .text-h2 {
+    font-size: 1.1875rem;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+  .text-body {
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.7;
+  }
+  .text-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  .text-caption {
+    font-size: 0.6875rem;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+}
+
+html[data-theme='dark'] .product-card {
+  background: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+}
+
+html[data-theme='dark'] .product-card:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* ── Brand icon dark mode helpers ── */
+:root {
+  --filter-white: brightness(0) invert(1);
+  /* CSS Filter equivalent for #E45821 (Orange) */
+  --filter-orange: brightness(0) saturate(100%) invert(44%) sepia(85%) saturate(1779%) hue-rotate(345deg) brightness(92%) contrast(96%);
+}
+
+/* Local PNG icons in dark mode: Orange by default, White on hover */
+html[data-theme='dark'] .pc-loc-icon,
+html[data-theme='dark'] .icon-filter-dark,
+html[data-theme='dark'] .req-card img[alt="Time"],
+html[data-theme='dark'] .req-pending-label img[alt="Time"],
+html[data-theme='dark'] img[alt="Loc"],
+html[data-theme='dark'] .pdp-loc-icon,
+html[data-theme='dark'] .pdp-rel-loc-icon,
+html[data-theme='dark'] .orders-icon-filter,
+html[data-theme='dark'] img[alt="Delivery"],
+html[data-theme='dark'] img[alt="Express"],
+html[data-theme='dark'] img[alt="Meetup"] {
+  filter: var(--filter-orange);
+  transition: filter 0.2s ease;
+}
+
+/* Hover state for all those icons to turn white */
+html[data-theme='dark'] *:hover > .pc-loc-icon,
+html[data-theme='dark'] *:hover > .icon-filter-dark,
+html[data-theme='dark'] .req-card:hover img[alt="Time"],
+html[data-theme='dark'] .req-pending-label:hover img[alt="Time"],
+html[data-theme='dark'] *:hover > img[alt="Loc"],
+html[data-theme='dark'] *:hover > .pdp-loc-icon,
+html[data-theme='dark'] *:hover > .pdp-rel-loc-icon,
+html[data-theme='dark'] *:hover > .orders-icon-filter,
+html[data-theme='dark'] *:hover > img[alt="Delivery"],
+html[data-theme='dark'] *:hover > img[alt="Express"],
+html[data-theme='dark'] *:hover > img[alt="Meetup"] {
+  filter: var(--filter-white) !important;
+}
+
+/* Search page: dark mode text fixes */
+html[data-theme='dark'] .sp-page {
+  background: #0a0a0a;
+  color: #f5f5f5;
+}
+html[data-theme='dark'] .sp-bar {
+  background: #1a1a1a;
+  border-color: #2a2a2a;
+}
+html[data-theme='dark'] .sp-input {
+  color: #f5f5f5;
+}
+html[data-theme='dark'] .sp-input::placeholder {
+  color: #666;
+}
+html[data-theme='dark'] .sp-section-title {
+  color: #f5f5f5;
+}
+html[data-theme='dark'] .sp-result-item {
+  background: #1a1a1a;
+  border-color: #2a2a2a;
+}
+html[data-theme='dark'] .sp-result-title {
+  color: #f5f5f5;
+}
+html[data-theme='dark'] .sp-chip {
+  background: #1a1a1a;
+  border-color: #2a2a2a;
+  color: #d0d0d0;
+}
+html[data-theme='dark'] .sp-chip:hover {
+  color: #E45821;
+  border-color: #E45821;
+}
+
+/* Create page dark mode */
+html[data-theme='dark'] .cp-page {
+  background: #0a0a0a;
+}
+html[data-theme='dark'] .cp-title {
+  color: #f5f5f5;
+}
+html[data-theme='dark'] .cp-sub {
+  color: #999;
+}
+html[data-theme='dark'] .cp-card-label {
+  color: #f5f5f5;
+}
+html[data-theme='dark'] .cp-card-desc {
+  color: #888;
+}
+
+/* Requests page dark mode */
+html[data-theme='dark'] .req-title {
+  color: #f5f5f5;
+}
+html[data-theme='dark'] .req-tab {
+  color: #999;
+}
+html[data-theme='dark'] .req-tab:hover {
+  color: #f5f5f5;
+}
+html[data-theme='dark'] .req-tab--active {
+  color: #E45821;
+}
+
+/* End of file */

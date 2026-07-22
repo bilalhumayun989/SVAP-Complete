@@ -1,0 +1,66 @@
+/* ── App-level layout ── */
+
+/* 
+  Instagram-style layout:
+  [sidebar 240px] [main flex-1] [aside 290px]
+  On narrow (1100-1280px): sidebar collapses to 72px
+  On mobile (≤768px): sidebar hidden, bottom bar shown
+*/
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  /* push content right of sidebar — use CSS variable for dynamic width */
+  padding-left: var(--sidebar-width, 240px);
+  box-sizing: border-box;
+  background: var(--bg-section);
+  transition: padding-left 0.3s ease;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  /* right aside only on wide enough screens */
+}
+
+.app-aside {
+  width: 290px;
+  flex-shrink: 0;
+  padding: 20px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+  box-sizing: border-box;
+}
+.app-aside::-webkit-scrollbar { display: none; }
+
+/* ── Narrow sidebar ── */
+@media (max-width: 1280px) and (min-width: 769px) {
+  .app-layout { 
+    padding-left: var(--sidebar-width, 72px); 
+  }
+}
+
+/* ── Hide right aside below 1100px ── */
+@media (max-width: 1100px) {
+  .app-aside { display: none; }
+}
+
+/* ── Mobile: no sidebar, add bottom bar padding ── */
+@media (max-width: 768px) {
+  .app-layout {
+    padding-left: 0;
+    padding-bottom: 60px; /* room for bottom bar */
+  }
+  .app-aside { display: none; }
+}
+
+/* ── Mobile/Tablet (≤800px): push content below TopNavbar ── */
+@media (max-width: 800px) {
+  .app-main {
+    padding-top: 64px;
+  }
+}
