@@ -7,6 +7,8 @@ const productRoutes = require('./routes/productRoutes');
 const swapRoutes = require('./routes/swapRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+const savedRoutes = require('./routes/savedRoutes');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -25,6 +27,8 @@ app.use('/api/products', productRoutes);
 app.use('/api/swap-requests', swapRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/saved', savedRoutes);
 
 // 404 handler
 app.use((req, res) => {

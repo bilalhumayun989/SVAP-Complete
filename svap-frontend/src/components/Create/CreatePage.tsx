@@ -319,14 +319,14 @@ const OPTIONS = [
     desc: "Short product video — appears on Reels, Home & Browse",
     route: "/reel-upload",
   },
-  {
-    icon: <FiCamera size={22} />,
-    iconDesktop: <FiCamera size={26} />,
-    iconBg: "#E45821",
-    label: "Upload Story",
-    desc: "24-hour story — shows at the top of Home",
-    route: "/create-story",
-  },
+  // {
+  //   icon: <FiCamera size={22} />,
+  //   iconDesktop: <FiCamera size={26} />,
+  //   iconBg: "#E45821",
+  //   label: "Upload Story",
+  //   desc: "24-hour story — shows at the top of Home",
+  //   route: "/create-story",
+  // },
   {
     icon: <FiBox size={22} />,
     iconDesktop: <FiBox size={26} />,

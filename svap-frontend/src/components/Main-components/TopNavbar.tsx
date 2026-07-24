@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, Bell, X, Moon, Sun } from "lucide-react";
+import { Search, Bell, X, Moon, Sun, Settings } from "lucide-react";
+import SettingsDrawer from "../Profile/SettingsDrawer";
 
 export default function TopNavbar() {
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [isDark, setIsDark] = useState(() =>
     document.documentElement.getAttribute("data-theme") === "dark"
   );
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const isProfilePage = location.pathname === "/profile";
 
   const isFullScreen =
     location.pathname === "/reels" ||
@@ -101,8 +104,8 @@ export default function TopNavbar() {
             </button>
           )}
 
-          {/* Dark / Light mode toggle */}
-          {!searchOpen && (
+          {/* Dark / Light mode toggle — hidden on profile page (settings drawer has it) */}
+          {!searchOpen && !isProfilePage && (
             <button
               aria-label="Toggle theme"
               className="tnb-icon-btn tnb-theme-btn"
@@ -111,8 +114,24 @@ export default function TopNavbar() {
               {isDark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
           )}
+
+          {/* Settings icon — only on /profile page */}
+          {!searchOpen && isProfilePage && (
+            <button
+              aria-label="Settings"
+              className="tnb-icon-btn tnb-settings-btn"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings size={18} />
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Settings Drawer — only renders on /profile page */}
+      {isProfilePage && (
+        <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      )}
 
       <style>{`
         /* Hidden on desktop — sidebar Navbar handles theme there */
@@ -209,6 +228,21 @@ export default function TopNavbar() {
           html[data-theme='dark'] .tnb-theme-btn {
             color: #ffffff;
             border-color: rgba(251,191,36,0.3);
+          }
+
+          /* Settings button accent */
+          .tnb-settings-btn {
+            border-color: rgba(228,88,33,0.3);
+            color: var(--text-dark);
+          }
+          .tnb-settings-btn:hover {
+            background: rgba(228,88,33,0.1) !important;
+            border-color: #E45821 !important;
+            color: #E45821 !important;
+          }
+          html[data-theme='dark'] .tnb-settings-btn {
+            color: #fff;
+            border-color: rgba(228,88,33,0.3);
           }
 
           /* Search box */

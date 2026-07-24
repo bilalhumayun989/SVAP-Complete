@@ -7,7 +7,7 @@ export const DELIVERY_METHODS: DeliveryMethod[] = [
     name: 'Standard',
     description: '3-5 days',
     estimatedDays: '3-5 business days',
-    cost: 200,
+    cost: 300,
     isRecommended: true,
   },
   {
@@ -15,15 +15,8 @@ export const DELIVERY_METHODS: DeliveryMethod[] = [
     name: 'Express',
     description: '24h delivery',
     estimatedDays: '1-2 business days',
-    cost: 500,
-  },
-  {
-    id: 'meetup',
-    name: 'Meet in person',
-    description: 'Zero fee you arrange',
-    estimatedDays: 'Arrange meetup',
-    cost: 0,
-  },
+    cost: 800,
+  }
 ];
 
 // Payment method constants
@@ -46,13 +39,7 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
     name: 'EasyPaisa',
     description: 'Mobile wallet',
     icon: 'easypaisa',
-  },
-  {
-    id: 'cod',
-    name: 'Cash on Delivery',
-    description: 'Pay on delivery',
-    icon: 'cod',
-  },
+  }
 ];
 
 // Cost calculation constants
@@ -64,9 +51,9 @@ export const COST_CONSTANTS = {
 
 // Validation constants
 export const VALIDATION_RULES = {
-  REQUIRED_ADDRESS_FIELDS: ['fullName', 'streetAddress', 'city', 'province', 'phone'] as const,
-  PHONE_REGEX: /^(\+92|0092|92|0)?[0-9]{10}$/,
-  POSTAL_CODE_REGEX: /^[0-9]{5}$/,
+  REQUIRED_ADDRESS_FIELDS: ['fullName', 'streetAddress', 'city', 'phone'] as const,
+  PHONE_REGEX: /.*/, // Allow any phone for testing
+  POSTAL_CODE_REGEX: /.*/, // Allow any postal code for testing
   MIN_NAME_LENGTH: 2,
   MAX_NAME_LENGTH: 50,
   MIN_ADDRESS_LENGTH: 5,

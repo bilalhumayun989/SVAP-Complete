@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiCamera, FiUser, FiMapPin, FiMail, FiPhone, FiCheck, FiLink } from "react-icons/fi";
+import { FiArrowLeft, FiCamera, FiUser, FiMapPin, FiMail, FiPhone, FiLink, FiLock } from "react-icons/fi";
+import { api } from "../../services/api";
 
 const EditProfilePage = () => {
   const navigate = useNavigate();
@@ -11,27 +12,68 @@ const EditProfilePage = () => {
 
   const [avatar, setAvatar] = useState<string>(saved.avatar || "");
   const [name, setName] = useState(saved.name || "");
-  const [username, setUsername] = useState(saved.username || "");
+  const [username, setUsername] = useState(
+    (saved.username || "").replace(/^@/, "") // strip leading @ for editing
+  );
   const [bio, setBio] = useState(saved.bio || "");
   const [city, setCity] = useState(saved.city || "");
-  const [email, setEmail] = useState(saved.email || "");
   const [phone, setPhone] = useState(saved.phone || "");
   const [website, setWebsite] = useState(saved.website || "");
-  const [saved2, setSaved2] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const handleAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setAvatar(url);
+
+    // Convert to base64 so it persists across sessions (no blob: URL expiry)
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target?.result as string;
+      if (base64) setAvatar(base64);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleSave = () => {
-    const updated = { ...saved, name, username, bio, city, email, phone, website, avatar };
-    localStorage.setItem("sz_user", JSON.stringify(updated));
-    window.dispatchEvent(new Event("sz_auth_change"));
-    setSaved2(true);
-    setTimeout(() => { setSaved2(false); navigate("/profile"); }, 1000);
+  const handleSave = async () => {
+    if (!saved.id) { setError("Not logged in."); return; }
+    setError("");
+    setSaving(true);
+    try {
+      const cleanUsername = username.replace(/^@/, "").trim();
+      if (!cleanUsername) { setError("Username cannot be empty."); setSaving(false); return; }
+
+      // Update profiles table in Supabase via backend
+      const res = await api.updateProfile(saved.id, {
+        username: cleanUsername,
+        full_name: name,
+        bio,
+        city,
+        phone,
+        website,
+      });
+
+      if (res.error) throw new Error(res.error);
+
+      // Update localStorage
+      const updated = {
+        ...saved,
+        name,
+        username: `@${cleanUsername}`,
+        bio,
+        city,
+        phone,
+        website,
+        avatar,
+      };
+      localStorage.setItem("sz_user", JSON.stringify(updated));
+      window.dispatchEvent(new Event("sz_auth_change"));
+      setSaving(false);
+      navigate("/profile");
+    } catch (err: any) {
+      setError(err.message || "Failed to save profile.");
+      setSaving(false);
+    }
   };
 
   return (
@@ -42,8 +84,8 @@ const EditProfilePage = () => {
           <FiArrowLeft size={20} />
         </button>
         <h1 className="ep-title">Edit Profile</h1>
-        <button className="ep-save-btn" onClick={handleSave} disabled={saved2}>
-          {saved2 ? <FiCheck size={16} /> : "Save"}
+        <button className="ep-save-btn" onClick={handleSave} disabled={saving}>
+          {saving ? <span className="ep-spinner" /> : "Save"}
         </button>
       </div>
 
@@ -82,7 +124,12 @@ const EditProfilePage = () => {
             <div className="ep-field-icon">@</div>
             <div className="ep-field-body">
               <label className="ep-label">Username</label>
-              <input className="ep-input" value={username} onChange={e => setUsername(e.target.value)} placeholder="@username" />
+              <input
+                className="ep-input"
+                value={username}
+                onChange={e => setUsername(e.target.value.replace(/\s/g, "").toLowerCase())}
+                placeholder="username"
+              />
             </div>
           </div>
 
@@ -103,7 +150,7 @@ const EditProfilePage = () => {
           </div>
 
           <div className="ep-divider" />
-          <div className="ep-section-label">Contact & Location</div>
+          <div className="ep-section-label">Contact &amp; Location</div>
 
           <div className="ep-field">
             <div className="ep-field-icon"><FiMapPin size={16} /></div>
@@ -113,11 +160,18 @@ const EditProfilePage = () => {
             </div>
           </div>
 
-          <div className="ep-field">
-            <div className="ep-field-icon"><FiMail size={16} /></div>
+          {/* Email — read-only, cannot be changed */}
+          <div className="ep-field ep-field--disabled">
+            <div className="ep-field-icon ep-field-icon--muted"><FiMail size={16} /></div>
             <div className="ep-field-body">
-              <label className="ep-label">Email</label>
-              <input className="ep-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" />
+              <label className="ep-label">Email <span className="ep-locked-badge"><FiLock size={9} /> Cannot be changed</span></label>
+              <input
+                className="ep-input ep-input--disabled"
+                value={saved.email || ""}
+                readOnly
+                disabled
+                tabIndex={-1}
+              />
             </div>
           </div>
 
@@ -136,6 +190,8 @@ const EditProfilePage = () => {
               <input className="ep-input" value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yoursite.com" />
             </div>
           </div>
+
+          {error && <p className="ep-error">{error}</p>}
         </div>
       </div>
 
@@ -449,6 +505,57 @@ html[data-theme='dark'] .ep-change-label {
           color: #ccc;
           text-align: right;
         }
+
+        /* Disabled / locked fields */
+        .ep-field--disabled { opacity: 0.65; }
+        .ep-field-icon--muted { background: #f5f5f5 !important; border-color: #e0e0e0 !important; color: #999 !important; }
+        html[data-theme='dark'] .ep-field-icon--muted { background: #1a1a1a !important; border-color: #333 !important; }
+        .ep-input--disabled { color: #999 !important; cursor: not-allowed; }
+        html[data-theme='dark'] .ep-input--disabled { color: rgba(255,255,255,0.35) !important; }
+
+        .ep-locked-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          font-size: 0.6rem;
+          font-weight: 600;
+          color: #aaa;
+          background: #f5f5f5;
+          border: 1px solid #e8e8e8;
+          padding: 1px 7px;
+          border-radius: 999px;
+          margin-left: 6px;
+          text-transform: none;
+          letter-spacing: 0;
+          vertical-align: middle;
+        }
+        html[data-theme='dark'] .ep-locked-badge {
+          background: #222;
+          border-color: #333;
+          color: #666;
+        }
+
+        /* Error */
+        .ep-error {
+          font-size: 0.82rem;
+          color: #dc2626;
+          background: rgba(239,68,68,0.08);
+          border: 1px solid rgba(239,68,68,0.2);
+          border-radius: 10px;
+          padding: 10px 14px;
+          margin-top: 8px;
+        }
+
+        /* Spinner */
+        .ep-spinner {
+          width: 16px; height: 16px;
+          border: 2px solid rgba(255,255,255,0.4);
+          border-top-color: #fff;
+          border-radius: 50%;
+          animation: ep-spin 0.7s linear infinite;
+          display: inline-block;
+        }
+        @keyframes ep-spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

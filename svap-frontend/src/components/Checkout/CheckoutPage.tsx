@@ -8,6 +8,7 @@ import { PaymentMethodSection } from './PaymentMethodSection';
 import { OrderSummary } from './OrderSummary';
 import { CheckoutButton } from './CheckoutButton';
 import type { NavigationData } from './types/checkout.types';
+import { api } from '../../services/api';
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -39,8 +40,28 @@ const CheckoutPage = () => {
     setLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const userStr = localStorage.getItem('sz_user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      
+      const orderData = {
+        swap_request_id: navigationData?.swapRequestId || null,
+        from_user_id: user?.id,
+        to_user_id: user?.id, // Fallback, could be fetched from item seller
+        delivery_name: state.deliveryAddress?.fullName,
+        delivery_phone: state.deliveryAddress?.phone,
+        delivery_address: state.deliveryAddress?.streetAddress,
+        delivery_city: state.deliveryAddress?.city,
+        payment_method: state.paymentMethod?.name,
+        shipping_cost: state.costBreakdown.deliveryFee,
+        discount: 0,
+        total: state.costBreakdown.totalAmount,
+        tracking_number: `SVAP-${Date.now()}`
+      };
+
+      const res = await api.createOrder(orderData);
+      if (res.error) {
+        throw new Error(res.error);
+      }
       
       // Navigate to success page
       navigate('/orders', {
@@ -52,7 +73,7 @@ const CheckoutPage = () => {
       });
     } catch (error) {
       console.error('Checkout failed:', error);
-      // Handle error - could show error message
+      alert('Failed to place order. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -91,6 +112,16 @@ const CheckoutPage = () => {
               {state.transactionType === 'svap' ? 'Swap Transaction' : 'Purchase'}
             </span>
           </p>
+          {/* If came from swap, show "check requests later" note */}
+          {navigationData?.entrySource === 'swap' && (
+            <div className="checkout-swap-note">
+              ✅ Swap request accepted! Fill in delivery details below, or{' '}
+              <button className="checkout-swap-link" onClick={() => navigate('/requests')}>
+                go back to requests
+              </button>{' '}
+              and complete checkout later.
+            </div>
+          )}
         </div>
 
         {/* Main Content */}
@@ -226,6 +257,37 @@ const CheckoutPage = () => {
           color: var(--svap-blue);
           font-weight: 600;
         }
+
+        .checkout-swap-note {
+          margin-top: 12px;
+          padding: 12px 16px;
+          background: rgba(141,198,63,0.12);
+          border: 1px solid rgba(141,198,63,0.3);
+          border-radius: 10px;
+          font-size: 0.85rem;
+          color: var(--text-mid);
+          line-height: 1.5;
+        }
+
+        html[data-theme='dark'] .checkout-swap-note {
+          background: rgba(141,198,63,0.08);
+          border-color: rgba(141,198,63,0.2);
+          color: #aaa;
+        }
+
+        .checkout-swap-link {
+          background: none;
+          border: none;
+          color: #E45821;
+          font-weight: 700;
+          cursor: pointer;
+          font-size: inherit;
+          font-family: inherit;
+          padding: 0;
+          text-decoration: underline;
+          transition: opacity 0.15s;
+        }
+        .checkout-swap-link:hover { opacity: 0.75; }
 
         /* Main Content Layout */
         .checkout-content {

@@ -30,20 +30,15 @@ const HomeReelsRow = () => {
   const rowRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState(false);
   const [reels, setReels] = useState<HomeReel[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let ignore = false;
-
     const loadReels = async () => {
       try {
         const response = await api.getProducts();
         if (ignore) return;
-
-        if (response.error) {
-          setReels([]);
-          return;
-        }
-
+        if (response.error) { setReels([]); return; }
         setReels(
           ((response.data || []) as ProductRow[])
             .filter((product) => Boolean(product.video_url))
@@ -55,11 +50,7 @@ const HomeReelsRow = () => {
             .slice(0, 8)
             .map((product) => ({
               id: product.id,
-              user:
-                product.profiles?.username ||
-                product.profiles?.name ||
-                product.profiles?.full_name ||
-                "svap_user",
+              user: product.profiles?.username || product.profiles?.name || product.profiles?.full_name || "svap_user",
               title: product.title || "Product reel",
               product: product.title || "Product",
               thumbnail: product.image_urls?.[0] || "https://placehold.co/360x560?text=SVAP",
@@ -68,14 +59,12 @@ const HomeReelsRow = () => {
       } catch (error) {
         console.error("Failed to load home reels:", error);
         if (!ignore) setReels([]);
+      } finally {
+        if (!ignore) setLoading(false);
       }
     };
-
     loadReels();
-
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
   }, []);
 
   const scrollNext = () => {
@@ -92,7 +81,7 @@ const HomeReelsRow = () => {
     });
   };
 
-  if (reels.length === 0) return null;
+  if (!loading && reels.length === 0) return null;
 
   return (
     <>
@@ -108,30 +97,43 @@ const HomeReelsRow = () => {
             onMouseLeave={() => setHovered(false)}
           >
             <div className="hreels-row" ref={rowRef}>
-              {reels.map((r) => (
-                <div
-                  key={r.id}
-                  className="hreel-card"
-                  onClick={() => navigate(`/reels?reel=${encodeURIComponent(r.id)}`)}
-                >
-                  <div className="hreel-thumb-wrap">
-                    <img src={r.thumbnail} alt={r.title} className="hreel-thumb" />
-                    <div className="hreel-overlay" />
-                    <div className="hreel-play">
-                      <FiPlay size={18} fill="#fff" color="#fff" />
+              {loading
+                ? Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="hreel-card">
+                      <div className="hreel-thumb-wrap hreel-skeleton-wrap">
+                        <div className="hreel-skeleton" />
+                      </div>
+                      <div className="hreel-skeleton-info">
+                        <div className="hreel-skeleton hreel-skeleton-line hreel-skeleton-line--xs" />
+                        <div className="hreel-skeleton hreel-skeleton-line" />
+                      </div>
                     </div>
-                    <span className="hreel-user-overlay">@{r.user}</span>
-                    <div className="hreel-likes">
-                      <FiHeart size={11} fill="#E45821" color="#E45821" />
-                      <span>0</span>
+                  ))
+                : reels.map((r) => (
+                    <div
+                      key={r.id}
+                      className="hreel-card"
+                      onClick={() => navigate(`/reels?reel=${encodeURIComponent(r.id)}`)}
+                    >
+                      <div className="hreel-thumb-wrap">
+                        <img src={r.thumbnail} alt={r.title} className="hreel-thumb" />
+                        <div className="hreel-overlay" />
+                        <div className="hreel-play">
+                          <FiPlay size={18} fill="#fff" color="#fff" />
+                        </div>
+                        <span className="hreel-user-overlay">@{r.user}</span>
+                        <div className="hreel-likes">
+                          <FiHeart size={11} fill="#E45821" color="#E45821" />
+                          <span>0</span>
+                        </div>
+                      </div>
+                      <div className="hreel-info">
+                        <span className="hreel-user">@{r.user}</span>
+                        <span className="hreel-name">{r.product}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="hreel-info">
-                    <span className="hreel-user">@{r.user}</span>
-                    <span className="hreel-name">{r.product}</span>
-                  </div>
-                </div>
-              ))}
+                  ))
+              }
             </div>
             <button
               className={`hreels-arrow hreels-arrow-prev ${hovered ? "hreels-arrow-show" : ""}`}
@@ -336,66 +338,50 @@ const HomeReelsRow = () => {
         }
 
         @media (max-width: 767px) {
-          .hreels-section {
-            padding: 14px 0 10px;
-          }
-
-          .hreels-header {
-            padding: 0 16px 10px;
-          }
-
-          .hreels-title {
-            font-size: 1.15rem;
-            font-weight: 800;
-          }
-
-          .hreels-viewall {
-            font-size: 0.85rem;
-            font-weight: 700;
-          }
-
-          .hreels-wrap {
-            padding: 0 0 0 16px;
-          }
-
-          .hreels-row {
-            gap: 12px;
-            padding: 8px 16px 8px 0;
-          }
-
-          .hreel-card {
-            width: 160px;
-          }
-
-          .hreel-thumb-wrap {
-            width: 160px;
-            height: 240px;
-            border-radius: 16px;
-          }
-
-          .hreel-overlay {
-            background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.10) 50%, transparent 100%);
-          }
-
-          .hreel-info {
-            display: none;
-          }
-
-          .hreel-user-overlay {
-            display: block;
-          }
-
-          .hreel-likes {
-            bottom: 10px;
-            left: 10px;
-            font-size: 0.78rem;
-          }
-
-          .hreel-play {
-            width: 42px;
-            height: 42px;
-          }
+          .hreels-section { padding: 14px 0 10px; }
+          .hreels-header { padding: 0 16px 10px; }
+          .hreels-title { font-size: 1.15rem; font-weight: 800; }
+          .hreels-viewall { font-size: 0.85rem; font-weight: 700; }
+          .hreels-wrap { padding: 0 0 0 16px; }
+          .hreels-row { gap: 12px; padding: 8px 16px 8px 0; }
+          .hreel-card { width: 160px; }
+          .hreel-thumb-wrap { width: 160px; height: 240px; border-radius: 16px; }
+          .hreel-overlay { background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.10) 50%, transparent 100%); }
+          .hreel-info { display: none; }
+          .hreel-user-overlay { display: block; }
+          .hreel-likes { bottom: 10px; left: 10px; font-size: 0.78rem; }
+          .hreel-play { width: 42px; height: 42px; }
         }
+
+        /* ── Skeleton ── */
+        @keyframes hreel-shimmer {
+          0%   { background-position: -400px 0; }
+          100% { background-position: 400px 0; }
+        }
+        .hreel-skeleton {
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 400px 100%;
+          animation: hreel-shimmer 1.4s infinite linear;
+          border-radius: 12px;
+        }
+        html[data-theme='dark'] .hreel-skeleton {
+          background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+          background-size: 400px 100%;
+        }
+        .hreel-skeleton-wrap { background: transparent !important; }
+        .hreel-skeleton-wrap .hreel-skeleton {
+          width: 100%;
+          height: 100%;
+          border-radius: 12px;
+        }
+        .hreel-skeleton-info {
+          margin-top: 7px;
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+        }
+        .hreel-skeleton-line { height: 11px; width: 100%; }
+        .hreel-skeleton-line--xs { height: 9px; width: 60%; }
       `}</style>
     </>
   );

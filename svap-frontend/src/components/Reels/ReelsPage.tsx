@@ -339,28 +339,7 @@ const ReelsPage = () => {
     const easeInOutQuad = (t: number) =>
       t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
-    const animateScrollTo = (targetTop: number, onDone: () => void) => {
-      if (rafId !== null) cancelAnimationFrame(rafId);
 
-      const startTop = el.scrollTop;
-      const diff = targetTop - startTop;
-      const startTime = performance.now();
-
-      const step = (now: number) => {
-        const elapsed = now - startTime;
-        const t = Math.min(elapsed / SCROLL_DURATION, 1);
-        el.scrollTop = startTop + diff * easeInOutQuad(t);
-
-        if (t < 1) {
-          rafId = requestAnimationFrame(step);
-        } else {
-          rafId = null;
-          onDone();
-        }
-      };
-
-      rafId = requestAnimationFrame(step);
-    };
 
     // Called on every wheel event while locked (including momentum tail).
     // Keeps pushing the unlock further away until events actually stop.
@@ -381,13 +360,13 @@ const ReelsPage = () => {
       if (!target) return;
 
       scrollLockRef.current = true;
-      animating = true;
       setActiveIndex(clamped);
 
-      animateScrollTo(target.offsetTop, () => {
-        animating = false;
-        scheduleUnlock();
-      });
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      window.setTimeout(() => {
+        scrollLockRef.current = false;
+      }, 600);
     };
 
     const handleWheel = (e: WheelEvent) => {
@@ -447,15 +426,16 @@ const ReelsPage = () => {
       ))}
 
       <style>{`
-        .reels-page {
-          height: 100vh;
-          overflow-y: scroll;
-          scroll-snap-type: y mandatory;
-          background: #fff;
-          scrollbar-width: none;
-          position: relative;
-        }
-        .reels-page::-webkit-scrollbar { display: none; }
+       .reels-page {
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  background: var(--bg);
+}
+.reels-page::-webkit-scrollbar { display: none; }
+
 
         .reels-back-btn {
           position: fixed;

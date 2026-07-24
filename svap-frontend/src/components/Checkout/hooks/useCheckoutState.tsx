@@ -61,14 +61,24 @@ export const useCheckoutState = (navigationData?: NavigationData) => {
         }];
       } else if (navigationData.entrySource === 'svap' && navigationData.swapRequestId) {
         transactionType = 'svap';
-        items = [{
-          id: navigationData.swapRequestId,
-          name: 'Swap Item',
-          image: '/2.png',
-          swapValue: 12000,
-          condition: 'Excellent',
-          seller: 'Jane Smith',
-        }];
+        items = [
+          {
+            id: navigationData.swapRequestId,
+            name: 'Their Item (Receiving)',
+            image: '/2.png',
+            swapValue: 15000,
+            condition: 'Excellent',
+            seller: 'Jane Smith',
+          },
+          {
+            id: 'your_item_123',
+            name: 'Your Item (Giving)',
+            image: '/1.png',
+            swapValue: 12000,
+            condition: 'Good',
+            seller: 'You',
+          }
+        ];
       } else if (navigationData.entrySource === 'cart' && navigationData.cartItems) {
         // Convert cart items to checkout items
         items = navigationData.cartItems.map((cartItem, index) => ({

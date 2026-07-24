@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { FiLoader } from 'react-icons/fi';
 import { CostCalculator } from './utils/costCalculations';
 
@@ -25,6 +26,7 @@ export const CheckoutButton = ({
   onCheckout,
   disabled = false,
 }: CheckoutButtonProps) => {
+  const [agreed, setAgreed] = useState(false);
   
   const getButtonText = () => {
     if (isLoading) {
@@ -48,11 +50,22 @@ export const CheckoutButton = ({
 
   return (
     <div className="checkout-button-section">
+      <div className="agreement-checkbox">
+        <label>
+          <input 
+            type="checkbox" 
+            checked={agreed} 
+            onChange={(e) => setAgreed(e.target.checked)} 
+          />
+          <span>I agree to the terms and conditions</span>
+        </label>
+      </div>
+
       <button
         type="button"
-        className={`checkout-button ${isValid ? 'enabled' : 'disabled'} ${isLoading ? 'loading' : ''}`}
+        className={`checkout-button ${isValid && agreed ? 'enabled' : 'disabled'} ${isLoading ? 'loading' : ''}`}
         onClick={onCheckout}
-        disabled={disabled || !isValid || isLoading}
+        disabled={disabled || !isValid || isLoading || !agreed}
       >
         <span className="button-icon">
           {getButtonIcon()}
@@ -77,6 +90,29 @@ export const CheckoutButton = ({
           display: flex;
           flex-direction: column;
           gap: 12px;
+        }
+
+        .agreement-checkbox {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 4px;
+        }
+
+        .agreement-checkbox label {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          cursor: pointer;
+          font-size: 0.875rem;
+          color: var(--text-dark);
+        }
+
+        .agreement-checkbox input[type="checkbox"] {
+          width: 18px;
+          height: 18px;
+          accent-color: #E45821;
+          cursor: pointer;
         }
 
         .checkout-button {

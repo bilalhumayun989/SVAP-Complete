@@ -129,6 +129,9 @@ export const OrderSummary = ({
             {CostCalculator.formatCurrency(costBreakdown.totalAmount)}
           </span>
         </div>
+        <div className="delivery-coverage-note">
+          <p>This covers your delivery, picking up and delivering the item to you.</p>
+        </div>
       </div>
 
       {transactionType === 'svap' && (
@@ -325,6 +328,18 @@ export const OrderSummary = ({
           font-size: 0.8rem;
           color: var(--text-mid);
           line-height: 1.4;
+        }
+
+        .delivery-coverage-note {
+          margin-top: 8px;
+        }
+
+        .delivery-coverage-note p {
+          margin: 0;
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          line-height: 1.4;
+          text-align: center;
         }
 
         /* Mobile responsiveness */

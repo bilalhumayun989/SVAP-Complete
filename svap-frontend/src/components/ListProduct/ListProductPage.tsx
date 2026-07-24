@@ -115,6 +115,15 @@ const ListProductPage = () => {
 
       if (response.error) throw new Error(response.error);
 
+      // Save city to user profile so it shows up on product cards
+      if (user.id && user.id !== 'dummy-user-id-1234' && city) {
+        try {
+          await api.updateProfile(user.id, { city });
+        } catch (err) {
+          // Ignore profile update errors
+        }
+      }
+
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
       resetForm(); // agar form clear karna ho, warna yeh line hata do

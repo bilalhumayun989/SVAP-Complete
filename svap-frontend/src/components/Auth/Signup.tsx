@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { FiUser, FiLock, FiEye, FiEyeOff, FiMail, FiPhone } from "react-icons/fi";
+import { FcGoogle } from "react-icons/fc";
+import { AiFillApple } from "react-icons/ai";
 import { api } from "../../services/api";
+import { supabase } from "../../services/supabase";
 
 type Step = "form" | "otp";
 
@@ -96,40 +99,72 @@ const Signup = () => {
 
     setLoading(true);
     try {
-      // 1. Verify OTP
+      // 1. Verify OTP — backend creates/finds user and returns session
       const otpRes = await api.verifyOtp(form.email, otp);
       if (otpRes.error) throw new Error(otpRes.error);
 
-      // 2. Create account
-      const signupRes = await api.signup({
-        email: form.email,
+      const userId = otpRes.user?.id;
+      const userEmail = form.email;
+
+      if (!userId) throw new Error("Verification failed. Please try again.");
+
+      // 2. Update profile with username, phone, password via signup endpoint
+      //    (only if this is a new user — signup handles upsert gracefully)
+      await api.signup({
+        email: userEmail,
         password: form.password,
         username: form.username,
         phone: form.phone,
+      }).catch(() => {
+        // Ignore if user already exists — profile update will handle it
       });
-      if (signupRes.error) throw new Error(signupRes.error);
 
-      const { data } = signupRes;
-      if (data?.user?.identities && data.user.identities.length === 0) {
-        throw new Error("This email is already registered. Please log in instead.");
+      // 3. Also update profile table with username/phone directly
+      try {
+        await api.updateProfile(userId, {
+          username: form.username,
+          phone: form.phone,
+          full_name: form.username,
+        });
+      } catch {
+        // non-fatal
       }
 
-      if (data?.user) {
-        localStorage.setItem(
-          "sz_user",
-          JSON.stringify({
-            id: data.user.id,
-            username: "@" + form.username,
-            email: form.email,
-          })
-        );
-        window.dispatchEvent(new Event("sz_auth_change"));
-        navigate("/");
+      // 4. Set local session
+      if (otpRes.session?.access_token) {
+        const { supabase: sb } = await import("../../services/supabase");
+        await sb.auth.setSession({
+          access_token: otpRes.session.access_token,
+          refresh_token: otpRes.session.refresh_token,
+        });
       }
+
+      localStorage.setItem(
+        "sz_user",
+        JSON.stringify({
+          id: userId,
+          username: "@" + form.username,
+          email: userEmail,
+          phone: form.phone,
+        })
+      );
+      window.dispatchEvent(new Event("sz_auth_change"));
+      navigate("/");
     } catch (err: any) {
       setError(err.message || "Verification failed");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── Google OAuth ───────────────────────────────────────────────────────────
+  const handleGoogleSignup = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) {
+      setError(error.message || "Google sign-in failed. Please try again.");
     }
   };
 
@@ -241,6 +276,28 @@ const Signup = () => {
                 <button type="submit" className="auth-primary-btn" disabled={loading}>
                   {loading ? <span className="auth-spinner" /> : <span>Send Verification Code</span>}
                 </button>
+
+                <div className="auth-divider">
+                  <span className="auth-divider-line" />
+                  <span className="auth-divider-text">Or Continue With</span>
+                  <span className="auth-divider-line" />
+                </div>
+
+                <div className="auth-social-row">
+                  <button
+                    type="button"
+                    className="auth-social-btn"
+                    id="signup-google"
+                    onClick={handleGoogleSignup}
+                  >
+                    <FcGoogle size={20} />
+                    <span>GOOGLE</span>
+                  </button>
+                  <button type="button" className="auth-social-btn" id="signup-apple">
+                    <AiFillApple size={20} />
+                    <span>APPLE</span>
+                  </button>
+                </div>
               </form>
 
               <p className="auth-switch">
@@ -597,6 +654,62 @@ const Signup = () => {
           .auth-right { padding: 40px 16px; }
           .auth-card { padding: 30px 20px; }
           .auth-otp-box { width: 42px; height: 50px; font-size: 1.2rem; }
+        }
+
+        /* Divider */
+        .auth-divider {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .auth-divider-line {
+          flex: 1;
+          height: 1px;
+          background: rgba(26,46,10,0.15);
+        }
+        html[data-theme='dark'] .auth-divider-line {
+          background: rgba(255,255,255,0.1);
+        }
+        .auth-divider-text {
+          font-size: 0.78rem;
+          color: var(--text-mid);
+          white-space: nowrap;
+        }
+
+        /* Social buttons */
+        .auth-social-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        .auth-social-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          padding: 14px 16px;
+          background: #ffffff;
+          border: 1px solid rgba(0,0,0,0.18);
+          border-radius: 12px;
+          color: var(--text-dark);
+          font-size: 0.88rem;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          cursor: pointer;
+          transition: background 0.2s, transform 0.2s;
+        }
+        html[data-theme='dark'] .auth-social-btn {
+          background: #1a1a1a;
+          border: 1px solid rgba(255,255,255,0.15);
+          color: #f5f5f5;
+        }
+        .auth-social-btn:hover {
+          background: #f2f8dc;
+          transform: translateY(-1px);
+        }
+        html[data-theme='dark'] .auth-social-btn:hover {
+          background: #2a2a2a;
+          transform: translateY(-1px);
         }
       `}</style>
     </div>

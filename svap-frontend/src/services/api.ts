@@ -34,6 +34,14 @@ export const api = {
     });
     return res.json();
   },
+  updateProfile: async (userId: string, data: any) => {
+    const res = await fetch(`${API_URL}/auth/profile/${encodeURIComponent(userId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
 
   // Upload
   uploadImage: async (formData: FormData) => {
@@ -74,8 +82,9 @@ export const api = {
     const res = await fetch(`${API_URL}/products/${id}`);
     return res.json();
   },
-  getProductsByUser: async (userId: string) => {
-    const res = await fetch(`${API_URL}/products/user/${encodeURIComponent(userId)}`);
+  getProductsByUser: async (userId: string, activeOnly = false) => {
+    const query = activeOnly ? '?active=true' : '';
+    const res = await fetch(`${API_URL}/products/user/${encodeURIComponent(userId)}${query}`);
     return res.json();
   },
   createProduct: async (data: any) => {
@@ -94,6 +103,12 @@ export const api = {
     });
     return res.json();
   },
+  deleteProduct: async (id: string) => {
+    const res = await fetch(`${API_URL}/products/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    return res.json();
+  },
 
   // Swap Requests
   createSwapRequest: async (data: any) => {
@@ -104,12 +119,70 @@ export const api = {
     });
     return res.json();
   },
-  updateSwapRequestStatus: async (id: string, status: string) => {
+
+  // Orders
+  createOrder: async (data: any) => {
+    const res = await fetch(`${API_URL}/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  updateSwapRequestStatus: async (id: string, status: string, updated_by?: string) => {
     const res = await fetch(`${API_URL}/swap-requests/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, updated_by }),
     });
     return res.json();
-  }
+  },
+  getSwapRequestsByUser: async (userId: string) => {
+    const res = await fetch(`${API_URL}/swap-requests/user/${encodeURIComponent(userId)}`);
+    return res.json();
+  },
+
+  // Notifications
+  getNotifications: async (userId: string) => {
+    const res = await fetch(`${API_URL}/notifications/user/${encodeURIComponent(userId)}`);
+    return res.json();
+  },
+  markAllNotificationsRead: async (userId: string) => {
+    const res = await fetch(`${API_URL}/notifications/user/${encodeURIComponent(userId)}/read-all`, {
+      method: 'PATCH',
+    });
+    return res.json();
+  },
+  markNotificationRead: async (id: string) => {
+    const res = await fetch(`${API_URL}/notifications/${encodeURIComponent(id)}/read`, {
+      method: 'PATCH',
+    });
+    return res.json();
+  },
+
+  // Saved Products
+  getSavedProducts: async (userId: string) => {
+    const res = await fetch(`${API_URL}/saved/${encodeURIComponent(userId)}`);
+    return res.json();
+  },
+  getSavedProductIds: async (userId: string) => {
+    const res = await fetch(`${API_URL}/saved/${encodeURIComponent(userId)}/ids`);
+    return res.json();
+  },
+  saveProduct: async (userId: string, productId: string) => {
+    const res = await fetch(`${API_URL}/saved`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, product_id: productId }),
+    });
+    return res.json();
+  },
+  unsaveProduct: async (userId: string, productId: string) => {
+    const res = await fetch(`${API_URL}/saved`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, product_id: productId }),
+    });
+    return res.json();
+  },
 };

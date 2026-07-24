@@ -10,10 +10,11 @@ exports.getAllProducts = async (req, res) => {
     let query = supabase
       .from('products')
       .select('*, profiles(*)')
+      .eq('status', 'active')           // ← only active products everywhere
       .order('created_at', { ascending: false });
 
     if (isStoriesRequest) {
-      query = query.eq('status', 'active').gte('created_at', sevenDaysAgo());
+      query = query.gte('created_at', sevenDaysAgo());
     }
 
     if (category) query = query.eq('category', category);
@@ -70,12 +71,20 @@ exports.getProductById = async (req, res) => {
 exports.getProductsByUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { data, error } = await supabase
+    const { active } = req.query; // ?active=true for only active products
+
+    let query = supabase
       .from('products')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
+    // Filter active-only when requested (listings page + swap modal)
+    if (active === 'true') {
+      query = query.eq('status', 'active');
+    }
+
+    const { data, error } = await query;
     if (error) return res.status(400).json({ error: error.message });
     res.json({ data });
   } catch (err) {

@@ -5,19 +5,37 @@ import { api } from "../../services/api";
 
 const PAGE_SIZE = 12;
 
+// ── Skeleton card ──────────────────────────────────────────────────────────
+const SkeletonCard = () => (
+  <div className="pg-skeleton-card">
+    <div className="pg-skeleton pg-skeleton-img" />
+    <div className="pg-skeleton-body">
+      <div className="pg-skeleton pg-skeleton-line pg-skeleton-line--short" />
+      <div className="pg-skeleton pg-skeleton-line" />
+      <div className="pg-skeleton pg-skeleton-line pg-skeleton-line--xs" />
+    </div>
+  </div>
+);
+
 const ProductGrid = () => {
   const navigate = useNavigate();
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    const userId = (() => { try { return JSON.parse(localStorage.getItem("sz_user") || "{}").id; } catch { return null; } })();
+
     const fetchProducts = async () => {
       try {
-        const response = await api.getProducts();
-        if (response.error) throw new Error(response.error);
-        
-        if (response.data) {
-          const mappedProducts = response.data.map((p: any) => ({
+        const [prodRes, savedRes] = await Promise.all([
+          api.getProducts(),
+          userId ? api.getSavedProductIds(userId) : Promise.resolve({ data: [] }),
+        ]);
+        if (prodRes.error) throw new Error(prodRes.error);
+        if (prodRes.data) {
+          setProducts(prodRes.data.map((p: any) => ({
             id: p.id,
             user: {
               name: p.profiles?.username || p.profiles?.full_name || "Unknown",
@@ -32,11 +50,13 @@ const ProductGrid = () => {
             condition: p.condition || "",
             swapFor: p.swap_for || "",
             swapForImage: p.image_urls?.[1] || "",
-          }));
-          setProducts(mappedProducts);
+          })));
         }
+        if (savedRes.data) setSavedIds(new Set(savedRes.data));
       } catch (err: any) {
         console.error("Error fetching products:", err.message);
+      } finally {
+        setLoading(false);
       }
     };
     fetchProducts();
@@ -58,9 +78,12 @@ const ProductGrid = () => {
 
           {/* Grid */}
           <div className="pg-grid">
-            {visibleProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            {loading
+              ? Array.from({ length: PAGE_SIZE }).map((_, i) => <SkeletonCard key={i} />)
+              : visibleProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} initialSaved={savedIds.has(product.id)} />
+                ))
+            }
           </div>
 
           {/* Load More */}
@@ -259,6 +282,45 @@ const ProductGrid = () => {
           .pg-grid  { grid-template-columns: 1fr; gap: 10px; }
           .pg-loadmore-btn { padding: 11px 28px; }
         }
+
+        /* ── Skeleton ── */
+        @keyframes pg-shimmer {
+          0%   { background-position: -600px 0; }
+          100% { background-position: 600px 0; }
+        }
+        .pg-skeleton {
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 600px 100%;
+          animation: pg-shimmer 1.4s infinite linear;
+          border-radius: 10px;
+        }
+        html[data-theme='dark'] .pg-skeleton {
+          background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+          background-size: 600px 100%;
+        }
+        .pg-skeleton-card {
+          border-radius: 14px;
+          overflow: hidden;
+          border: 1px solid rgba(165,194,111,0.15);
+        }
+        html[data-theme='dark'] .pg-skeleton-card { border-color: #1f1f1f; }
+        .pg-skeleton-img {
+          width: 100%;
+          aspect-ratio: 4/3;
+          border-radius: 0;
+        }
+        .pg-skeleton-body {
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .pg-skeleton-line {
+          height: 13px;
+          width: 100%;
+        }
+        .pg-skeleton-line--short { width: 60%; height: 11px; }
+        .pg-skeleton-line--xs    { width: 40%; height: 10px; }
       `}</style>
     </>
   );

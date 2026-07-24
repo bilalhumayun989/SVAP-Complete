@@ -21,11 +21,9 @@ export const DeliveryAddressSection = ({
   const [editData, setEditData] = useState<DeliveryAddress>(
     address || {
       fullName: '',
+      phone: '',
       streetAddress: '',
       city: '',
-      province: '',
-      postalCode: '',
-      phone: '',
     }
   );
 
@@ -38,7 +36,7 @@ export const DeliveryAddressSection = ({
 
   const handleSave = () => {
     // Basic validation
-    if (editData.fullName && editData.streetAddress && editData.city && editData.province && editData.phone) {
+    if (editData.fullName && editData.phone && editData.streetAddress && editData.city) {
       onAddressChange(editData);
       setIsEditing(false);
     }
@@ -76,9 +74,9 @@ export const DeliveryAddressSection = ({
         <div className="address-display">
           <div className="address-name">{address.fullName}</div>
           <div className="address-details">
-            <div>{address.streetAddress}</div>
-            <div>{address.city}, {address.province} {address.postalCode}</div>
             <div>{address.phone}</div>
+            <div>{address.streetAddress}</div>
+            <div>{address.city}</div>
           </div>
         </div>
       ) : (
@@ -99,6 +97,19 @@ export const DeliveryAddressSection = ({
             </div>
 
             <div className="form-group span-2">
+              <label htmlFor="phone">Phone Number *</label>
+              <input
+                id="phone"
+                type="tel"
+                value={editData.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                placeholder="+92 300 1234567"
+                disabled={disabled}
+                className={!editData.phone ? 'error' : ''}
+              />
+            </div>
+
+            <div className="form-group span-2">
               <label htmlFor="streetAddress">Street Address *</label>
               <input
                 id="streetAddress"
@@ -111,7 +122,7 @@ export const DeliveryAddressSection = ({
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group span-2">
               <label htmlFor="city">City *</label>
               <input
                 id="city"
@@ -123,51 +134,6 @@ export const DeliveryAddressSection = ({
                 className={!editData.city ? 'error' : ''}
               />
             </div>
-
-            <div className="form-group">
-              <label htmlFor="province">Province *</label>
-              <select
-                id="province"
-                value={editData.province}
-                onChange={(e) => handleInputChange('province', e.target.value)}
-                disabled={disabled}
-                className={!editData.province ? 'error' : ''}
-              >
-                <option value="">Select Province</option>
-                <option value="Punjab">Punjab</option>
-                <option value="Sindh">Sindh</option>
-                <option value="KPK">Khyber Pakhtunkhwa</option>
-                <option value="Balochistan">Balochistan</option>
-                <option value="Gilgit-Baltistan">Gilgit-Baltistan</option>
-                <option value="Azad Kashmir">Azad Kashmir</option>
-                <option value="Islamabad">Islamabad</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="postalCode">Postal Code</label>
-              <input
-                id="postalCode"
-                type="text"
-                value={editData.postalCode}
-                onChange={(e) => handleInputChange('postalCode', e.target.value)}
-                placeholder="12345"
-                disabled={disabled}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="phone">Phone Number *</label>
-              <input
-                id="phone"
-                type="tel"
-                value={editData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                placeholder="+92 300 1234567"
-                disabled={disabled}
-                className={!editData.phone ? 'error' : ''}
-              />
-            </div>
           </div>
 
           <div className="form-actions">
@@ -175,7 +141,7 @@ export const DeliveryAddressSection = ({
               type="button"
               className="save-button"
               onClick={handleSave}
-              disabled={disabled || !editData.fullName || !editData.streetAddress || !editData.city || !editData.province || !editData.phone}
+              disabled={disabled || !editData.fullName || !editData.phone || !editData.streetAddress || !editData.city}
             >
               <FiCheck size={14} />
               Save Address

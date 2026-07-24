@@ -83,9 +83,15 @@ const StoriesRow = () => {
       </div>
 
       <div className="stories-row" aria-label="Product stories row">
-        {loading && (
-          <div className="stories-loading">Loading stories...</div>
-        )}
+        {loading && Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} className="story-item">
+            <div className="story-ring story-skeleton-ring">
+              <div className="story-skeleton-circle" />
+            </div>
+            <div className="story-skeleton-line" />
+            <div className="story-skeleton-line story-skeleton-line--xs" />
+          </div>
+        ))}
 
         {!loading && stories.length === 0 && (
           <div className="stories-empty">No recent active listings yet.</div>
@@ -210,6 +216,42 @@ const StoriesRow = () => {
           color: var(--muted-text, #6b7280);
           padding: 8px 0;
         }
+
+        /* ── Skeleton ── */
+        @keyframes stories-shimmer {
+          0%   { background-position: -300px 0; }
+          100% { background-position: 300px 0; }
+        }
+        .story-skeleton-ring {
+          background: transparent !important;
+          padding: 2px;
+        }
+        .story-skeleton-circle {
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 300px 100%;
+          animation: stories-shimmer 1.4s infinite linear;
+        }
+        html[data-theme='dark'] .story-skeleton-circle {
+          background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+          background-size: 300px 100%;
+        }
+        .story-skeleton-line {
+          height: 9px;
+          width: 60px;
+          border-radius: 6px;
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 300px 100%;
+          animation: stories-shimmer 1.4s infinite linear;
+          animation-delay: 0.1s;
+        }
+        html[data-theme='dark'] .story-skeleton-line {
+          background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+          background-size: 300px 100%;
+        }
+        .story-skeleton-line--xs { width: 40px; height: 7px; animation-delay: 0.2s; }
 
         @media (min-width: 768px) {
           .stories-section {

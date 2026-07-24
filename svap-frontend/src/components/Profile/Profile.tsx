@@ -2,29 +2,14 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiGrid, FiBookmark, FiRepeat, FiTag,
-   FiCamera, FiEdit2, FiTrash2, FiHeart,
-  FiPackage,
+  FiCamera, FiEdit2, FiTrash2, FiHeart,
+  FiCheck, FiClock, FiX,
 } from "react-icons/fi";
 import { HiCheckBadge } from "react-icons/hi2";
 import StoryViewer from "./StoryViewer";
 import { api } from "../../services/api";
 
-const MOCK_SAVED = [
-  { id: 7, image: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&q=80", name: "Samsung S24 Ultra", price: "Rs 240,000" },
-  { id: 8, image: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&q=80", name: "Designer Handbag", price: "Rs 45,000" },
-  { id: 9, image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80", name: "Electric Scooter", price: "Rs 45,000" },
-];
-
-const MOCK_SWAPS = [
-  { id: 10, image: "https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400&q=80", name: "Dell XPS 15", swapFor: "MacBook Air" },
-  { id: 11, image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&q=80", name: "Gaming PC RTX", swapFor: "PS5 + Cash" },
-];
-
-const INIT_STORIES = [
-  { id: "ms1", url: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&q=80", duration: 5000 },
-  { id: "ms2", url: "https://images.unsplash.com/photo-1607853202273-797f1c22a38e?w=400&q=80", duration: 5000 },
-  { id: "ms3", url: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&q=80", duration: 5000 },
-];
+const INIT_STORIES: { id: string; url: string; duration: number }[] = [];
 
 type TabKey = "listings" | "saved" | "swaps" | "reels" | "orders";
 
@@ -33,7 +18,6 @@ const TABS: { key: TabKey; icon: React.ReactNode; label: string }[] = [
   { key: "saved",    icon: <FiBookmark size={17} />, label: "Saved" },
   { key: "swaps",    icon: <FiRepeat size={17} />,   label: "Swaps" },
   { key: "reels",    icon: <FiCamera size={17} />,   label: "Reels" },
-  { key: "orders",   icon: <FiPackage size={17} />,  label: "Orders" },
 ];
 
 /* ── Grid card (shared) ─────────────────────────────────── */
@@ -76,7 +60,11 @@ const Profile = () => {
   const [storyOpen, setStoryOpen] = useState(false);
   const [storyStart, setStoryStart] = useState(0);
   const [listings, setListings] = useState<any[]>([]);
+  const [savedItems, setSavedItems] = useState<any[]>([]);
+  const [swapRequests, setSwapRequests] = useState<any[]>([]);
   const [reels, setReels] = useState<any[]>([]);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string | number; name: string } | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [profileUser, setProfileUser] = useState<any>({
     name: "User",
     username: "@user",
@@ -112,7 +100,7 @@ const Profile = () => {
 
         setProfileUser(fallbackProfile);
 
-        const { data: productData, error: productError } = await api.getProductsByUser(savedUser.id);
+        const { data: productData, error: productError } = await api.getProductsByUser(savedUser.id, true);
         console.log("Profile products response:", { userId: savedUser.id, productData, productError });
 
         if (!productError && Array.isArray(productData)) {
@@ -125,6 +113,16 @@ const Profile = () => {
             swapFor: p.swap_for
           })));
 
+          // Stories: one story per active product (uses first image)
+          const productStories = activeListings
+            .filter((p: any) => p.image_urls?.[0])
+            .map((p: any) => ({
+              id: p.id,
+              url: p.image_urls[0],
+              duration: 5000,
+            }));
+          setStories(productStories);
+
           // Reels: only products with a video_url
           const reelProducts = productData.filter((p: any) => Boolean(p.video_url));
           setReels(reelProducts.map((p: any) => ({
@@ -133,6 +131,39 @@ const Profile = () => {
             thumbnail: p.image_urls?.[0] || 'https://placehold.co/400x700?text=Reel',
             caption: p.title || "Reel",
             likes: p.saved_count || 0,
+          })));
+        }
+
+        // Load saved products (only active ones)
+        const savedRes = await api.getSavedProducts(savedUser.id);
+        if (savedRes.data) {
+          setSavedItems(savedRes.data
+            .filter((row: any) => row.product)
+            .map((row: any) => ({
+              id: row.product.id,
+              image: row.product.image_urls?.[0] || 'https://placehold.co/400x400',
+              name: row.product.title,
+              price: 'Swap Only',
+              swapFor: row.product.swap_for,
+            }))
+          );
+        }
+
+        // Load swap requests (sent + received)
+        const swapsRes = await api.getSwapRequestsByUser(savedUser.id);
+        if (swapsRes.data) {
+          setSwapRequests(swapsRes.data.map((r: any) => ({
+            id: r.id,
+            direction: r.from_user_id === savedUser.id ? 'sent' : 'received',
+            status: r.status,
+            created_at: r.created_at,
+            offeredTitle: r.offered?.title || 'Unknown',
+            offeredImage: r.offered?.image_urls?.[0] || 'https://placehold.co/400x400',
+            requestedTitle: r.requested?.title || 'Unknown',
+            requestedImage: r.requested?.image_urls?.[0] || 'https://placehold.co/400x400',
+            otherUser: r.from_user_id === savedUser.id
+              ? (r.to_profile?.username || 'Unknown')
+              : (r.from_profile?.username || 'Unknown'),
           })));
         }
       } catch (error) {
@@ -157,7 +188,32 @@ const Profile = () => {
   };
 
   const deleteListing = (id: number) => {
-    setListings(prev => prev.filter(item => item.id !== id));
+    const item = listings.find(l => l.id === id);
+    if (item) setDeleteConfirm({ id, name: item.name });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    setDeleteLoading(true);
+    try {
+      const rawUser = localStorage.getItem("sz_user");
+      const savedUser = rawUser ? JSON.parse(rawUser) : null;
+      if (!savedUser?.id) throw new Error("Not logged in");
+
+      const res = await api.deleteProduct(String(deleteConfirm.id));
+      if (res.error) throw new Error(res.error);
+
+      setListings(prev => prev.filter(item => item.id !== deleteConfirm.id));
+      setDeleteConfirm(null);
+    } catch (err: any) {
+      alert(err.message || "Delete failed");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleEditListing = (id: number) => {
+    navigate(`/edit-product/${id}`);
   };
 
   const deleteReel = (id: number) => {
@@ -179,6 +235,37 @@ const Profile = () => {
           onClose={() => setStoryOpen(false)}
           key={`sv-${storyStart}`}
         />
+      )}
+
+      {/* ── Delete Confirmation Dialog ── */}
+      {deleteConfirm && (
+        <div className="pf-dialog-overlay" onClick={() => !deleteLoading && setDeleteConfirm(null)}>
+          <div className="pf-dialog" onClick={e => e.stopPropagation()}>
+            <div className="pf-dialog-icon">
+              <FiTrash2 size={22} />
+            </div>
+            <h3 className="pf-dialog-title">Delete Listing?</h3>
+            <p className="pf-dialog-msg">
+              "<strong>{deleteConfirm.name}</strong>" ko delete karna chahte hain? Yeh action wapas nahi hogi.
+            </p>
+            <div className="pf-dialog-btns">
+              <button
+                className="pf-dialog-btn pf-dialog-btn--cancel"
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleteLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className="pf-dialog-btn pf-dialog-btn--delete"
+                onClick={confirmDelete}
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <input
@@ -339,7 +426,7 @@ const Profile = () => {
                     item={item}
                     badge="price"
                     onDelete={deleteListing}
-                    onEdit={(id: number) => console.log("Edit listing:", id)}
+                    onEdit={handleEditListing}
                   />
                 ))}
                 {listings.length === 0 && (
@@ -351,14 +438,69 @@ const Profile = () => {
             {/* SAVED TAB */}
             {activeTab === "saved" && (
               <div className="pf-grid">
-                {MOCK_SAVED.map(item => <GridCard key={item.id} item={item} badge="price" />)}
+                {savedItems.length === 0 && (
+                  <div className="pf-empty">No saved listings yet. Bookmark products to save them here.</div>
+                )}
+                {savedItems.map(item => (
+                  <GridCard key={item.id} item={item} badge="price" />
+                ))}
               </div>
             )}
 
             {/* SWAPS TAB */}
             {activeTab === "swaps" && (
-              <div className="pf-grid">
-                {MOCK_SWAPS.map(item => <GridCard key={item.id} item={item} badge="swap" />)}
+              <div className="pf-swaps-list">
+                {swapRequests.length === 0 && (
+                  <div className="pf-empty">No swap history yet.</div>
+                )}
+                {swapRequests.map(swap => {
+                  const isComplete = swap.status === 'completed' || swap.status === 'accepted';
+                  const isRejected = swap.status === 'rejected';
+                  const isPending  = swap.status === 'pending';
+
+                  return (
+                    <div
+                      key={swap.id}
+                      className="pf-swap-card"
+                      onClick={() => navigate('/requests')}
+                    >
+                      {/* Images row */}
+                      <div className="pf-swap-imgs">
+                        <div className="pf-swap-img-wrap">
+                          <img src={swap.offeredImage} alt={swap.offeredTitle} className="pf-swap-img" />
+                          <span className="pf-swap-img-label">Offered</span>
+                        </div>
+                        <div className="pf-swap-arrow-icon">
+                          <FiRepeat size={16} />
+                        </div>
+                        <div className="pf-swap-img-wrap">
+                          <img src={swap.requestedImage} alt={swap.requestedTitle} className="pf-swap-img" />
+                          <span className="pf-swap-img-label">Requested</span>
+                        </div>
+                      </div>
+
+                      {/* Info row */}
+                      <div className="pf-swap-info">
+                        <div className="pf-swap-titles">
+                          <span className="pf-swap-title">{swap.offeredTitle}</span>
+                          <span className="pf-swap-sep">↔</span>
+                          <span className="pf-swap-title">{swap.requestedTitle}</span>
+                        </div>
+                        <span className="pf-swap-user">
+                          {swap.direction === 'sent' ? 'To' : 'From'}: @{swap.otherUser}
+                        </span>
+                      </div>
+
+                      {/* Status badge */}
+                      <div className={`pf-swap-badge pf-swap-badge--${swap.status}`}>
+                        {isComplete  && <><FiCheck size={11} /> Completed</>}
+                        {isRejected  && <><FiX size={11} /> Rejected</>}
+                        {isPending   && <><FiClock size={11} /> Pending</>}
+                        {!isComplete && !isRejected && !isPending && swap.status}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -550,7 +692,84 @@ const Profile = () => {
 
         .pf-tab-lbl { font-size: 0.62rem; font-weight: 600; letter-spacing: 0.01em; }
 
-        .pf-content { padding: 16px 0 12px; }
+        .pf-empty {
+          grid-column: 1/-1;
+          text-align: center;
+          padding: 48px 20px;
+          color: var(--pf-muted);
+          font-size: 0.85rem;
+        }
+
+        /* ── Delete Confirmation Dialog ── */
+        .pf-dialog-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.55);
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          backdrop-filter: blur(4px);
+        }
+        .pf-dialog {
+          background: #fff;
+          border-radius: 18px;
+          padding: 28px 24px 24px;
+          width: 100%;
+          max-width: 360px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+          box-shadow: 0 24px 60px rgba(0,0,0,0.22);
+          animation: pf-dialog-in 0.2s ease-out;
+        }
+        html[data-theme='dark'] .pf-dialog {
+          background: #1a1a1a;
+          border: 1px solid #2a2a2a;
+        }
+        @keyframes pf-dialog-in {
+          from { opacity: 0; transform: scale(0.94); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        .pf-dialog-icon {
+          width: 52px; height: 52px; border-radius: 50%;
+          background: rgba(228,88,33,0.1);
+          border: 1px solid rgba(228,88,33,0.25);
+          display: flex; align-items: center; justify-content: center;
+          color: #E45821;
+        }
+        .pf-dialog-title {
+          font-size: 1.05rem; font-weight: 700; color: var(--pf-ink); margin: 0;
+        }
+        html[data-theme='dark'] .pf-dialog-title { color: #fff; }
+        .pf-dialog-msg {
+          font-size: 0.83rem; color: var(--pf-muted);
+          text-align: center; line-height: 1.6; margin: 0;
+        }
+        html[data-theme='dark'] .pf-dialog-msg { color: #aaa; }
+        html[data-theme='dark'] .pf-dialog-msg strong { color: #fff; }
+        .pf-dialog-btns {
+          display: flex; gap: 10px; width: 100%; margin-top: 4px;
+        }
+        .pf-dialog-btn {
+          flex: 1; padding: 11px 16px; border-radius: 10px;
+          font-size: 0.85rem; font-weight: 700; cursor: pointer;
+          font-family: inherit; transition: all 0.15s; border: none;
+        }
+        .pf-dialog-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .pf-dialog-btn--cancel {
+          background: var(--pf-line-soft); color: var(--pf-ink); border: 1px solid var(--pf-line);
+        }
+        .pf-dialog-btn--cancel:hover:not(:disabled) { background: var(--pf-line); }
+        html[data-theme='dark'] .pf-dialog-btn--cancel {
+          background: #2a2a2a; color: #fff; border-color: #3a3a3a;
+        }
+        .pf-dialog-btn--delete { background: #E45821; color: #fff; }
+        .pf-dialog-btn--delete:hover:not(:disabled) {
+          background: #c94a18; transform: translateY(-1px);
+        }
 
         .pf-grid {
           display: grid;
@@ -732,6 +951,147 @@ const Profile = () => {
           font-size: 0.68rem;
           color: var(--pf-muted);
           font-weight: 500;
+        }
+
+        /* ── Swaps Tab ── */
+        .pf-swaps-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .pf-swap-card {
+          background: var(--pf-surface);
+          border: 1px solid var(--pf-line);
+          border-radius: 14px;
+          padding: 14px;
+          cursor: pointer;
+          transition: transform 0.18s, box-shadow 0.18s;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .pf-swap-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+        html[data-theme='dark'] .pf-swap-card {
+          background: #1a1a1a;
+          border-color: #2a2a2a;
+        }
+
+        .pf-swap-imgs {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .pf-swap-img-wrap {
+          flex: 1;
+          position: relative;
+          border-radius: 10px;
+          overflow: hidden;
+          aspect-ratio: 4/3;
+          background: var(--pf-line-soft);
+          border: 1px solid var(--pf-line);
+        }
+        html[data-theme='dark'] .pf-swap-img-wrap { background: #111; border-color: #2a2a2a; }
+        .pf-swap-img {
+          width: 100%; height: 100%; object-fit: cover; display: block;
+        }
+        .pf-swap-img-label {
+          position: absolute;
+          bottom: 5px; left: 6px;
+          font-size: 0.58rem;
+          font-weight: 700;
+          color: #fff;
+          background: rgba(0,0,0,0.6);
+          padding: 2px 6px;
+          border-radius: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .pf-swap-arrow-icon {
+          color: #E45821;
+          flex-shrink: 0;
+          width: 28px; height: 28px;
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(228,88,33,0.1);
+          border-radius: 50%;
+          border: 1px solid rgba(228,88,33,0.2);
+        }
+
+        .pf-swap-info {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+        .pf-swap-titles {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--pf-ink);
+          flex-wrap: wrap;
+        }
+        html[data-theme='dark'] .pf-swap-titles { color: #fff; }
+        .pf-swap-title {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 120px;
+        }
+        .pf-swap-sep {
+          color: var(--pf-muted);
+          font-size: 0.75rem;
+          flex-shrink: 0;
+        }
+        .pf-swap-user {
+          font-size: 0.7rem;
+          color: var(--pf-muted);
+          font-weight: 500;
+        }
+
+        .pf-swap-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          align-self: flex-start;
+          text-transform: capitalize;
+        }
+        .pf-swap-badge--completed,
+        .pf-swap-badge--accepted {
+          background: rgba(34,197,94,0.12);
+          color: #16a34a;
+          border: 1px solid rgba(34,197,94,0.3);
+        }
+        html[data-theme='dark'] .pf-swap-badge--completed,
+        html[data-theme='dark'] .pf-swap-badge--accepted {
+          background: rgba(34,197,94,0.15);
+          color: #4ade80;
+        }
+        .pf-swap-badge--pending {
+          background: rgba(245,158,11,0.12);
+          color: #b45309;
+          border: 1px solid rgba(245,158,11,0.3);
+        }
+        html[data-theme='dark'] .pf-swap-badge--pending {
+          background: rgba(245,158,11,0.15);
+          color: #fbbf24;
+        }
+        .pf-swap-badge--rejected {
+          background: rgba(239,68,68,0.1);
+          color: #dc2626;
+          border: 1px solid rgba(239,68,68,0.25);
+        }
+        html[data-theme='dark'] .pf-swap-badge--rejected {
+          background: rgba(239,68,68,0.15);
+          color: #f87171;
         }
 
         .pf-reviews { display: flex; flex-direction: column; gap: 10px; }

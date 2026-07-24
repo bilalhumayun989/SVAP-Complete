@@ -4,14 +4,27 @@ import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowRight } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { AiFillApple } from "react-icons/ai";
 import { api } from "../../services/api";
+import { supabase } from "../../services/supabase";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpMode, setOtpMode] = useState<'none' | 'email_otp' | 'verify_otp'>('none');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) {
+      setError(error.message || "Google sign-in failed. Please try again.");
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,6 +32,40 @@ const Login = () => {
     setLoading(true);
 
     try {
+      if (otpMode === 'email_otp') {
+        // Send Email OTP via Custom Backend (Nodemailer)
+        const response = await api.sendOtp(email.trim());
+        if (response.error) throw new Error(response.error);
+        
+        setOtpMode('verify_otp');
+        setLoading(false);
+        return;
+      }
+
+      if (otpMode === 'verify_otp') {
+        // Verify Email OTP via Custom Backend
+        const response = await api.verifyOtp(email.trim(), otp);
+        if (response.error) throw new Error(response.error);
+        
+        const { user } = response;
+        if (user) {
+          localStorage.setItem("sz_user", JSON.stringify({
+            id: user.id,
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || "User",
+            username: `@user_${user.id.substring(0,5)}`,
+            city: "Pakistan",
+            email: user.email,
+            phone: user.phone || null,
+            avatar: user.user_metadata?.avatar_url || null
+          }));
+          window.dispatchEvent(new Event("sz_auth_change"));
+          navigate("/");
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Existing email/password login
       const response = await api.login({
         email,
         password,
@@ -31,17 +78,21 @@ const Login = () => {
       if (data?.user) {
         localStorage.setItem("sz_user", JSON.stringify({
           id: data.user.id,
-          name: profile?.name || "User",
-          username: profile?.name ? `@${profile.name.replace(/\s+/g, "").toLowerCase()}` : "@user",
+          name: profile?.full_name || profile?.username || data.user.email?.split('@')[0] || "User",
+          username: profile?.username ? `@${profile.username}` : `@${data.user.email?.split('@')[0] || 'user'}`,
           city: profile?.city || "Pakistan",
           email: data.user.email,
-          avatar: profile?.avatar_url || null
+          avatar: profile?.avatar_url || null,
+          phone: profile?.phone || null,
+          bio: profile?.bio || "",
         }));
         window.dispatchEvent(new Event("sz_auth_change"));
         navigate("/");
+      } else {
+        throw new Error("Login succeeded but no user returned. Please try again.");
       }
     } catch (err: any) {
-      setError(err.message || "Invalid email or password.");
+      setError(err.message || "Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
     }
@@ -74,34 +125,67 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="auth-field">
-            <label className="auth-label">PASSWORD</label>
-            <div className="auth-input-wrap">
-              <FiLock className="auth-input-icon" />
-              <input
-                id="login-password"
-                type={showPass ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                className="auth-input"
-                autoComplete="current-password"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPass(!showPass)}
-                className="auth-eye-btn"
-                aria-label="Toggle password visibility"
-              >
-                {showPass ? <FiEyeOff /> : <FiEye />}
+          {otpMode === 'none' && (
+            <div className="auth-field">
+              <label className="auth-label">PASSWORD</label>
+              <div className="auth-input-wrap">
+                <FiLock className="auth-input-icon" />
+                <input
+                  id="login-password"
+                  type={showPass ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  className="auth-input"
+                  autoComplete="current-password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(!showPass)}
+                  className="auth-eye-btn"
+                  aria-label="Toggle password visibility"
+                >
+                  {showPass ? <FiEyeOff /> : <FiEye />}
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {otpMode === 'verify_otp' && (
+            <div className="auth-field">
+              <label className="auth-label">OTP CODE</label>
+              <div className="auth-input-wrap">
+                <FiLock className="auth-input-icon" />
+                <input
+                  id="login-otp"
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  placeholder="Enter 6-digit OTP"
+                  className="auth-input"
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {otpMode === 'none' && (
+            <div className="auth-forgot-row">
+              <Link to="/forgot-password" className="auth-forgot-link">Forgot Password?</Link>
+              <button type="button" onClick={() => setOtpMode('email_otp')} className="auth-forgot-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                Login with OTP instead
               </button>
             </div>
-          </div>
-
-          <div className="auth-forgot-row">
-            <Link to="/forgot-password" className="auth-forgot-link">Forgot Password?</Link>
-          </div>
+          )}
+          
+          {otpMode === 'email_otp' && (
+            <div className="auth-forgot-row">
+              <button type="button" onClick={() => setOtpMode('none')} className="auth-forgot-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                Login with Password instead
+              </button>
+            </div>
+          )}
 
           {error && <p className="auth-error">{error}</p>}
 
@@ -113,7 +197,9 @@ const Login = () => {
           >
             {loading ? <span className="auth-spinner" /> : (
               <>
-                <span>LOG IN</span>
+                <span>
+                  {otpMode === 'email_otp' ? "SEND OTP" : otpMode === 'verify_otp' ? "VERIFY OTP" : "LOG IN"}
+                </span>
                 <FiArrowRight />
               </>
             )}
@@ -126,7 +212,7 @@ const Login = () => {
           </div>
 
           <div className="auth-social-row">
-            <button type="button" className="auth-social-btn" id="login-google">
+            <button type="button" className="auth-social-btn" id="login-google" onClick={handleGoogleLogin}>
               <FcGoogle size={20} />
               <span>GOOGLE</span>
             </button>

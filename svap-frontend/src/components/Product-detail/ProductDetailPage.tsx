@@ -22,13 +22,13 @@ interface DetailProduct {
   id: string
   title: string
   description?: string
-  image: string
+  images: string[]
   location: string
   views: number
   condition?: string
   swapFor?: string
-  swapForImage?: string
   category?: string
+  owner_id: string
   user: { name: string; avatar: string; email?: string }
 }
 
@@ -40,6 +40,11 @@ const ProductDetailPage = () => {
   const [product, setProduct] = useState<DetailProduct | null>(null)
   const [related, setRelated] = useState<DetailProduct[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeImg, setActiveImg] = useState(0)
+  const [showSwapModal, setShowSwapModal] = useState(false)
+  const [myProducts, setMyProducts] = useState<any[]>([])
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
+  const [swapLoading, setSwapLoading] = useState(false)
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -54,14 +59,14 @@ const ProductDetailPage = () => {
           const mappedProduct: DetailProduct = {
             id: data.id,
             title: data.title,
-            image: data.image_urls?.[0] || 'https://placehold.co/600x400',
+            images: data.image_urls?.length ? data.image_urls : ['https://placehold.co/600x400'],
             description: data.description,
             location: data.profiles?.city || 'Unknown',
             views: data.saved_count || 0,
             condition: data.condition || '',
             swapFor: data.swap_for || '',
-            swapForImage: data.image_urls?.[1] || '',
             category: data.category || '',
+            owner_id: data.user_id || '',
             user: {
               name: data.profiles?.username || data.profiles?.full_name || 'Unknown',
               avatar: data.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${data.profiles?.username || 'U'}&background=random`,
@@ -69,6 +74,7 @@ const ProductDetailPage = () => {
             }
           };
           setProduct(mappedProduct);
+          setActiveImg(0);
 
           // Fetch related products
           if (data.category) {
@@ -80,7 +86,7 @@ const ProductDetailPage = () => {
               setRelated(relatedData.map((p: any) => ({
                 id: p.id,
                 title: p.title,
-                image: p.image_urls?.[0] || 'https://placehold.co/600x400',
+                images: p.image_urls?.length ? p.image_urls : ['https://placehold.co/600x400'],
                 location: p.profiles?.city || 'Unknown',
                 views: p.saved_count || 0,
                 user: {
@@ -126,24 +132,28 @@ const ProductDetailPage = () => {
       {/* ══ Main two-column ══ */}
       <div className="pdp-main">
 
-        {/* LEFT — image */}
+        {/* LEFT — image gallery */}
         <div className="pdp-left">
+          {/* Main image */}
           <div className="pdp-img-card">
-            <img src={product.image} alt={product.title} className="pdp-img" />
-
-            {/* Condition badge */}
-            {/* {product.condition && (
-              <span className="pdp-badge">
-                <span className="pdp-badge-dot" />
-                {product.condition}
-              </span>
-            )} */}
-
-            {/* <div className="pdp-img-actions">
-              <button className="pdp-icon-btn" aria-label="Like"><FiHeart /></button>
-              <button className="pdp-icon-btn" aria-label="Share"><FiShare2 /></button>
-            </div> */}
+            <img src={product.images[activeImg]} alt={product.title} className="pdp-img" />
           </div>
+
+          {/* Thumbnails — only show if more than 1 image */}
+          {product.images.length > 1 && (
+            <div className="pdp-thumbs">
+              {product.images.map((img, i) => (
+                <button
+                  key={i}
+                  className={`pdp-thumb ${activeImg === i ? 'pdp-thumb--active' : ''}`}
+                  onClick={() => setActiveImg(i)}
+                  aria-label={`Image ${i + 1}`}
+                >
+                  <img src={img} alt={`${product.title} ${i + 1}`} className="pdp-thumb-img" />
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Views pill */}
           <div className="pdp-views">
@@ -187,9 +197,6 @@ const ProductDetailPage = () => {
           {/* Swap-for */}
           {product.swapFor && (
             <div className="pdp-swap-for">
-              {product.swapForImage && (
-                <img src={product.swapForImage} alt={product.swapFor} className="pdp-swap-img" />
-              )}
               <div>
                 <p className="pdp-swap-label">Looking to swap for</p>
                 <p className="pdp-swap-item">{product.swapFor}</p>
@@ -206,18 +213,22 @@ const ProductDetailPage = () => {
               onClick={async () => {
                 if (requested) { navigate('/requests'); return; }
                 const rawUser = localStorage.getItem('sz_user');
-                const me = rawUser ? JSON.parse(rawUser) : { name: 'You', username: 'you' };
-                await sendSwapRequest({
-                  senderName: me.name ?? me.username ?? 'You',
-                  senderAvatar: `https://i.pravatar.cc/150?u=${me.username}`,
-                  offeredItemTitle: 'My Item',
-                  offeredItemImage: 'https://i.pravatar.cc/80',
-                  wantedItemTitle: product.title,
-                  wantedItemImage: product.image,
-                });
-                setRequested(true);
-                setToast(true);
-                setTimeout(() => setToast(false), 3000);
+                const me = rawUser ? JSON.parse(rawUser) : null;
+                if (!me?.id) {
+                  alert('Please log in to send swap requests');
+                  navigate('/login');
+                  return;
+                }
+                
+                // Fetch user's active products for selection
+                const res = await api.getProductsByUser(me.id, true);
+                if (res.data && res.data.length > 0) {
+                  setMyProducts(res.data);
+                  setShowSwapModal(true);
+                } else {
+                  alert('You need to list a product first before sending swap requests');
+                  navigate('/list-product');
+                }
               }}
             >
               {requested ? <><FiCheck /> View Request</> : <><SvapBtnIcon /> Send Swap Request</>}
@@ -245,7 +256,7 @@ const ProductDetailPage = () => {
               onClick={() => navigate(`/product/${p.id}`)}
             >
               <div className="pdp-rel-img-wrap">
-                <img src={p.image} alt={p.title} className="pdp-rel-img" />
+                <img src={p.images[0]} alt={p.title} className="pdp-rel-img" />
               </div>
               <div className="pdp-rel-info">
                 <p className="pdp-rel-name">{p.title}</p>
@@ -258,6 +269,82 @@ const ProductDetailPage = () => {
           ))}
         </div>
       </div>
+
+      {/* ══ Swap Request Modal ══ */}
+      {showSwapModal && (
+        <div className="pdp-modal-overlay" onClick={() => setShowSwapModal(false)}>
+          <div className="pdp-modal" onClick={e => e.stopPropagation()}>
+            <div className="pdp-modal-header">
+              <h3 className="pdp-modal-title">Kaunsi product swap karni hai?</h3>
+              <p className="pdp-modal-sub">Select the product you want to offer in exchange for <strong>{product?.title}</strong></p>
+            </div>
+
+            <div className="pdp-modal-grid">
+              {myProducts.map((p: any) => (
+                <button
+                  key={p.id}
+                  className={`pdp-modal-card ${selectedProductId === p.id ? 'pdp-modal-card--selected' : ''}`}
+                  onClick={() => setSelectedProductId(p.id)}
+                >
+                  <div className="pdp-modal-img-wrap">
+                    <img
+                      src={p.image_urls?.[0] || 'https://placehold.co/200'}
+                      alt={p.title}
+                      className="pdp-modal-img"
+                    />
+                    {selectedProductId === p.id && (
+                      <div className="pdp-modal-check"><FiCheck size={16} /></div>
+                    )}
+                  </div>
+                  <p className="pdp-modal-name">{p.title}</p>
+                  <p className="pdp-modal-cat">{p.category}</p>
+                </button>
+              ))}
+            </div>
+
+            <div className="pdp-modal-actions">
+              <button
+                className="pdp-modal-cancel"
+                onClick={() => { setShowSwapModal(false); setSelectedProductId(null); }}
+              >
+                Cancel
+              </button>
+              <button
+                className="pdp-modal-send"
+                disabled={!selectedProductId || swapLoading}
+                onClick={async () => {
+                  if (!selectedProductId || !product) return;
+                  const rawUser = localStorage.getItem('sz_user');
+                  const me = rawUser ? JSON.parse(rawUser) : null;
+                  if (!me?.id) return;
+
+                  setSwapLoading(true);
+                  try {
+                    const res = await api.createSwapRequest({
+                      from_user_id: me.id,
+                      to_user_id: product.owner_id,
+                      offered_product_id: selectedProductId,
+                      requested_product_id: product.id,
+                    });
+                    if (res.error) throw new Error(res.error);
+                    setShowSwapModal(false);
+                    setSelectedProductId(null);
+                    setRequested(true);
+                    setToast(true);
+                    setTimeout(() => setToast(false), 3000);
+                  } catch (err: any) {
+                    alert(err.message || 'Failed to send swap request');
+                  } finally {
+                    setSwapLoading(false);
+                  }
+                }}
+              >
+                {swapLoading ? 'Sending...' : <><SvapBtnIcon /> Send Swap Request</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .pdp-root {
@@ -396,6 +483,39 @@ const ProductDetailPage = () => {
           gap: 6px;
           color: var(--text-muted);
           font-size: 0.78rem;
+        }
+
+        /* ── Thumbnail strip ── */
+        .pdp-thumbs {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .pdp-thumb {
+          width: 72px;
+          height: 56px;
+          border-radius: 10px;
+          overflow: hidden;
+          border: 2px solid rgba(165,194,111,0.25);
+          padding: 0;
+          cursor: pointer;
+          transition: border-color 0.18s, transform 0.15s;
+          background: var(--card-bg);
+          flex-shrink: 0;
+        }
+        .pdp-thumb:hover {
+          border-color: rgba(141,198,63,0.55);
+          transform: translateY(-1px);
+        }
+        .pdp-thumb--active {
+          border-color: #E45821;
+          box-shadow: 0 0 0 2px rgba(228,88,33,0.2);
+        }
+        .pdp-thumb-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
         }
 
         .pdp-right {
@@ -735,6 +855,161 @@ const ProductDetailPage = () => {
           .pdp-related-wrap { padding: 24px 16px 32px; }
           .pdp-related-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
         }
+
+        /* ── Swap Request Modal ── */
+        .pdp-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.6);
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          backdrop-filter: blur(4px);
+        }
+        .pdp-modal {
+          background: #fff;
+          border-radius: 22px;
+          width: 100%;
+          max-width: 500px;
+          max-height: 80vh;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 32px 80px rgba(0,0,0,0.25);
+          animation: pdp-modal-in 0.2s ease-out;
+          overflow: hidden;
+        }
+        html[data-theme='dark'] .pdp-modal {
+          background: #1a1a1a;
+          border: 1px solid #2a2a2a;
+        }
+        @keyframes pdp-modal-in {
+          from { opacity: 0; transform: scale(0.94) translateY(10px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .pdp-modal-header {
+          padding: 24px 24px 16px;
+          border-bottom: 1px solid rgba(165,194,111,0.2);
+          flex-shrink: 0;
+        }
+        html[data-theme='dark'] .pdp-modal-header { border-bottom-color: #2a2a2a; }
+        .pdp-modal-title {
+          font-size: 1.05rem;
+          font-weight: 800;
+          color: var(--text-dark);
+          margin: 0 0 6px;
+        }
+        html[data-theme='dark'] .pdp-modal-title { color: #fff; }
+        .pdp-modal-sub {
+          font-size: 0.82rem;
+          color: var(--text-muted);
+          margin: 0;
+          line-height: 1.5;
+        }
+        html[data-theme='dark'] .pdp-modal-sub { color: #888; }
+        .pdp-modal-sub strong { color: var(--text-dark); }
+        html[data-theme='dark'] .pdp-modal-sub strong { color: #fff; }
+        .pdp-modal-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+          padding: 16px 24px;
+          overflow-y: auto;
+          flex: 1;
+        }
+        .pdp-modal-card {
+          background: #f8fbf2;
+          border: 2px solid rgba(165,194,111,0.2);
+          border-radius: 14px;
+          overflow: hidden;
+          cursor: pointer;
+          transition: border-color 0.18s, transform 0.15s;
+          text-align: left;
+          padding: 0 0 10px;
+          font-family: inherit;
+        }
+        html[data-theme='dark'] .pdp-modal-card { background: #111; border-color: #2a2a2a; }
+        .pdp-modal-card:hover { border-color: rgba(228,88,33,0.4); transform: translateY(-1px); }
+        .pdp-modal-card--selected {
+          border-color: #E45821 !important;
+          box-shadow: 0 0 0 3px rgba(228,88,33,0.15);
+        }
+        .pdp-modal-img-wrap {
+          position: relative;
+          aspect-ratio: 4/3;
+          overflow: hidden;
+          background: #eee;
+          margin-bottom: 8px;
+        }
+        html[data-theme='dark'] .pdp-modal-img-wrap { background: #222; }
+        .pdp-modal-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .pdp-modal-check {
+          position: absolute;
+          inset: 0;
+          background: rgba(228,88,33,0.75);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+        }
+        .pdp-modal-name {
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: var(--text-dark);
+          margin: 0 10px 2px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        html[data-theme='dark'] .pdp-modal-name { color: #fff; }
+        .pdp-modal-cat {
+          font-size: 0.68rem;
+          color: var(--text-muted);
+          margin: 0 10px;
+        }
+        .pdp-modal-actions {
+          display: flex;
+          gap: 12px;
+          padding: 16px 24px;
+          border-top: 1px solid rgba(165,194,111,0.2);
+          flex-shrink: 0;
+        }
+        html[data-theme='dark'] .pdp-modal-actions { border-top-color: #2a2a2a; }
+        .pdp-modal-cancel {
+          flex: 1;
+          padding: 12px;
+          border-radius: 12px;
+          background: transparent;
+          border: 1px solid rgba(165,194,111,0.3);
+          color: var(--text-muted);
+          font-size: 0.88rem;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.15s;
+        }
+        .pdp-modal-cancel:hover { background: rgba(165,194,111,0.1); color: var(--text-dark); }
+        html[data-theme='dark'] .pdp-modal-cancel { border-color: #2a2a2a; color: #aaa; }
+        .pdp-modal-send {
+          flex: 2;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 12px;
+          border-radius: 12px;
+          background: #E45821;
+          border: none;
+          color: #fff;
+          font-size: 0.88rem;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: inherit;
+          transition: background 0.15s, transform 0.15s;
+        }
+        .pdp-modal-send:hover:not(:disabled) { background: #c94d1c; transform: translateY(-1px); }
+        .pdp-modal-send:disabled { opacity: 0.5; cursor: not-allowed; }
       `}</style>
     </div>
   )

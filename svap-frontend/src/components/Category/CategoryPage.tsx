@@ -16,158 +16,7 @@ interface CategoryProduct {
   user: { name: string; avatar: string };
 }
 
-const SvapBtnIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    {/* Top Arrow */}
-    <path d="M3 7h18m0 0l-4-4m4 4l-4 4" />
-
-    {/* Bottom Arrow */}
-    <path d="M21 17H3m0 0l4-4M3 17l4 4" />
-  </svg>
-);
-
-const CategoryProductCard = ({ product }: { product: CategoryProduct }) => {
-  const navigate = useNavigate();
-
-  return (
-    <Link to={`/product/${product.id}`} className="category-card">
-      {/* HEADER */}
-      <div className="category-card-header">
-        <div className="flex items-center gap-2 min-w-0">
-          <img
-            src={product.user.avatar}
-            alt={product.user.name}
-            className="w-8 h-8 rounded-full object-cover border"
-          />
-          <span className="text-sm font-medium truncate" style={{ color: 'var(--text-dark)' }}>
-            @{product.user.name}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={(e) => e.preventDefault()}
-            className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: '#E45821', border: '1px solid rgba(228, 88, 33, 0.4)', color: '#fff' }}
-          >
-            <FiHeart size={16} />
-          </button>
-          <div className="flex items-center gap-1 px-2 h-8 rounded-full text-xs" style={{ background: '#E45821', border: '1px solid rgba(228, 88, 33, 0.4)', color: '#fff' }}>
-            <FiEye size={14} />
-            {product.views}
-          </div>
-        </div>
-      </div>
-
-      {/* IMAGE */}
-      <div className="px-3">
-        <div className="rounded-lg overflow-hidden aspect-[16/10]" style={{ background: 'var(--bg-section)' }}>
-          <img
-            src={product.image}
-            alt={product.title}
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-          />
-        </div>
-      </div>
-
-      {/* CONTENT */}
-      <div className="px-4 pt-3 pb-2 flex-1">
-        <h3 className="text-base font-bold leading-snug truncate" style={{ color: 'var(--text-dark)' }}>
-          {product.title}
-        </h3>
-        <div className="flex items-center justify-between mt-1.5">
-          <span className="font-bold text-sm" style={{ color: '#E45821' }}>
-            {product.price}
-          </span>
-          <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
-            <img src="/ICONS/Location.png" alt="Loc" style={{ width: 12, height: 12, objectFit: 'contain', marginRight: 6 }} />
-            {product.location}
-          </div>
-        </div>
-      </div>
-
-      {/* ACTIONS */}
-<div
-  style={{
-    display: "flex",
-    justifyContent: "center",
-    padding: "12px",
-    borderTop: "1.5px solid var(--border)",
-  }}
->
-  <button
-    onClick={(e) => {
-      e.stopPropagation();
-      navigate(`/checkout`);
-    }}
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 6,
-      width: "100%",
-      maxWidth: "95%",
-      padding: "11px 12px",
-      background: "var(--btn-swap)",
-      border: "none",
-      borderRadius: "10px",
-      color: "#fff",
-      fontSize: "0.85rem",
-      fontWeight: 700,
-      cursor: "pointer",
-      transition: "all 0.2s ease",
-      boxShadow: "0 2px 8px rgba(228, 88, 33, 0.3)",
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.transform = "translateY(-2px)";
-      e.currentTarget.style.boxShadow =
-        "0 6px 16px rgba(228, 88, 33, 0.5)";
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.transform = "";
-      e.currentTarget.style.boxShadow =
-        "0 2px 8px rgba(228, 88, 33, 0.3)";
-    }}
-  >
-    <SvapBtnIcon /> SVAP
-  </button>
-</div>
-
-
-      <style>{`
-        .category-card {
-          width: 100%;
-          height: 100%;
-          border-radius: 12px;
-          background: var(--card-bg);
-          border: 1px solid var(--border-light);
-          box-shadow: 0 8px 30px rgba(26, 46, 10, 0.08);
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          text-decoration: none;
-          transition: transform 0.3s, box-shadow 0.3s;
-        }
-        html[data-theme='dark'] .category-card {
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-        }
-        .category-card:hover {
-          transform: scale(1.02);
-          box-shadow: 0 12px 40px rgba(26, 46, 10, 0.12);
-        }
-        html[data-theme='dark'] .category-card:hover {
-          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-        }
-        .category-card-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 12px;
-        }
-      `}</style>
-    </Link>
-  );
-};
+import ProductCard from "../Home-page/Productcard";
 
 const CategoryPage = () => {
   const { name } = useParams<{ name: string }>();
@@ -189,18 +38,21 @@ const CategoryPage = () => {
         if (response.error) throw new Error(response.error);
 
         if (response.data) {
-          const mapped: CategoryProduct[] = response.data.map((p: any) => ({
+          const mapped: any[] = response.data.map((p: any) => ({
             id: p.id,
             title: p.title,
+            description: p.description || "",
             image: p.image_urls?.[0] || "https://placehold.co/600x400?text=No+Image",
             price: p.price ? `Rs ${Number(p.price).toLocaleString()}` : "Price on request",
-            location: p.profiles?.city || "Pakistan",
+            location: p.profiles?.city || "Unknown",
             views: p.saved_count || 0,
             condition: p.condition || "",
             category: p.category || categoryName,
             swapFor: p.swap_for || "",
+            swapForImage: p.image_urls?.[1] || "",
             user: {
-              name: p.profiles?.username || p.profiles?.full_name || "user",
+              name: p.profiles?.username || p.profiles?.full_name || "Unknown",
+              email: p.profiles?.email || "",
               avatar:
                 p.profiles?.avatar_url ||
                 `https://ui-avatars.com/api/?name=${p.profiles?.username || "U"}&background=random`,
@@ -329,7 +181,7 @@ const CategoryPage = () => {
         ) : products.length > 0 ? (
           <div className="catpage-grid">
             {products.map((product) => (
-              <CategoryProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         ) : (

@@ -28,7 +28,11 @@ const dummySupabase = {
   }),
   auth: {
     getUser: async () => ({ data: { user: null }, error: null }),
-    getSession: async () => ({ data: { session: null }, error: null })
+    getSession: async () => ({ data: { session: null }, error: null }),
+    signInWithOAuth: async () => {
+      console.error("❌ Supabase not initialized — VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY missing in .env");
+      return { data: null, error: { message: "Supabase not configured" } };
+    },
   },
   storage: {
     listBuckets: async () => ({ data: [], error: null }),

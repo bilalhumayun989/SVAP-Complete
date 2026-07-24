@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FiLogOut, FiMoon, FiSun } from "react-icons/fi";
+import { supabase } from "../../services/supabase";
 
 // ─── Brand PNG Icon Component ─────────────────────────────────────────────────
 const BrandIcon = ({ src, alt, size = 24, className }: { src: string; alt: string; size?: number; className?: string }) => (
@@ -140,7 +141,8 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem("sz_user");
     setProfileOpen(false);
     window.dispatchEvent(new Event("sz_auth_change"));

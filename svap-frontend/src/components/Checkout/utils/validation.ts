@@ -32,19 +32,11 @@ export class CheckoutValidator {
 
     // Validate full name
     if (address.fullName) {
-      if (address.fullName.length < VALIDATION_RULES.MIN_NAME_LENGTH) {
+      if (address.fullName.trim().length === 0) {
         errors.push({
           field: 'address.fullName',
           type: 'validation',
-          message: `Name must be at least ${VALIDATION_RULES.MIN_NAME_LENGTH} characters`,
-          actionable: true,
-        });
-      }
-      if (address.fullName.length > VALIDATION_RULES.MAX_NAME_LENGTH) {
-        errors.push({
-          field: 'address.fullName',
-          type: 'validation',
-          message: `Name must not exceed ${VALIDATION_RULES.MAX_NAME_LENGTH} characters`,
+          message: `Name must not be empty`,
           actionable: true,
         });
       }
@@ -52,19 +44,11 @@ export class CheckoutValidator {
 
     // Validate street address
     if (address.streetAddress) {
-      if (address.streetAddress.length < VALIDATION_RULES.MIN_ADDRESS_LENGTH) {
+      if (address.streetAddress.trim().length === 0) {
         errors.push({
           field: 'address.streetAddress',
           type: 'validation',
-          message: `Address must be at least ${VALIDATION_RULES.MIN_ADDRESS_LENGTH} characters`,
-          actionable: true,
-        });
-      }
-      if (address.streetAddress.length > VALIDATION_RULES.MAX_ADDRESS_LENGTH) {
-        errors.push({
-          field: 'address.streetAddress',
-          type: 'validation',
-          message: `Address must not exceed ${VALIDATION_RULES.MAX_ADDRESS_LENGTH} characters`,
+          message: `Address must not be empty`,
           actionable: true,
         });
       }

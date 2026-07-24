@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import Lenis from 'lenis'
 import './App.css'
+import { supabase } from './services/supabase'
 import Navbar from './components/Main-components/Navbar'
 import Homemain from './components/Home-page/Homemain'
 import ProductDetailPage from './components/Product-detail/ProductDetailPage.tsx'
@@ -23,6 +24,7 @@ import NotificationsPage from './components/Notifications/NotificationsPage'
 import CreatePage from './components/Create/CreatePage'
 import CreateReelPage from './components/Create/CreateReel/CreateReelPage'
 import EditProfilePage from './components/Profile/EditProfilePage'
+import EditProductPage from './components/ListProduct/EditProductPage'
 import MobileNav from './components/Main-components/MobileNav.tsx'
 import TopNavbar from './components/Main-components/TopNavbar.tsx'
 
@@ -46,10 +48,43 @@ const FULL_SCREEN_ROUTES = ['/reels', '/reel-upload', '/create-reel', '/login', 
 function AppInner() {
   const lenisInstanceRef = useRef<Lenis | null>(null)
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const isFullScreen = FULL_SCREEN_ROUTES.some(r => pathname.startsWith(r))
 
   useEffect(() => {
-    // Don't init Lenis on full-screen pages
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const user = session.user;
+          const metadata = user.user_metadata || {};
+          const name = metadata.full_name || metadata.name || "User";
+          const username = name ? `@${name.replace(/\\s+/g, "").toLowerCase()}` : "@user";
+          
+          const existingUser = localStorage.getItem("sz_user");
+          if (!existingUser) {
+            localStorage.setItem("sz_user", JSON.stringify({
+              id: user.id,
+              name: name,
+              username: username,
+              city: "Pakistan",
+              email: user.email,
+              avatar: metadata.avatar_url || metadata.picture || null
+            }));
+            window.dispatchEvent(new Event("sz_auth_change"));
+            navigate("/");
+          }
+        } else if (event === 'SIGNED_OUT') {
+          localStorage.removeItem("sz_user");
+          window.dispatchEvent(new Event("sz_auth_change"));
+        }
+      }
+    );
+    return () => {
+      subscription?.unsubscribe();
+    }
+  }, [navigate]);
+
+  useEffect(() => {
     if (isFullScreen) return
 
     const lenis = new Lenis({
@@ -78,44 +113,37 @@ function AppInner() {
       <ScrollToTop />
 
       {isFullScreen ? (
-        /* Full-screen layout — no sidebar offset */
         <Routes>
-          <Route path="/reels" element={<ReelsPage />} />
+          <Route path="/reels"       element={<ReelsPage />} />
           <Route path="/reel-upload" element={<CreateReelPage />} />
           <Route path="/create-reel" element={<CreateReelPage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/login"       element={<Login />} />
+          <Route path="/signup"      element={<Signup />} />
         </Routes>
       ) : (
-        /* Normal layout with sidebar + get-app panel */
         <div className="app-layout">
-          {/* Left spacer (navbar width) — handled by CSS */}
           <main className="app-main">
             <Routes>
-              <Route path="/"              element={<Homemain />} />
-              <Route path="/categories"    element={<AllCategoriesPage />} />
-              <Route path="/all-listings"  element={<AllProductGrid />} />
-              <Route path="/product/:id"   element={<ProductDetailPage />} />
-              <Route path="/user/:userId"  element={<UserProfile />} />
-              <Route path="/category/:name"element={<CategoryPage />} />
-              <Route path="/profile"       element={<Profile />} />
-              <Route path="/profile/edit"  element={<EditProfilePage />} />
-              <Route path="/requests"      element={<Requests />} />
-              <Route path="/orders"        element={<OrdersPage />} />
-              <Route path="/list-product"  element={<ListProductPage />} />
-              <Route path="/cart"          element={<CartPage />} />
-              <Route path="/checkout"      element={<CheckoutPage />} />
-              <Route path="/search"        element={<SearchPage />} />
-              <Route path="/notifications" element={<NotificationsPage />} />
-              <Route path="/create"        element={<CreatePage />} />
+              <Route path="/"                   element={<Homemain />} />
+              <Route path="/categories"         element={<AllCategoriesPage />} />
+              <Route path="/all-listings"       element={<AllProductGrid />} />
+              <Route path="/product/:id"        element={<ProductDetailPage />} />
+              <Route path="/user/:userId"       element={<UserProfile />} />
+              <Route path="/category/:name"     element={<CategoryPage />} />
+              <Route path="/profile"            element={<Profile />} />
+              <Route path="/profile/edit"       element={<EditProfilePage />} />
+              <Route path="/edit-product/:id"   element={<EditProductPage />} />
+              <Route path="/requests"           element={<Requests />} />
+              <Route path="/orders"             element={<OrdersPage />} />
+              <Route path="/list-product"       element={<ListProductPage />} />
+              <Route path="/cart"               element={<CartPage />} />
+              <Route path="/checkout"           element={<CheckoutPage />} />
+              <Route path="/search"             element={<SearchPage />} />
+              <Route path="/notifications"      element={<NotificationsPage />} />
+              <Route path="/create"             element={<CreatePage />} />
             </Routes>
           </main>
           <MobileNav />
-
-          {/* Right sticky panel */}
-          {/* <aside className="app-aside">
-            <GetTheApp />
-          </aside> */}
         </div>
       )}
     </>
