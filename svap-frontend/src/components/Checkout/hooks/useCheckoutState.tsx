@@ -9,6 +9,7 @@ import type {
 } from '../types/checkout.types';
 import { CostCalculator } from '../utils/costCalculations';
 import { CheckoutValidator } from '../utils/validation';
+import { api } from '../../../services/api';
 
 const initialState: CheckoutState = {
   transactionType: 'purchase',
@@ -39,14 +40,24 @@ const getDefaultAddress = (): DeliveryAddress => ({
   isDefault: true,
 });
 
+const getSavedUserId = () => {
+  try {
+    return JSON.parse(localStorage.getItem('sz_user') || '{}').id || null;
+  } catch {
+    return null;
+  }
+};
+
 export const useCheckoutState = (navigationData?: NavigationData) => {
   const [state, setState] = useState<CheckoutState>(initialState);
 
   // Initialize checkout state based on navigation data
   useEffect(() => {
     if (navigationData) {
+      let cancelled = false;
       let items: CheckoutItem[] = [];
       let transactionType: 'purchase' | 'svap' = 'purchase';
+      const entrySource = navigationData.entrySource === 'swap' ? 'svap' : navigationData.entrySource;
 
       // Convert navigation data to checkout items
       if (navigationData.entrySource === 'product' && navigationData.productId) {
@@ -59,26 +70,68 @@ export const useCheckoutState = (navigationData?: NavigationData) => {
           condition: 'Good',
           seller: 'John Doe',
         }];
-      } else if (navigationData.entrySource === 'svap' && navigationData.swapRequestId) {
+      } else if ((navigationData.entrySource === 'svap' || navigationData.entrySource === 'swap') && navigationData.swapRequestId) {
         transactionType = 'svap';
-        items = [
-          {
-            id: navigationData.swapRequestId,
-            name: 'Their Item (Receiving)',
-            image: '/2.png',
-            swapValue: 15000,
-            condition: 'Excellent',
-            seller: 'Jane Smith',
-          },
-          {
-            id: 'your_item_123',
-            name: 'Your Item (Giving)',
-            image: '/1.png',
-            swapValue: 12000,
-            condition: 'Good',
-            seller: 'You',
-          }
-        ];
+        const userId = getSavedUserId();
+
+        setState(prev => ({
+          ...prev,
+          transactionType,
+          entrySource,
+          deliveryAddress: getDefaultAddress(),
+          isLoading: true,
+        }));
+
+        if (userId) {
+          api.getSwapRequestsByUser(userId).then((res) => {
+            if (cancelled) return;
+
+            const request = (res.data || []).find((r: any) => r.id === navigationData.swapRequestId);
+            if (!request) {
+              setState(prev => ({
+                ...prev,
+                items: [],
+                isLoading: false,
+              }));
+              return;
+            }
+
+            const isSender = request.from_user_id === userId;
+            const offeredItem: CheckoutItem = {
+              id: request.offered_product_id,
+              name: request.offered?.title || 'Offered Product',
+              image: request.offered?.image_urls?.[0] || '/1.png',
+              swapValue: 0,
+              condition: 'Swap item',
+              seller: isSender ? 'You' : `@${request.from_profile?.username || 'Deleted User'}`,
+              role: isSender ? 'giving' : 'receiving',
+            };
+            const requestedItem: CheckoutItem = {
+              id: request.requested_product_id,
+              name: request.requested?.title || 'Requested Product',
+              image: request.requested?.image_urls?.[0] || '/2.png',
+              swapValue: 0,
+              condition: 'Swap item',
+              seller: isSender ? `@${request.to_profile?.username || 'Deleted User'}` : 'You',
+              role: isSender ? 'receiving' : 'giving',
+            };
+
+            setState(prev => ({
+              ...prev,
+              items: isSender ? [offeredItem, requestedItem] : [requestedItem, offeredItem],
+              isLoading: false,
+            }));
+          }).catch((err) => {
+            console.error('[checkout-swap-request]', err);
+            if (!cancelled) {
+              setState(prev => ({ ...prev, isLoading: false }));
+            }
+          });
+        } else {
+          setState(prev => ({ ...prev, isLoading: false }));
+        }
+
+        return () => { cancelled = true; };
       } else if (navigationData.entrySource === 'cart' && navigationData.cartItems) {
         // Convert cart items to checkout items
         items = navigationData.cartItems.map((cartItem, index) => ({
@@ -95,7 +148,7 @@ export const useCheckoutState = (navigationData?: NavigationData) => {
         ...prev,
         items,
         transactionType,
-        entrySource: navigationData.entrySource,
+        entrySource,
         deliveryAddress: getDefaultAddress(), // Load default address
       }));
     }

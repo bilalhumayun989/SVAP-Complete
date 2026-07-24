@@ -4,7 +4,6 @@ import {
   FiArrowLeft,
   FiEye, FiCheck
 } from 'react-icons/fi'
-import { sendSwapRequest } from '../../hooks/useSwapRequests'
 import { api } from '../../services/api'
 
 // White SVAP left-right arrows icon for use on orange button background
@@ -17,6 +16,8 @@ const SvapBtnIcon = () => (
     <path d="M21 17H3m0 0l4-4M3 17l4 4" />
   </svg>
 );
+
+const SWAP_COOLDOWN_MESSAGE = 'You have already sent a request for this item in the last 24 hours. Please wait before sending another request.';
 
 interface DetailProduct {
   id: string
@@ -45,6 +46,11 @@ const ProductDetailPage = () => {
   const [myProducts, setMyProducts] = useState<any[]>([])
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [swapLoading, setSwapLoading] = useState(false)
+  const [canSendSwap, setCanSendSwap] = useState(true)
+  const [swapCooldownMessage, setSwapCooldownMessage] = useState<string | null>(null)
+
+  // Current logged-in user id from localStorage
+  const myUserId = (() => { try { return JSON.parse(localStorage.getItem('sz_user') || '{}').id; } catch { return null; } })()
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -106,8 +112,77 @@ const ProductDetailPage = () => {
     fetchProduct();
   }, [id]);
 
+  // ── Check 24-hour swap eligibility ──
+  useEffect(() => {
+    const checkEligibility = async () => {
+      if (!myUserId || !id) return;
+      try {
+        const res = await api.checkSwapEligibility(myUserId, id);
+        if (res.canSend === false) {
+          setCanSendSwap(false);
+          setSwapCooldownMessage(SWAP_COOLDOWN_MESSAGE);
+        } else {
+          setCanSendSwap(true);
+          setSwapCooldownMessage(null);
+        }
+      } catch (err) {
+        console.error('[checkEligibility]', err);
+      }
+    };
+    checkEligibility();
+  }, [id, myUserId]);
+
   if (loading) {
-    return <div className="pdp-empty"><p>Loading...</p></div>;
+    return (
+      <div className="pdp-root">
+        <div className="pdp-back-wrap">
+          <div className="pdp-skel pdp-skel-back" />
+        </div>
+        <div className="pdp-main">
+          {/* Left — image skeleton */}
+          <div className="pdp-left">
+            <div className="pdp-skel pdp-skel-img" />
+            <div className="pdp-thumbs" style={{ marginTop: 10 }}>
+              {[1,2,3].map(i => <div key={i} className="pdp-skel pdp-skel-thumb" />)}
+            </div>
+          </div>
+          {/* Right — content skeleton */}
+          <div className="pdp-right">
+            <div className="pdp-skel pdp-skel-title" />
+            <div className="pdp-skel pdp-skel-line" />
+            <div className="pdp-skel pdp-skel-line pdp-skel-line--short" />
+            <div className="pdp-skel pdp-skel-seller" />
+            <div className="pdp-skel pdp-skel-line pdp-skel-line--med" />
+            <div className="pdp-skel pdp-skel-btn" />
+          </div>
+        </div>
+        <style>{`
+          @keyframes pdp-shimmer {
+            0%   { background-position: -700px 0; }
+            100% { background-position: 700px 0; }
+          }
+          .pdp-skel {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e4e4e4 50%, #f0f0f0 75%);
+            background-size: 700px 100%;
+            animation: pdp-shimmer 1.4s infinite linear;
+            border-radius: 12px;
+          }
+          html[data-theme='dark'] .pdp-skel {
+            background: linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%);
+            background-size: 700px 100%;
+          }
+          .pdp-skel-back  { height: 36px; width: 80px; border-radius: 8px; }
+          .pdp-skel-img   { width: 100%; aspect-ratio: 4/3; border-radius: 20px; }
+          .pdp-skel-thumb { width: 72px; height: 56px; border-radius: 10px; }
+          .pdp-skel-title { height: 38px; width: 75%; margin-bottom: 14px; }
+          .pdp-skel-line  { height: 14px; width: 100%; margin-bottom: 10px; }
+          .pdp-skel-line--short { width: 45%; }
+          .pdp-skel-line--med   { width: 65%; }
+          .pdp-skel-seller { height: 72px; width: 100%; border-radius: 18px; margin-bottom: 10px; }
+          .pdp-skel-btn   { height: 52px; width: 100%; border-radius: 16px; margin-top: 10px; }
+        `}</style>
+      </div>
+    );
   }
 
   if (!product) {
@@ -174,7 +249,11 @@ const ProductDetailPage = () => {
           <div className="pdp-divider" />
 
           {/* Seller */}
-          <div className="pdp-seller">
+          <div
+            className="pdp-seller pdp-seller--clickable"
+            onClick={() => product.owner_id && navigate(`/user/${product.owner_id}`)}
+            title="View seller profile"
+          >
             <div className="pdp-seller-info">
               <img
                 src={product.user.avatar}
@@ -189,7 +268,7 @@ const ProductDetailPage = () => {
                 </p>
               </div>
             </div>
-          
+            <span className="pdp-seller-arrow">›</span>
           </div>
 
           <div className="pdp-divider" />
@@ -206,34 +285,62 @@ const ProductDetailPage = () => {
 
           <div className="pdp-divider" />
 
-          {/* CTA */}
-          <div className="pdp-cta-row">
-            <button
-              className={`pdp-cta pdp-cta-swap ${requested ? 'pdp-cta-requested' : ''}`}
-              onClick={async () => {
-                if (requested) { navigate('/requests'); return; }
-                const rawUser = localStorage.getItem('sz_user');
-                const me = rawUser ? JSON.parse(rawUser) : null;
-                if (!me?.id) {
-                  alert('Please log in to send swap requests');
-                  navigate('/login');
-                  return;
-                }
-                
-                // Fetch user's active products for selection
-                const res = await api.getProductsByUser(me.id, true);
-                if (res.data && res.data.length > 0) {
-                  setMyProducts(res.data);
-                  setShowSwapModal(true);
-                } else {
-                  alert('You need to list a product first before sending swap requests');
-                  navigate('/list-product');
-                }
-              }}
-            >
-              {requested ? <><FiCheck /> View Request</> : <><SvapBtnIcon /> Send Swap Request</>}
-            </button>
-          </div>
+          {/* CTA — only show Svap button if this is NOT the user's own product */}
+          {myUserId !== product.owner_id && (
+            <>
+              <div className="pdp-cta-row">
+                <button
+                  className={`pdp-cta pdp-cta-swap ${requested ? 'pdp-cta-requested' : ''} ${!canSendSwap ? 'pdp-cta-disabled' : ''}`}
+                  disabled={!canSendSwap && !requested}
+                  onClick={async () => {
+                    if (requested) { navigate('/requests'); return; }
+                    if (!canSendSwap) return;
+                    
+                    const rawUser = localStorage.getItem('sz_user');
+                    const me = rawUser ? JSON.parse(rawUser) : null;
+                    if (!me?.id) {
+                      alert('Please log in to send swap requests');
+                      navigate('/login');
+                      return;
+                    }
+
+                    // Fetch user's active products for selection
+                    const res = await api.getProductsByUser(me.id, true);
+                    if (res.data && res.data.length > 0) {
+                      setMyProducts(res.data);
+                      setShowSwapModal(true);
+                    } else {
+                      alert('You need to list a product first before sending swap requests');
+                      navigate('/list-product');
+                    }
+                  }}
+                >
+                  {requested ? <><FiCheck /> View Request</> : <><SvapBtnIcon /> Send Swap Request</>}
+                </button>
+              </div>
+              {swapCooldownMessage && !requested && (
+                <div className="pdp-cooldown-msg">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  {swapCooldownMessage}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* If it's the user's own product — show Edit button instead */}
+          {myUserId && myUserId === product.owner_id && (
+            <div className="pdp-cta-row">
+              <button
+                className="pdp-cta pdp-cta-edit"
+                onClick={() => navigate(`/edit-product/${product.id}`)}
+              >
+                ✏️ Edit Listing
+              </button>
+            </div>
+          )}
 
           {/* Toast */}
           {toast && (
@@ -275,7 +382,7 @@ const ProductDetailPage = () => {
         <div className="pdp-modal-overlay" onClick={() => setShowSwapModal(false)}>
           <div className="pdp-modal" onClick={e => e.stopPropagation()}>
             <div className="pdp-modal-header">
-              <h3 className="pdp-modal-title">Kaunsi product swap karni hai?</h3>
+              <h3 className="pdp-modal-title">Choose One!!</h3>
               <p className="pdp-modal-sub">Select the product you want to offer in exchange for <strong>{product?.title}</strong></p>
             </div>
 
@@ -330,9 +437,17 @@ const ProductDetailPage = () => {
                     setShowSwapModal(false);
                     setSelectedProductId(null);
                     setRequested(true);
+                    setCanSendSwap(false);
+                    setSwapCooldownMessage(SWAP_COOLDOWN_MESSAGE);
                     setToast(true);
                     setTimeout(() => setToast(false), 3000);
                   } catch (err: any) {
+                    if (err.message === SWAP_COOLDOWN_MESSAGE || err.message?.includes('already')) {
+                      setCanSendSwap(false);
+                      setSwapCooldownMessage(SWAP_COOLDOWN_MESSAGE);
+                      setShowSwapModal(false);
+                      setSelectedProductId(null);
+                    }
                     alert(err.message || 'Failed to send swap request');
                   } finally {
                     setSwapLoading(false);
@@ -559,6 +674,25 @@ const ProductDetailPage = () => {
           background: var(--bg-section);
           border: 1px solid rgba(165,194,111,0.28);
         }
+        .pdp-seller--clickable {
+          cursor: pointer;
+          transition: border-color 0.18s, background 0.18s, transform 0.15s;
+        }
+        .pdp-seller--clickable:hover {
+          border-color: rgba(228,88,33,0.4);
+          background: rgba(228,88,33,0.04);
+          transform: translateY(-1px);
+        }
+        .pdp-seller-arrow {
+          font-size: 1.4rem;
+          color: var(--text-muted);
+          flex-shrink: 0;
+          transition: color 0.18s, transform 0.18s;
+        }
+        .pdp-seller--clickable:hover .pdp-seller-arrow {
+          color: #E45821;
+          transform: translateX(3px);
+        }
         .pdp-seller-info {
           display: flex;
           align-items: center;
@@ -685,6 +819,43 @@ const ProductDetailPage = () => {
         .pdp-cta-swap:hover {
           filter: brightness(1.1);
           color: white;
+        }
+        .pdp-cta-swap.pdp-cta-disabled {
+          background: #6b7280;
+          border-color: #6b7280;
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .pdp-cta-swap.pdp-cta-disabled:hover {
+          filter: none;
+        }
+        .pdp-cooldown-msg {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: rgba(239,68,68,0.1);
+          border: 1px solid rgba(239,68,68,0.25);
+          border-radius: 12px;
+          padding: 10px 14px;
+          font-size: 0.78rem;
+          color: #dc2626;
+          margin-top: 12px;
+        }
+        html[data-theme='dark'] .pdp-cooldown-msg {
+          background: rgba(239,68,68,0.15);
+          border-color: rgba(239,68,68,0.3);
+          color: #f87171;
+        }
+        .pdp-cta-edit {
+          background: var(--card-bg);
+          color: var(--text-dark);
+          border: 1.5px solid var(--border);
+          font-size: 0.9rem;
+        }
+        .pdp-cta-edit:hover {
+          background: var(--bg-section);
+          border-color: #E45821;
+          color: #E45821;
         }
         .pdp-cta-swap.pdp-cta-active {
           background: var(--btn-swap);

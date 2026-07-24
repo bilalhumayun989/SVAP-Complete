@@ -3,21 +3,20 @@ import { useNavigate } from "react-router-dom";
 import StoryViewer from "../../Profile/StoryViewer";
 import { api } from "../../../services/api";
 
-interface StoryProduct {
+interface StorySlide {
   id: string;
+  productId: string;
   title: string;
   description?: string;
   image: string;
-  user: {
-    name: string;
-    avatar: string;
-  };
+  allImages: string[];
+  user: { name: string; avatar: string };
 }
 
 const StoriesRow = () => {
   const navigate = useNavigate();
-  const [stories, setStories] = useState<StoryProduct[]>([]);
-  const [selectedStory, setSelectedStory] = useState<StoryProduct | null>(null);
+  const [stories, setStories] = useState<StorySlide[]>([]);
+  const [selectedStory, setSelectedStory] = useState<StorySlide | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,11 +25,14 @@ const StoriesRow = () => {
         const response = await api.getStories();
         if (response?.error) throw new Error(response.error);
 
+        // One story item per product, but viewer shows ALL images of that product
         const mappedStories = (response.data || []).map((product: any) => ({
           id: product.id,
+          productId: product.id,
           title: product.title,
           description: product.description || "Fresh listing from the community.",
           image: product.image_urls?.[0] || "https://placehold.co/600x400?text=No+Image",
+          allImages: product.image_urls?.length ? product.image_urls : [product.image_urls?.[0] || "https://placehold.co/600x400"],
           user: {
             name: product.profiles?.username || product.profiles?.full_name || "Unknown",
             avatar: product.profiles?.avatar_url || "https://ui-avatars.com/api/?name=U&background=random",
@@ -45,28 +47,29 @@ const StoriesRow = () => {
         setLoading(false);
       }
     };
-
     fetchStories();
   }, []);
 
-  const handleStoryClick = (story: StoryProduct) => {
-    setSelectedStory(story);
-  };
-
+  const handleStoryClick = (story: StorySlide) => setSelectedStory(story);
   const handleViewListing = () => {
-    if (selectedStory) {
-      navigate(`/product/${selectedStory.id}`);
-    }
+    if (selectedStory) navigate(`/product/${selectedStory.productId}`);
   };
 
-  const selectedStoryData = selectedStory ? [{ id: selectedStory.id, url: selectedStory.image, duration: 5000 }] : [];
+  // Build slides from all images of selected product
+  const selectedStorySlides = selectedStory
+    ? selectedStory.allImages.map((url, i) => ({
+        id: `${selectedStory.id}-${i}`,
+        url,
+        duration: 4000,
+      }))
+    : [];
 
   return (
     <section className="stories-section">
       {selectedStory && (
         <div className="story-viewer-portal">
           <StoryViewer
-            stories={selectedStoryData}
+            stories={selectedStorySlides}
             username={selectedStory.user.name}
             avatar={selectedStory.user.avatar}
             onClose={() => setSelectedStory(null)}

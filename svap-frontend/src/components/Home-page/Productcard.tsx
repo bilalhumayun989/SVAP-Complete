@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { FiBookmark, FiEye } from "react-icons/fi";
+import { FiBookmark } from "react-icons/fi";
 import { useState, useEffect } from "react";
 import { api } from "../../services/api";
 import type { Product } from "./data/product";
@@ -93,7 +93,7 @@ const ProductCard = ({ product, initialSaved = false }: ProductCardProps) => {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 10px", height: 32, borderRadius: 999, background: "#E45821", border: "1.5px solid var(--border)", color: "#fff", fontSize: "0.72rem" }}>
-          <FiEye size={13} />
+          <FiBookmark size={12} fill="#fff" />
           {product.views}
         </div>
       </div>

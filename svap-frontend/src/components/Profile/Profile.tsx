@@ -33,10 +33,12 @@ const GridCard = ({ item, badge, onDelete, onEdit }: { item: { id: number; image
       </div>
       {onDelete && onEdit && (
         <div className="pf-grid-actions">
-          <button className="pf-grid-action-btn pf-grid-action-edit" onClick={() => onEdit(item.id)} title="Edit">
+          <button className="pf-grid-action-btn pf-grid-action-edit"
+            onClick={(e) => { e.stopPropagation(); onEdit(item.id); }} title="Edit">
             <FiEdit2 size={14} />
           </button>
-          <button className="pf-grid-action-btn pf-grid-action-delete" onClick={() => onDelete(item.id)} title="Delete">
+          <button className="pf-grid-action-btn pf-grid-action-delete"
+            onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} title="Delete">
             <FiTrash2 size={14} />
           </button>
         </div>
@@ -113,14 +115,16 @@ const Profile = () => {
             swapFor: p.swap_for
           })));
 
-          // Stories: one story per active product (uses first image)
+          // Stories: one slide per image across all active products
           const productStories = activeListings
-            .filter((p: any) => p.image_urls?.[0])
-            .map((p: any) => ({
-              id: p.id,
-              url: p.image_urls[0],
-              duration: 5000,
-            }));
+            .filter((p: any) => p.image_urls?.length > 0)
+            .flatMap((p: any) =>
+              p.image_urls.map((url: string) => ({
+                id: `${p.id}-${url}`,
+                url,
+                duration: 4000,
+              }))
+            );
           setStories(productStories);
 
           // Reels: only products with a video_url
@@ -421,13 +425,18 @@ const Profile = () => {
             {activeTab === "listings" && (
               <div className="pf-grid">
                 {listings.map(item => (
-                  <GridCard
+                  <div
                     key={item.id}
-                    item={item}
-                    badge="price"
-                    onDelete={deleteListing}
-                    onEdit={handleEditListing}
-                  />
+                    onClick={() => navigate(`/product/${item.id}`)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <GridCard
+                      item={item}
+                      badge="price"
+                      onDelete={deleteListing}
+                      onEdit={handleEditListing}
+                    />
+                  </div>
                 ))}
                 {listings.length === 0 && (
                   <div className="pf-empty">No active listings yet.</div>
@@ -442,7 +451,13 @@ const Profile = () => {
                   <div className="pf-empty">No saved listings yet. Bookmark products to save them here.</div>
                 )}
                 {savedItems.map(item => (
-                  <GridCard key={item.id} item={item} badge="price" />
+                  <div
+                    key={item.id}
+                    onClick={() => navigate(`/product/${item.id}`)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <GridCard item={item} badge="price" />
+                  </div>
                 ))}
               </div>
             )}

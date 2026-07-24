@@ -187,7 +187,11 @@ const CreateReelPage = () => {
 
       if (response.error) throw new Error(response.error);
 
-      setMessage("Reel upload ho gayi!");
+      setMessage("✅ Reel successfully upload ho gayi!");
+      setTimeout(() => {
+        setMessage("");
+        navigate("/reels");
+      }, 2500);
       setSelectedProductId("");
       handleRemoveVideo();
       setProducts((current) =>
@@ -307,7 +311,15 @@ const CreateReelPage = () => {
             />
           </div>
 
-          {message && <p className="crp-status crp-status-success">{message}</p>}
+          {message && (
+            <div className="crp-toast">
+              <span className="crp-toast-icon">✅</span>
+              <div>
+                <p className="crp-toast-title">Reel Upload Ho Gayi!</p>
+                <p className="crp-toast-sub">Reels page par redirect ho rahe hain...</p>
+              </div>
+            </div>
+          )}
           {errorMessage && <p className="crp-status crp-status-error">{errorMessage}</p>}
 
           <div className="crp-button-group">
@@ -544,6 +556,37 @@ const CreateReelPage = () => {
           background: rgba(228, 88, 33, 0.1);
           color: #c94d1c;
           border: 1px solid rgba(228, 88, 33, 0.22);
+        }
+
+        /* ── Toast ── */
+        .crp-toast {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 16px 20px;
+          background: #1a2e0a;
+          border: 1px solid rgba(141,198,63,0.3);
+          border-radius: 14px;
+          animation: crp-toast-in 0.3s ease-out;
+        }
+        @keyframes crp-toast-in {
+          from { opacity: 0; transform: translateY(8px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .crp-toast-icon {
+          font-size: 1.6rem;
+          flex-shrink: 0;
+        }
+        .crp-toast-title {
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: #aee85a;
+          margin: 0 0 2px;
+        }
+        .crp-toast-sub {
+          font-size: 0.78rem;
+          color: rgba(174,232,90,0.65);
+          margin: 0;
         }
 
         .crp-button-group {

@@ -24,6 +24,8 @@ export const DeliveryAddressSection = ({
       phone: '',
       streetAddress: '',
       city: '',
+      province: '',
+      postalCode: '',
     }
   );
 

@@ -62,6 +62,7 @@ const ListProductPage = () => {
     if (!condition) e.condition = "Condition is required";
     if (!city) e.city = "City is required";
     if (!photos.length) e.photos = "Add at least one photo";
+    if (!swapFor.trim()) e.swapFor = "Please enter what you want to swap for";
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -320,11 +321,19 @@ const ListProductPage = () => {
                       value={price} onChange={(e) => setPrice(e.target.value)} />
                   </div>
                 </div>
-                <div className="lp-field">
-                  <label className="lp-label">OPEN TO SVAP FOR</label>
-                  <input className="lp-input" placeholder="e.g. MacBook Air M2"
-                    value={swapFor} onChange={(e) => setSwapFor(e.target.value)} />
-                </div>
+              </div>
+
+              <div className="lp-field">
+                <label className="lp-label">THING WANT TO SVAP WITH IT? <span className="lp-req">*</span></label>
+                <input
+                  className={`lp-input${errors.swapFor ? " lp-input--err" : ""}`}
+                  placeholder="e.g. MacBook Air M2, iPhone 15, PS5..."
+                  value={swapFor}
+                  onChange={(e) => setSwapFor(e.target.value)}
+                  maxLength={120}
+                />
+                <span className="lp-char-count">{swapFor.length}/120</span>
+                {errors.swapFor && <p className="lp-err"><FiAlertCircle size={11} />{errors.swapFor}</p>}
               </div>
             </div>
 

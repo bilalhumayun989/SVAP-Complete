@@ -42,11 +42,22 @@ const CheckoutPage = () => {
     try {
       const userStr = localStorage.getItem('sz_user');
       const user = userStr ? JSON.parse(userStr) : null;
+      let toUserId = user?.id;
+
+      if (navigationData?.swapRequestId && user?.id) {
+        const swapRes = await api.getSwapRequestsByUser(user.id);
+        const swapRequest = (swapRes.data || []).find((request: any) => request.id === navigationData.swapRequestId);
+        if (swapRequest) {
+          toUserId = swapRequest.from_user_id === user.id
+            ? swapRequest.to_user_id
+            : swapRequest.from_user_id;
+        }
+      }
       
       const orderData = {
         swap_request_id: navigationData?.swapRequestId || null,
         from_user_id: user?.id,
-        to_user_id: user?.id, // Fallback, could be fetched from item seller
+        to_user_id: toUserId,
         delivery_name: state.deliveryAddress?.fullName,
         delivery_phone: state.deliveryAddress?.phone,
         delivery_address: state.deliveryAddress?.streetAddress,
@@ -113,7 +124,7 @@ const CheckoutPage = () => {
             </span>
           </p>
           {/* If came from swap, show "check requests later" note */}
-          {navigationData?.entrySource === 'swap' && (
+          {(navigationData?.entrySource === 'swap' || navigationData?.entrySource === 'svap') && (
             <div className="checkout-swap-note">
               ✅ Swap request accepted! Fill in delivery details below, or{' '}
               <button className="checkout-swap-link" onClick={() => navigate('/requests')}>

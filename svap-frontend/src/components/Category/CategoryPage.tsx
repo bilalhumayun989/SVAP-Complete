@@ -1,22 +1,9 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { api } from "../../services/api";
-import { FiHeart, FiEye, FiChevronDown, FiFilter } from "react-icons/fi";
-
-interface CategoryProduct {
-  id: string;
-  title: string;
-  image: string;
-  price: string;
-  location: string;
-  views: number;
-  condition: string;
-  category: string;
-  swapFor?: string;
-  user: { name: string; avatar: string };
-}
-
+import { FiChevronDown, FiFilter } from "react-icons/fi";
 import ProductCard from "../Home-page/Productcard";
+import type { Product } from "../Home-page/data/product";
 
 const CategoryPage = () => {
   const { name } = useParams<{ name: string }>();
@@ -25,20 +12,26 @@ const CategoryPage = () => {
       ? name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
       : "Electronics";
 
-  const [products, setProducts] = useState<CategoryProduct[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const response = await api.getProductsByCategory(categoryName);
-        if (response.error) throw new Error(response.error);
+        const userId = (() => { try { return JSON.parse(localStorage.getItem("sz_user") || "{}").id; } catch { return null; } })();
 
+        const [response, savedRes] = await Promise.all([
+          api.getProductsByCategory(categoryName),
+          userId ? api.getSavedProductIds(userId) : Promise.resolve({ data: [] }),
+        ]);
+
+        if (response.error) throw new Error(response.error);
         if (response.data) {
-          const mapped: any[] = response.data.map((p: any) => ({
+          const mapped: Product[] = response.data.map((p: any) => ({
             id: p.id,
             title: p.title,
             description: p.description || "",
@@ -53,15 +46,14 @@ const CategoryPage = () => {
             user: {
               name: p.profiles?.username || p.profiles?.full_name || "Unknown",
               email: p.profiles?.email || "",
-              avatar:
-                p.profiles?.avatar_url ||
-                `https://ui-avatars.com/api/?name=${p.profiles?.username || "U"}&background=random`,
+              avatar: p.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${p.profiles?.username || "U"}&background=random`,
             },
           }));
           setProducts(mapped);
         } else {
           setProducts([]);
         }
+        if (savedRes.data) setSavedIds(new Set(savedRes.data));
       } catch (err) {
         console.error("Failed to fetch category products:", err);
         setProducts([]);
@@ -181,7 +173,7 @@ const CategoryPage = () => {
         ) : products.length > 0 ? (
           <div className="catpage-grid">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} initialSaved={savedIds.has(product.id)} />
             ))}
           </div>
         ) : (

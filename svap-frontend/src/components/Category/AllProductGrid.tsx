@@ -13,15 +13,19 @@ const AllProductGrid = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortLabel, setSortLabel] = useState("Newest First");
   const [products, setProducts] = useState<any[]>([]);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    const userId = (() => { try { return JSON.parse(localStorage.getItem("sz_user") || "{}").id; } catch { return null; } })();
     const fetchProducts = async () => {
       try {
-        const response = await api.getProducts();
-        if (response.error) throw new Error(response.error);
-        
-        if (response.data) {
-          const mappedProducts = response.data.map((p: any) => ({
+        const [prodRes, savedRes] = await Promise.all([
+          api.getProducts(),
+          userId ? api.getSavedProductIds(userId) : Promise.resolve({ data: [] }),
+        ]);
+        if (prodRes.error) throw new Error(prodRes.error);
+        if (prodRes.data) {
+          setProducts(prodRes.data.map((p: any) => ({
             id: p.id,
             user: {
               name: p.profiles?.username || p.profiles?.full_name || "Unknown",
@@ -36,9 +40,9 @@ const AllProductGrid = () => {
             condition: p.condition || "",
             swapFor: p.swap_for || "",
             swapForImage: p.image_urls?.[1] || "",
-          }));
-          setProducts(mappedProducts);
+          })));
         }
+        if (savedRes.data) setSavedIds(new Set(savedRes.data));
       } catch (err: any) {
         console.error("Error fetching products:", err.message);
       }
@@ -130,7 +134,7 @@ const AllProductGrid = () => {
           {/* Grid */}
           <div className="apg-grid">
             {visibleProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} initialSaved={savedIds.has(product.id)} />
             ))}
           </div>
 

@@ -42,6 +42,10 @@ export const api = {
     });
     return res.json();
   },
+  getProfile: async (userId: string) => {
+    const res = await fetch(`${API_URL}/auth/profile/${encodeURIComponent(userId)}`);
+    return res.json();
+  },
 
   // Upload
   uploadImage: async (formData: FormData) => {
@@ -117,6 +121,10 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    return res.json();
+  },
+  checkSwapEligibility: async (userId: string, productId: string) => {
+    const res = await fetch(`${API_URL}/swap-requests/check/${encodeURIComponent(userId)}/${encodeURIComponent(productId)}`);
     return res.json();
   },
 

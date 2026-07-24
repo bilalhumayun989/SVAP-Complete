@@ -12,8 +12,8 @@ export interface SwapRequest {
   // Joined data
   offered?: { title: string; image_urls: string[] };
   requested?: { title: string; image_urls: string[] };
-  from_profile?: { username: string; avatar_url: string | null };
-  to_profile?: { username: string; avatar_url: string | null };
+  from_profile?: { username: string | null; avatar_url: string | null };
+  to_profile?: { username: string | null; avatar_url: string | null };
   // UI helpers
   direction?: "sent" | "received";
 }

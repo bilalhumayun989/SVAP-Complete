@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { FiHeart, FiMessageCircle, FiShare2, FiVolume2, FiVolumeX, FiMoreHorizontal, FiArrowLeft } from "react-icons/fi";
+import { FiVolume2, FiVolumeX, FiArrowLeft, FiBookmark } from "react-icons/fi";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../services/api";
 
 interface Reel {
   id: string;
+  userId: string;
   user: {
     name: string;
     avatar: string;
@@ -12,15 +13,13 @@ interface Reel {
   title: string;
   product: string;
   price: string;
-  likes: number;
-  comments: number;
   thumbnail: string;
   video: string;
-  liked: boolean;
 }
 
 interface ProductRow {
   id: string;
+  user_id?: string | null;
   title?: string | null;
   price?: number | string | null;
   image_urls?: string[] | null;
@@ -55,55 +54,62 @@ interface ReelCardProps {
 
 const ReelCard = ({ reel, isActive, index }: ReelCardProps) => {
   const navigate = useNavigate();
-  const [liked, setLiked] = useState(reel.liked);
-  const [likes, setLikes] = useState(reel.likes);
   const [muted, setMuted] = useState(true);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [paused, setPaused] = useState(false);
 
-  const toggleLike = () => {
-    setLiked((p) => !p);
-    setLikes((p) => (liked ? p - 1 : p + 1));
-  };
-
+  const userId = (() => { try { return JSON.parse(localStorage.getItem("sz_user") || "{}").id; } catch { return null; } })();
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-
     if (isActive) {
-      if (paused) {
-        video.pause();
-      } else {
-        video.play().catch(() => { });
-      }
+      if (paused) { video.pause(); }
+      else { video.play().catch(() => { }); }
     } else {
       video.pause();
     }
   }, [isActive, paused]);
 
-
   const togglePlayPause = (e: React.MouseEvent) => {
     e.stopPropagation();
-
     const video = videoRef.current;
     if (!video) return;
-
     if (video.paused) {
-      video.play().then(() => {
-        setPaused(false);
-      }).catch(() => { });
+      video.play().then(() => setPaused(false)).catch(() => { });
     } else {
       video.pause();
       setPaused(true);
     }
   };
 
+  // Avatar: real image or first letter of name
+  const initial = reel.user.name?.[0]?.toUpperCase() || "U";
+
+  const handleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!userId) { navigate("/login"); return; }
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (saved) {
+        await api.unsaveProduct(userId, reel.id);
+        setSaved(false);
+      } else {
+        await api.saveProduct(userId, reel.id);
+        setSaved(true);
+      }
+    } catch (err) {
+      console.error("Save failed:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <div
-      className={`reel-card ${isActive ? "reel-card--active" : ""}`}
-      data-index={index}
-    >      {/* Background thumbnail */}
+    <div className={`reel-card ${isActive ? "reel-card--active" : ""}`} data-index={index}>
       <div className="reel-bg">
         <video
           ref={videoRef}
@@ -119,64 +125,55 @@ const ReelCard = ({ reel, isActive, index }: ReelCardProps) => {
         <div className="reel-gradient-bottom" />
       </div>
 
-      {/* Play indicator */}
       {isActive && (
         <div className="reel-playing-bar">
           <div
             key={`progress-${paused}`}
             className="reel-progress"
-            style={{
-              animationPlayState: paused ? 'paused' : 'running'
-            }}
+            style={{ animationPlayState: paused ? 'paused' : 'running' }}
           />
         </div>
       )}
 
-      {/* Right actions */}
+      {/* Right actions — only mute */}
       <div className="reel-actions">
-        <div className="reel-avatar-wrap">
-          <img src={reel.user.avatar} alt={reel.user.name} className="reel-avatar" />
-          <div className="reel-follow-btn">+</div>
-        </div>
-
-        <button className={`reel-action-btn ${liked ? "reel-action-btn--liked" : ""}`} onClick={toggleLike}>
-          <FiHeart size={26} fill={liked ? "#E45821" : "none"} />
-          <span>{likes > 999 ? `${(likes / 1000).toFixed(1)}k` : likes}</span>
-        </button>
-
-        <button className="reel-action-btn">
-          <FiMessageCircle size={26} />
-          <span>{reel.comments}</span>
-        </button>
-
-        <button className="reel-action-btn">
-          <FiShare2 size={24} />
-          <span>Share</span>
-        </button>
+       
 
         <button className="reel-action-btn" onClick={() => setMuted((m) => !m)}>
           {muted ? <FiVolumeX size={22} /> : <FiVolume2 size={22} />}
         </button>
 
-        <button className="reel-action-btn">
-          <FiMoreHorizontal size={22} />
+        <button
+          className={`reel-action-btn ${saved ? "reel-action-btn--saved" : ""}`}
+          onClick={handleSave}
+          disabled={saving}
+          title={saved ? "Remove from saved" : "Save listing"}
+        >
+          <FiBookmark size={22} fill={saved ? "#E45821" : "none"} />
+          <span>{saved ? "Saved" : "Save"}</span>
         </button>
       </div>
+
       {paused && (
-        <div className="play-overlay">
-          ▶
-        </div>
+        <div className="play-overlay">▶</div>
       )}
 
       {/* Bottom info */}
       <div className="reel-bottom">
-        <div className="reel-user">
-          <img src={reel.user.avatar} alt="" className="reel-user-avatar" />
+        <div
+          className="reel-user"
+          onClick={() => navigate(`/user/${reel.userId}`)}
+          style={{ cursor: 'pointer' }}
+        >
+          {reel.user.avatar && reel.user.avatar !== 'https://i.pravatar.cc/150?img=1' ? (
+            <img src={reel.user.avatar} alt="" className="reel-user-avatar" />
+          ) : (
+            <div className="reel-user-avatar reel-user-avatar-initial">{initial}</div>
+          )}
           <span className="reel-username">@{reel.user.name}</span>
         </div>
         <p className="reel-title">{reel.title}</p>
 
-        {/* Product buy strip */}
         <div className="reel-product-strip" onClick={() => navigate(`/product/${reel.id}`)}>
           <div className="reel-product-img-wrap">
             <img src={reel.thumbnail} alt="" className="reel-product-img" />
@@ -195,6 +192,16 @@ const ReelCard = ({ reel, isActive, index }: ReelCardProps) => {
   );
 };
 
+// Fisher-Yates shuffle
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 const ReelsPage = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -203,6 +210,7 @@ const ReelsPage = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [reels, setReels] = useState<Reel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshKey] = useState(0);
   const initialScrollDone = useRef(false);
 
   // Ref-based lock so wheel handler always reads latest index without re-binding
@@ -218,6 +226,7 @@ const ReelsPage = () => {
 
     const loadReels = async () => {
       setIsLoading(true);
+      initialScrollDone.current = false;
 
       const response = await api.getProducts();
 
@@ -228,7 +237,8 @@ const ReelsPage = () => {
         setReels([]);
       } else {
         setReels(
-          ((response.data || []) as ProductRow[])
+          shuffleArray(
+            ((response.data || []) as ProductRow[])
             .filter((product) => Boolean(product.video_url))
             .sort((a: any, b: any) => {
               const aTime = new Date(a.reel_uploaded_at || a.created_at || 0).getTime();
@@ -244,9 +254,10 @@ const ReelsPage = () => {
               const priceNumber = Number(product.price);
               return {
                 id: product.id,
+                userId: product.user_id || "",
                 user: {
                   name: displayName,
-                  avatar: product.profiles?.avatar_url || "https://i.pravatar.cc/150?img=1",
+                  avatar: product.profiles?.avatar_url || "",
                 },
                 title: product.title || "Product reel",
                 product: product.title || "Product",
@@ -256,11 +267,9 @@ const ReelsPage = () => {
                     : "Price on request",
                 thumbnail: product.image_urls?.[0] || "https://placehold.co/600x800?text=SVAP",
                 video: product.video_url || "",
-                likes: 0,
-                comments: 0,
-                liked: false,
               };
             })
+          ) // close shuffleArray
         );
       }
 
@@ -272,7 +281,7 @@ const ReelsPage = () => {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   useEffect(() => {
     if (!selectedReelId || reels.length === 0) return;
@@ -330,14 +339,10 @@ const ReelsPage = () => {
     const el = containerRef.current;
     if (!el) return;
 
-    const SCROLL_DURATION = 500; // ms, the animation's own duration
     const QUIET_PERIOD = 220; // ms of silence required after last wheel event
     let rafId: number | null = null;
     let quietTimer: number | null = null;
     let animating = false;
-
-    const easeInOutQuad = (t: number) =>
-      t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
 
 
@@ -414,6 +419,9 @@ const ReelsPage = () => {
       >
         <FiArrowLeft size={24} />
       </button>
+
+      {/* Refresh / shuffle button */}
+   
       {isLoading && <div className="reels-state">Loading reels...</div>}
       {!isLoading && reels.length === 0 && <div className="reels-state">No reels yet.</div>}
       {reels.map((reel, i) => (
@@ -455,8 +463,29 @@ const ReelsPage = () => {
           transition: background 0.2s;
           backdrop-filter: blur(8px);
         }
-        .reels-back-btn:hover {
+        .reels-back-btn:hover { background: rgba(0, 0, 0, 0.7); }
+
+        .reels-refresh-btn {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: rgba(0, 0, 0, 0.5);
+          border: none;
+          font-size: 1.1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          z-index: 100;
+          transition: background 0.2s, transform 0.3s;
+          backdrop-filter: blur(8px);
+        }
+        .reels-refresh-btn:hover {
           background: rgba(0, 0, 0, 0.7);
+          transform: rotate(180deg);
         }
 
         .reels-state {
@@ -555,17 +584,20 @@ const ReelsPage = () => {
           z-index: 10;
         }
 
-        .reel-avatar-wrap {
-          position: relative;
-          margin-bottom: 6px;
-        }
-
-        .reel-avatar {
-          width: 46px;
-          height: 46px;
+       
+        .reel-user-avatar-initial {
+          width: 32px;
+          height: 32px;
           border-radius: 50%;
-          object-fit: cover;
-          border: 2px solid #fff;
+          background: #E45821;
+          border: 1.5px solid rgba(255,255,255,0.7);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: #fff;
+          font-family: 'Poppins', sans-serif;
         }
 
         .reel-follow-btn {
@@ -604,6 +636,7 @@ const ReelsPage = () => {
         }
         .reel-action-btn:hover { transform: scale(1.12); }
         .reel-action-btn--liked { color: #E45821; }
+        .reel-action-btn--saved { color: #E45821; }
 
         /* Bottom info */
         .reel-bottom {

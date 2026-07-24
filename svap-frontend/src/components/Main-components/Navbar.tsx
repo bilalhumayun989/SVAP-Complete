@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FiLogOut, FiMoon, FiSun } from "react-icons/fi";
 import { supabase } from "../../services/supabase";
+import { useNotifications } from "../../context/NotificationContext";
 
 // ─── Brand PNG Icon Component ─────────────────────────────────────────────────
 const BrandIcon = ({ src, alt, size = 24, className }: { src: string; alt: string; size?: number; className?: string }) => (
@@ -42,12 +43,11 @@ const ReelsIcon = ({ size = 24 }: { size?: number }) => (
   </svg>
 );
 
-// ─── Notifications Bell SVG ───────────────────────────────────────────────────
+// ─── Notifications Bell SVG (now without hardcoded badge) ────────────────────
 const BellIcon = ({ size = 24 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className="nb-brand-svg">
     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#313C5C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#E45821" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <circle cx="18" cy="5" r="3" fill="#E45821" />
   </svg>
 );
 
@@ -91,6 +91,7 @@ const TOP_NAV = [
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { unreadCount } = useNotifications();
 
   const [user, setUser] = useState<NavUser | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -250,7 +251,12 @@ const Navbar = () => {
               className={`nb-item ${isActive(item.route) ? "nb-item--active" : ""}`}
               aria-label={item.label}
             >
-              <span className="nb-icon">{item.icon}</span>
+              <span className="nb-icon" style={{ position: 'relative' }}>
+                {item.icon}
+                {item.label === 'Notifications' && unreadCount > 0 && (
+                  <span className="nb-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                )}
+              </span>
               <span className="nb-label">{item.label}</span>
               <span className="nb-tooltip">{item.label}</span>
             </Link>
@@ -492,6 +498,27 @@ const Navbar = () => {
           justify-content: center;
           width: 26px;
           color: inherit;
+        }
+
+        /* Unread count badge */
+        .nb-badge {
+          position: absolute;
+          top: -6px;
+          right: -8px;
+          min-width: 18px;
+          height: 18px;
+          background: #E45821;
+          color: #fff;
+          font-size: 0.65rem;
+          font-weight: 700;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 5px;
+          box-shadow: 0 2px 6px rgba(228,88,33,0.4);
+          border: 2px solid var(--navbar-bg);
+          z-index: 10;
         }
 
         .nb-label {

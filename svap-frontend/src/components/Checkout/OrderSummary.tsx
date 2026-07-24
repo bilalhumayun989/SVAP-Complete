@@ -62,12 +62,45 @@ export const OrderSummary = ({
   };
 
   const costItems = getCostItems();
+  const givingItem = items.find(item => item.role === 'giving');
+  const receivingItem = items.find(item => item.role === 'receiving');
+  const getOwnerLine = (item: CheckoutItem) =>
+    item.seller === 'You' ? 'Owned by You' : `From ${item.seller}`;
 
   return (
     <div className="order-summary">
       <div className="summary-header">
         <h2 className="summary-title">{getSummaryTitle()}</h2>
       </div>
+
+      {transactionType === 'svap' && givingItem && receivingItem && (
+        <div className="swap-route-card">
+          <div className="swap-route-title">Swap Route</div>
+          <div className="swap-route-grid">
+            <div className="swap-route-item">
+              <span className="swap-route-label">You Give</span>
+              <div className="swap-route-product">
+                <img src={givingItem.image} alt={givingItem.name} />
+                <div>
+                  <p>{givingItem.name}</p>
+                  <span>{getOwnerLine(givingItem)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="swap-route-divider">to</div>
+            <div className="swap-route-item">
+              <span className="swap-route-label">You Receive</span>
+              <div className="swap-route-product">
+                <img src={receivingItem.image} alt={receivingItem.name} />
+                <div>
+                  <p>{receivingItem.name}</p>
+                  <span>{getOwnerLine(receivingItem)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Items List */}
       {items.length > 0 && (
@@ -161,6 +194,86 @@ export const OrderSummary = ({
           font-weight: 700;
           color: var(--text-dark);
           margin: 0;
+        }
+
+        .swap-route-card {
+          background: var(--bg-section);
+          border: 1px solid rgba(228,88,33,0.22);
+          border-radius: 12px;
+          padding: 14px;
+        }
+
+        .swap-route-title {
+          font-size: 0.78rem;
+          font-weight: 800;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: #E45821;
+          margin-bottom: 12px;
+        }
+
+        .swap-route-grid {
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .swap-route-label {
+          display: block;
+          font-size: 0.68rem;
+          font-weight: 700;
+          color: var(--text-muted);
+          margin-bottom: 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .swap-route-product {
+          display: flex;
+          gap: 9px;
+          align-items: center;
+          min-width: 0;
+        }
+
+        .swap-route-product img {
+          width: 42px;
+          height: 42px;
+          border-radius: 8px;
+          object-fit: cover;
+          border: 1px solid var(--border);
+          flex-shrink: 0;
+        }
+
+        .swap-route-product p {
+          margin: 0 0 2px;
+          color: var(--text-dark);
+          font-size: 0.78rem;
+          font-weight: 700;
+          line-height: 1.25;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .swap-route-product span {
+          color: var(--text-muted);
+          font-size: 0.68rem;
+        }
+
+        .swap-route-divider {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          background: #E45821;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.64rem;
+          font-weight: 800;
+          text-transform: uppercase;
         }
 
         /* Items Section */
@@ -346,6 +459,15 @@ export const OrderSummary = ({
         @media (max-width: 768px) {
           .order-summary {
             padding: 20px;
+          }
+
+          .swap-route-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .swap-route-divider {
+            transform: rotate(90deg);
+            justify-self: center;
           }
 
           .summary-item {

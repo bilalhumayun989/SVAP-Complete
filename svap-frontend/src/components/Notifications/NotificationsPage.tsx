@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiRepeat, FiShoppingBag, FiBell, FiCheck, FiX } from "react-icons/fi";
+import { FiRepeat, FiShoppingBag, FiBell, FiCheck } from "react-icons/fi";
 import { api } from "../../services/api";
+import { useNotifications } from "../../context/NotificationContext";
 
 type NotifType = "swap_request" | "swap_accepted" | "swap_rejected" | "order_update" | "system" | string;
 
@@ -45,6 +46,7 @@ type FilterTab = "all" | "unread" | "swaps" | "orders";
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
+  const { refreshCount } = useNotifications();
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
@@ -75,14 +77,16 @@ const NotificationsPage = () => {
     if (!n.is_read) {
       await api.markNotificationRead(n.id);
       setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x));
+      refreshCount();
     }
-    if (n.route) navigate(n.route);
+    navigate("/requests");
   };
 
   const handleMarkAllRead = async () => {
     if (!userId) return;
     await api.markAllNotificationsRead(userId);
     setNotifs(prev => prev.map(n => ({ ...n, is_read: true })));
+    refreshCount();
   };
 
   return (
@@ -102,7 +106,7 @@ const NotificationsPage = () => {
 
       {/* Filter tabs */}
       <div className="np-tabs">
-        {(["all", "unread", "swaps", "orders"] as FilterTab[]).map(tab => (
+        {(["all", "unread", "orders", "orders"] as FilterTab[]).map(tab => (
           <button
             key={tab}
             className={`np-tab ${activeTab === tab ? "np-tab--active" : ""}`}

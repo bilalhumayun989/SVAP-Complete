@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { FiPlay, FiHeart, FiChevronRight, FiChevronLeft } from "react-icons/fi";
+import { FiPlay, FiChevronRight, FiChevronLeft } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../../services/api";
 
@@ -122,10 +122,7 @@ const HomeReelsRow = () => {
                           <FiPlay size={18} fill="#fff" color="#fff" />
                         </div>
                         <span className="hreel-user-overlay">@{r.user}</span>
-                        <div className="hreel-likes">
-                          <FiHeart size={11} fill="#E45821" color="#E45821" />
-                          <span>0</span>
-                        </div>
+                        
                       </div>
                       <div className="hreel-info">
                         <span className="hreel-user">@{r.user}</span>
@@ -287,32 +284,7 @@ const HomeReelsRow = () => {
           justify-content: center;
         }
 
-        .hreel-likes {
-          position: absolute;
-          bottom: 10px;
-          left: 10px;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          color: #fff;
-          font-size: 0.75rem;
-          font-weight: 700;
-          font-family: 'Poppins', sans-serif;
-        }
-
-        .hreel-user-overlay {
-          display: none;
-          position: absolute;
-          bottom: 30px;
-          left: 10px;
-          font-size: 0.72rem;
-          font-weight: 700;
-          color: #ffffff;
-          font-family: 'Poppins', sans-serif;
-          z-index: 2;
-          text-shadow: 0 1px 4px rgba(0,0,0,0.5);
-        }
-
+       
         .hreel-info {
           margin-top: 7px;
           display: flex;
@@ -349,7 +321,6 @@ const HomeReelsRow = () => {
           .hreel-overlay { background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.10) 50%, transparent 100%); }
           .hreel-info { display: none; }
           .hreel-user-overlay { display: block; }
-          .hreel-likes { bottom: 10px; left: 10px; font-size: 0.78rem; }
           .hreel-play { width: 42px; height: 42px; }
         }
 

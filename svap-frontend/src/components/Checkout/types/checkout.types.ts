@@ -7,6 +7,7 @@ export interface CheckoutItem {
   swapValue?: number;
   condition: string;
   seller: string;
+  role?: 'giving' | 'receiving';
 }
 
 export interface DeliveryAddress {
@@ -50,7 +51,7 @@ export interface CheckoutState {
   // Entry data
   transactionType: 'purchase' | 'svap';
   items: CheckoutItem[];
-  entrySource: 'product' | 'svap' | 'cart';
+  entrySource: 'product' | 'svap' | 'swap' | 'cart';
   
   // Form state
   deliveryAddress: DeliveryAddress | null;
@@ -67,7 +68,7 @@ export interface CheckoutState {
 }
 
 export interface NavigationData {
-  entrySource: 'product' | 'svap' | 'cart';
+  entrySource: 'product' | 'svap' | 'swap' | 'cart';
   productId?: string;
   swapRequestId?: string;
   cartItems?: any[]; // Cart item type from cart system

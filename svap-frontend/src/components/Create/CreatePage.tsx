@@ -304,7 +304,6 @@ import { useNavigate } from "react-router-dom";
 import {
   FiArrowLeft,
   FiFilm,
-  FiCamera,
   FiBox,
   FiChevronRight,
   FiArrowUpRight,

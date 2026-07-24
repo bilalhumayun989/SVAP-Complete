@@ -7,11 +7,17 @@ import {
   getTimeRemaining,
   type SwapRequest,
 } from "../../hooks/useSwapRequests";
+import { useNotifications } from "../../context/NotificationContext";
+import { api } from "../../services/api";
 
 type Tab = "received" | "sent";
 
+const getDisplayName = (profile?: { username: string | null }) =>
+  profile?.username || "Deleted User";
+
 const Requests = () => {
   const navigate = useNavigate();
+  const { refreshCount } = useNotifications();
   const [tab, setTab] = useState<Tab>("received");
   const [requests, setRequests] = useState<SwapRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +33,32 @@ const Requests = () => {
     setRequests(data);
     setLoading(false);
   }, [userId]);
+
+  // Mark swap request notifications as read when page loads
+  useEffect(() => {
+    const markSwapNotificationsRead = async () => {
+      if (!userId) return;
+      try {
+        // Get all notifications
+        const res = await api.getNotifications(userId);
+        if (res.data) {
+          // Find unread swap notifications
+          const unreadSwapNotifs = res.data.filter(
+            (n: any) => !n.is_read && n.type?.includes('swap')
+          );
+          // Mark each as read
+          await Promise.all(
+            unreadSwapNotifs.map((n: any) => api.markNotificationRead(n.id))
+          );
+          // Refresh count
+          refreshCount();
+        }
+      } catch (err) {
+        console.error('Failed to mark notifications as read:', err);
+      }
+    };
+    markSwapNotificationsRead();
+  }, [userId, refreshCount]);
 
   useEffect(() => {
     refresh();
@@ -157,7 +189,7 @@ const Requests = () => {
                         <img
                           src={
                             req.direction === "received"
-                              ? req.from_profile?.avatar_url || `https://ui-avatars.com/api/?name=${req.from_profile?.username || 'U'}&background=random`
+                              ? req.from_profile?.avatar_url || `https://ui-avatars.com/api/?name=${getDisplayName(req.from_profile)}&background=random`
                               : req.offered?.image_urls?.[0] || "https://placehold.co/80"
                           }
                           alt=""
@@ -170,7 +202,7 @@ const Requests = () => {
                         </span>
                         <span className="req-item-name">
                           {req.direction === "received" 
-                            ? req.from_profile?.username || "Unknown"
+                            ? getDisplayName(req.from_profile)
                             : req.offered?.title || "Unknown"}
                         </span>
                         {req.direction === "received" && (
@@ -196,6 +228,9 @@ const Requests = () => {
                           {req.direction === "received" ? "Your Item" : "Requested"}
                         </span>
                         <span className="req-item-name">{req.requested?.title || "Unknown"}</span>
+                        {req.direction === "sent" && (
+                          <span className="req-item-sub">@{getDisplayName(req.to_profile)}</span>
+                        )}
                       </div>
                     </div>
                   </div>

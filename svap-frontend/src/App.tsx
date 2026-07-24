@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import Lenis from 'lenis'
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import './App.css'
 import { supabase } from './services/supabase'
+import { NotificationProvider, useNotifications } from './context/NotificationContext'
 import Navbar from './components/Main-components/Navbar'
 import Homemain from './components/Home-page/Homemain'
 import ProductDetailPage from './components/Product-detail/ProductDetailPage.tsx'
@@ -30,6 +32,56 @@ import TopNavbar from './components/Main-components/TopNavbar.tsx'
 
 export const lenisRef: { current: Lenis | null } = { current: null }
 
+// ── Global Toast Component ─────────────────────────────────────────────────
+function GlobalToasts() {
+  const { toasts, dismissToast } = useNotifications()
+  const navigate = useNavigate()
+
+  if (toasts.length === 0) return null
+
+  return (
+    <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 99999, display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 340, width: '90vw' }}>
+      {toasts.map(t => (
+        <div
+          key={t.id}
+          onClick={() => { dismissToast(t.id); navigate('/order') }}
+          style={{
+            background: 'rgba(20,20,20,0.95)',
+            border: '1px solid rgba(228,88,33,0.35)',
+            borderRadius: 14,
+            padding: '14px 16px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 12,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+            backdropFilter: 'blur(12px)',
+            animation: 'toast-slide-in 0.3s ease-out',
+          }}
+        >
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(228,88,33,0.2)', border: '1px solid rgba(228,88,33,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '1rem' }}>
+            🔔
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: '0 0 3px', fontSize: '0.82rem', fontWeight: 700, color: '#fff', fontFamily: "'Poppins', sans-serif" }}>New Swap Request</p>
+            <p style={{ margin: 0, fontSize: '0.76rem', color: 'rgba(255,255,255,0.7)', fontFamily: "'Poppins', sans-serif", lineHeight: 1.4 }}>{t.body}</p>
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); dismissToast(t.id) }}
+            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '1rem', padding: 0, lineHeight: 1, flexShrink: 0 }}
+          >✕</button>
+        </div>
+      ))}
+      <style>{`
+        @keyframes toast-slide-in {
+          from { opacity: 0; transform: translateX(40px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 function ScrollToTop() {
   const { pathname } = useLocation()
   useEffect(() => {
@@ -53,7 +105,7 @@ function AppInner() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (event: AuthChangeEvent, session: Session | null) => {
         if (event === 'SIGNED_IN' && session?.user) {
           const user = session.user;
           const metadata = user.user_metadata || {};
@@ -108,6 +160,7 @@ function AppInner() {
 
   return (
     <>
+      <GlobalToasts />
       <Navbar />
       <TopNavbar />
       <ScrollToTop />
@@ -134,6 +187,7 @@ function AppInner() {
               <Route path="/profile/edit"       element={<EditProfilePage />} />
               <Route path="/edit-product/:id"   element={<EditProductPage />} />
               <Route path="/requests"           element={<Requests />} />
+              <Route path="/order"              element={<OrdersPage />} />
               <Route path="/orders"             element={<OrdersPage />} />
               <Route path="/list-product"       element={<ListProductPage />} />
               <Route path="/cart"               element={<CartPage />} />
@@ -152,9 +206,11 @@ function AppInner() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppInner />
-    </BrowserRouter>
+    <NotificationProvider>
+      <BrowserRouter>
+        <AppInner />
+      </BrowserRouter>
+    </NotificationProvider>
   )
 }
 
