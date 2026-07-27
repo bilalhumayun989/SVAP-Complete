@@ -4,6 +4,31 @@ const { sendOtpEmail } = require('../config/mailer');
 // authClient = admin if available (bypasses RLS), else anon
 const authClient = supabaseAdmin || supabase;
 
+const generateUniqueUsername = async (preferredUsername, userId) => {
+  const base = (preferredUsername || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '_')
+    .replace(/^_+|_+$/g, '') || `user_${(userId || '').slice(0, 8) || 'svap'}`;
+
+  let username = base;
+  let attempt = 0;
+
+  while (true) {
+    const { data: existing, error } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    if (!existing) return username;
+
+    attempt += 1;
+    username = `${base}_${attempt}`;
+  }
+};
+
 // ── POST /api/auth/send-otp ─────────────────────────────────────────────────
 exports.sendOtp = async (req, res) => {
   try {
@@ -88,9 +113,10 @@ exports.verifyOtp = async (req, res) => {
       }
       userId = newUser.user.id;
 
-      // Create profile row
+      // Create profile row with a guaranteed-unique username
+      const uniqueUsername = await generateUniqueUsername(email.split('@')[0], userId);
       await supabaseAdmin.from('profiles').upsert(
-        { id: userId, email, username: email.split('@')[0], full_name: '' },
+        { id: userId, email, username: uniqueUsername, full_name: '' },
         { onConflict: 'id' }
       );
     }
@@ -171,9 +197,11 @@ exports.signup = async (req, res) => {
       userId = data.user.id;
     }
 
+    const uniqueUsername = await generateUniqueUsername(username, userId);
+
     // Upsert profile (admin client — bypasses RLS)
     const { error: profileError } = await supabaseAdmin.from('profiles').upsert(
-      { id: userId, username, full_name: username, email, phone: phone || '' },
+      { id: userId, username: uniqueUsername, full_name: username, email, phone: phone || '' },
       { onConflict: 'id' }
     );
     if (profileError) console.error('[signup] Profile upsert error:', profileError.message);

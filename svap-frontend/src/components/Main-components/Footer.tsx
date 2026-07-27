@@ -1,4 +1,5 @@
 import { QRCodeSVG } from "qrcode.react";
+import { Link } from "react-router-dom";
 import { FaGooglePlay, FaApple, FaTwitter, FaInstagram, FaFacebookF, FaLinkedinIn } from "react-icons/fa";
 import { FiMail } from "react-icons/fi";
 
@@ -8,26 +9,48 @@ const QR_URL         = PLAY_STORE_URL;
 
 const footerLinks = [
     {
-    heading: "Explore",
-    links: ["Electronics", "Fashion", "Gaming", "Vehicles", "Books", "Home"],
-  },
-  {
-    heading: "Company",
-    links: ["About Us", "Categories", "My Orders"],
-  },
-  {
-    heading: "Support",
-    links: ["Help Center", "Safety Tips", "Report a Problem", "Contact Us"],
-  },
-  
+      heading: "Explore",
+      links: [
+        { label: "Electronics", href: "/category/Electronics" },
+        { label: "Fashion",     href: "/category/Fashion" },
+        { label: "Gaming",      href: "/category/Gaming" },
+        { label: "Vehicles",    href: "/category/Vehicles" },
+        { label: "Books",       href: "/category/Books" },
+        { label: "Home",        href: "/category/Home" },
+      ],
+    },
+    {
+      heading: "Company",
+      links: [
+        { label: "About Us",    href: "/about" },
+        { label: "Categories",  href: "/categories" },
+        { label: "My Orders",   href: "/orders" },
+      ],
+    },
+    {
+      heading: "Support",
+      links: [
+        { label: "Help Center",      href: "/help-center" },
+        { label: "Safety Tips",      href: "/safety-tips" },
+        { label: "Report a Problem", href: "/report-a-problem" },
+        { label: "Contact Us",       href: "/contact-us" },
+      ],
+    },
 ];
 
 const socials = [
-  { icon: <FaTwitter />,   href: "#" },
-  { icon: <FaInstagram />, href: "#" },
-  { icon: <FaFacebookF />, href: "#" },
-  { icon: <FaLinkedinIn />, href: "#" },
+  { icon: <FaTwitter />,   href: "https://twitter.com/svap_app" },
+  { icon: <FaInstagram />, href: "https://instagram.com/svap.app" },
+  { icon: <FaFacebookF />, href: "https://facebook.com/svap.app" },
+  { icon: <FaLinkedinIn />, href: "https://linkedin.com/company/svap-app" },
 ];
+
+const legalLinks = [
+  { label: "Privacy Policy",     href: "/privacy-policy" },
+  { label: "Terms of Service",   href: "/terms-of-service" },
+  { label: "Cookie Policy",      href: "/cookie-policy" },
+];
+
 
 const Footer = () => {
   return (
@@ -66,7 +89,7 @@ const Footer = () => {
                 {/* Socials */}
                 <div className="ft-socials">
                   {socials.map((s, i) => (
-                    <a key={i} href={s.href} className="ft-social-btn" aria-label="social">
+                    <a key={i} href={s.href} className="ft-social-btn" aria-label="social" target="_blank" rel="noopener noreferrer">
                       {s.icon}
                     </a>
                   ))}
@@ -79,15 +102,15 @@ const Footer = () => {
                   <h4 className="ft-col-heading">{col.heading}</h4>
                   <ul className="ft-link-list">
                     {col.links.map((link) => (
-                      <li key={link}>
-                        <a href="#" className="ft-link">{link}</a>
+                      <li key={link.label}>
+                        <Link to={link.href} className="ft-link">{link.label}</Link>
                       </li>
                     ))}
                   </ul>
                 </div>
               ))}
 
-              {/* Col 5 — App download */}
+
               <div className="ft-app-col">
                 <h4 className="ft-col-heading">Get the App</h4>
 
@@ -137,10 +160,12 @@ const Footer = () => {
                 © {new Date().getFullYear()} SVAP. All rights reserved.
               </p>
               <div className="ft-legal">
-                {["Privacy Policy", "Terms of Service", "Cookie Policy"].map((t) => (
-                  <a key={t} href="#" className="ft-legal-link">{t}</a>
+                {legalLinks.map((link) => (
+                  <Link key={link.label} to={link.href} className="ft-legal-link">{link.label}</Link>
                 ))}
               </div>
+
+
             </div>
 
           </div>

@@ -29,6 +29,14 @@ import EditProfilePage from './components/Profile/EditProfilePage'
 import EditProductPage from './components/ListProduct/EditProductPage'
 import MobileNav from './components/Main-components/MobileNav.tsx'
 import TopNavbar from './components/Main-components/TopNavbar.tsx'
+import AboutUs from './components/Footer-pages/AboutUs'
+import HelpCenter from './components/Footer-pages/HelpCenter'
+import SafetyTips from './components/Footer-pages/SafetyTips'
+import ReportProblem from './components/Footer-pages/ReportProblem'
+import ContactUs from './components/Footer-pages/ContactUs'
+// import PrivacyPolicy from './components/Footer-pages/PrivacyPolicy'
+import TermsOfService from './components/Footer-pages/TermsOfService'
+import CookiePolicy from './components/Footer-pages/CookiePolicy'
 
 export const lenisRef: { current: Lenis | null } = { current: null }
 
@@ -195,6 +203,14 @@ function AppInner() {
               <Route path="/search"             element={<SearchPage />} />
               <Route path="/notifications"      element={<NotificationsPage />} />
               <Route path="/create"             element={<CreatePage />} />
+              <Route path="/about"              element={<AboutUs />} />
+              <Route path="/help-center"        element={<HelpCenter />} />
+              <Route path="/safety-tips"        element={<SafetyTips />} />
+              <Route path="/report-a-problem"   element={<ReportProblem />} />
+              <Route path="/contact-us"         element={<ContactUs />} />
+              {/* <Route path="/privacy-policy"     element={<PrivacyPolicy />} /> */}
+              <Route path="/terms-of-service"   element={<TermsOfService />} />
+              <Route path="/cookie-policy"      element={<CookiePolicy />} />
             </Routes>
           </main>
           <MobileNav />
