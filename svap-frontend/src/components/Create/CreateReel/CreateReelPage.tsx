@@ -315,8 +315,8 @@ const CreateReelPage = () => {
             <div className="crp-toast">
               <span className="crp-toast-icon">✅</span>
               <div>
-                <p className="crp-toast-title">Reel Upload Ho Gayi!</p>
-                <p className="crp-toast-sub">Reels page par redirect ho rahe hain...</p>
+                <p className="crp-toast-title">Reel Upload Successfully.</p>
+                <p className="crp-toast-sub">Reels rediect on the page...</p>
               </div>
             </div>
           )}

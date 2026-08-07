@@ -46,6 +46,28 @@ export const api = {
     const res = await fetch(`${API_URL}/auth/profile/${encodeURIComponent(userId)}`);
     return res.json();
   },
+  createGoogleProfile: async (data: {
+    userId: string;
+    email: string;
+    name: string;
+    avatar_url?: string;
+    provider?: string;
+  }) => {
+    const res = await fetch(`${API_URL}/auth/create-google-profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  refreshProfile: async (userId: string) => {
+    const res = await fetch(`${API_URL}/auth/refresh-profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    return res.json();
+  },
 
   // Upload
   uploadImage: async (formData: FormData) => {

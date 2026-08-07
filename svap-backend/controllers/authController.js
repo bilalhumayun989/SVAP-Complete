@@ -261,25 +261,332 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// ── PUT /api/auth/profile/:userId ───────────────────────────────────────────
+// ── POST /api/auth/create-google-profile ───────────────────────────────────
+exports.createGoogleProfile = async (req, res) => {
+  try {
+    const { userId, email, name, avatar_url, provider } = req.body;
+    if (!userId || !email) {
+      return res.status(400).json({ error: 'User ID and email are required' });
+    }
+
+    // Check if profile already exists
+    const { data: existingProfile, error: checkError } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('[createGoogleProfile] Check existing profile error:', checkError.message);
+      return res.status(400).json({ error: 'Failed to check existing profile: ' + checkError.message });
+    }
+
+    if (existingProfile) {
+      // Profile exists, return it
+      return res.json({ data: existingProfile });
+    }
+
+    // Generate unique username from name or email
+    const baseName = (name || email.split('@')[0] || 'user').trim();
+    const uniqueUsername = await generateUniqueUsername(baseName, userId);
+
+    // Create new profile with your table structure
+    const profileData = {
+      id: userId,
+      username: uniqueUsername,
+      full_name: baseName,
+      email: email,
+      avatar_url: avatar_url || null,
+      city: 'Pakistan',
+      swap_score: 0,
+      total_swaps: 0,
+      total_listings: 0,
+      is_verified: false,
+      cnic_submitted: false,
+      notif_swaps: true,
+      notif_orders: true,
+      notif_marketing: false,
+      created_at: new Date().toISOString()
+    };
+
+    const { data: newProfile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .insert(profileData)
+      .select()
+      .single();
+
+    if (profileError) {
+      console.error('[createGoogleProfile] Profile creation error:', profileError.message);
+      
+      // If the error is about missing columns, try with basic fields only
+      if (profileError.message.includes('column')) {
+        const basicProfileData = {
+          id: userId,
+          username: uniqueUsername,
+          full_name: baseName,
+          email: email,
+          city: 'Pakistan',
+          swap_score: 0,
+          total_swaps: 0,
+          total_listings: 0,
+          is_verified: false,
+          cnic_submitted: false,
+          notif_swaps: true,
+          notif_orders: true,
+          notif_marketing: false,
+          created_at: new Date().toISOString()
+        };
+        
+        const { data: basicProfile, error: basicError } = await supabaseAdmin
+          .from('profiles')
+          .insert(basicProfileData)
+          .select()
+          .single();
+          
+        if (basicError) {
+          return res.status(400).json({ error: 'Failed to create profile: ' + basicError.message });
+        }
+        
+        // Update auth user metadata
+        try {
+          await supabaseAdmin.auth.admin.updateUserById(userId, {
+            user_metadata: { 
+              full_name: baseName,
+              display_name: baseName,
+              username: uniqueUsername
+            }
+          });
+        } catch (authError) {
+          console.warn('[createGoogleProfile] Auth update warning:', authError.message);
+        }
+
+        console.log(`[createGoogleProfile] Successfully created basic profile for user ${userId} with username ${uniqueUsername}`);
+        return res.json({ data: basicProfile });
+      }
+      
+      return res.status(400).json({ error: 'Failed to create profile: ' + profileError.message });
+    }
+
+    // Update auth user metadata with display name for Supabase Auth dashboard
+    try {
+      await supabaseAdmin.auth.admin.updateUserById(userId, {
+        user_metadata: { 
+          full_name: baseName,
+          display_name: baseName,
+          username: uniqueUsername
+        }
+      });
+    } catch (authError) {
+      console.warn('[createGoogleProfile] Auth update warning:', authError.message);
+      // Don't fail the request if auth update fails
+    }
+
+    console.log(`[createGoogleProfile] Successfully created profile for user ${userId} with username ${uniqueUsername}`);
+    res.json({ data: newProfile });
+  } catch (err) {
+    console.error('[createGoogleProfile] Error:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+// ── POST /api/auth/refresh-profile ─────────────────────────────────────────
+exports.refreshProfile = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    // Get the user from auth
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (authError || !authUser) {
+      return res.status(404).json({ error: 'User not found in auth' });
+    }
+
+    // Check if profile exists
+    const { data: existingProfile, error: profileCheckError } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (profileCheckError && profileCheckError.code !== 'PGRST116') {
+      return res.status(400).json({ error: 'Error checking profile: ' + profileCheckError.message });
+    }
+
+    const user = authUser.user;
+    const metadata = user.user_metadata || {};
+    const name = metadata.full_name || metadata.name || user.email?.split('@')[0] || "User";
+
+    if (!existingProfile) {
+      // Create new profile
+      const uniqueUsername = await generateUniqueUsername(name, userId);
+      
+      const profileData = {
+        id: userId,
+        username: uniqueUsername,
+        full_name: name,
+        email: user.email,
+        avatar_url: metadata.avatar_url || metadata.picture || null,
+        city: 'Pakistan',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { data: newProfile, error: createError } = await supabaseAdmin
+        .from('profiles')
+        .insert(profileData)
+        .select()
+        .single();
+
+      if (createError) {
+        return res.status(400).json({ error: 'Failed to create profile: ' + createError.message });
+      }
+
+      // Update auth metadata
+      await supabaseAdmin.auth.admin.updateUserById(userId, {
+        user_metadata: { 
+          ...metadata,
+          full_name: name,
+          display_name: name,
+          username: uniqueUsername
+        }
+      });
+
+      return res.json({ data: newProfile });
+    } else {
+      // Update existing profile if needed
+      const updates = {};
+      
+      if (!existingProfile.username) {
+        updates.username = await generateUniqueUsername(name, userId);
+      }
+      
+      if (!existingProfile.full_name) {
+        updates.full_name = name;
+      }
+      
+      if (!existingProfile.email) {
+        updates.email = user.email;
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        updates.updated_at = new Date().toISOString();
+        
+        const { data: updatedProfile, error: updateError } = await supabaseAdmin
+          .from('profiles')
+          .update(updates)
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (updateError) {
+          return res.status(400).json({ error: 'Failed to update profile: ' + updateError.message });
+        }
+
+        // Update auth metadata
+        await supabaseAdmin.auth.admin.updateUserById(userId, {
+          user_metadata: { 
+            ...metadata,
+            full_name: updatedProfile.full_name,
+            display_name: updatedProfile.full_name,
+            username: updatedProfile.username
+          }
+        });
+
+        return res.json({ data: updatedProfile });
+      }
+      
+      return res.json({ data: existingProfile });
+    }
+  } catch (err) {
+    console.error('[refreshProfile] Error:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
 exports.updateProfile = async (req, res) => {
   try {
     const { userId } = req.params;
     const updates = req.body;
 
+    // Filter out any undefined or null values and fields that shouldn't be updated
+    const cleanUpdates = {};
+    const allowedFields = [
+      'username', 'full_name', 'email', 'phone', 'avatar_url', 'city', 'bio', 'address',
+      'swap_score', 'total_swaps', 'total_listings', 'is_verified', 'cnic_submitted',
+      'cnic_front_path', 'cnic_back_path', 'notif_swaps', 'notif_orders', 'notif_marketing'
+    ];
+    
+    for (const [key, value] of Object.entries(updates)) {
+      if (allowedFields.includes(key) && value !== undefined && value !== null) {
+        cleanUpdates[key] = value;
+      }
+    }
+
+    // Always update the created_at timestamp for new records, don't update updated_at (will be handled by trigger)
+    if (!cleanUpdates.created_at) {
+      cleanUpdates.created_at = new Date().toISOString();
+    }
+
+    // First try to update existing profile
     const { data, error } = await supabaseAdmin
       .from('profiles')
-      .update(updates)
+      .update(cleanUpdates)
       .eq('id', userId)
       .select()
       .single();
 
+    if (error && error.code === 'PGRST116') {
+      // Profile doesn't exist, create it
+      const profileData = {
+        id: userId,
+        created_at: new Date().toISOString(),
+        ...cleanUpdates
+      };
+
+      // Generate username if not provided
+      if (!profileData.username && (profileData.full_name || profileData.email)) {
+        const baseName = profileData.full_name || profileData.email.split('@')[0];
+        profileData.username = await generateUniqueUsername(baseName, userId);
+      }
+
+      const { data: newProfile, error: createError } = await supabaseAdmin
+        .from('profiles')
+        .insert(profileData)
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('[updateProfile] Profile creation error:', createError.message);
+        return res.status(400).json({ error: 'Failed to create profile: ' + createError.message });
+      }
+
+      return res.json({ data: newProfile });
+    }
+
     if (error) {
       console.error('[updateProfile] error:', error.message);
+      // If it's a column error, try without the problematic fields
+      if (error.message.includes('column') && error.message.includes('bio')) {
+        const { bio, ...updatesWithoutBio } = cleanUpdates;
+        const { data: retryData, error: retryError } = await supabaseAdmin
+          .from('profiles')
+          .update(updatesWithoutBio)
+          .eq('id', userId)
+          .select()
+          .single();
+          
+        if (retryError) {
+          return res.status(400).json({ error: retryError.message });
+        }
+        return res.json({ data: retryData });
+      }
       return res.status(400).json({ error: error.message });
     }
+
     res.json({ data });
   } catch (err) {
+    console.error('[updateProfile] Unexpected error:', err.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };

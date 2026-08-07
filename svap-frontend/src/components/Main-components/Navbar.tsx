@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FiLogOut, FiMoon, FiSun } from "react-icons/fi";
 import { supabase } from "../../services/supabase";
 import { useNotifications } from "../../context/NotificationContext";
+import { api } from "../../services/api";
 
 // ─── Brand PNG Icon Component ─────────────────────────────────────────────────
 const BrandIcon = ({ src, alt, size = 24, className }: { src: string; alt: string; size?: number; className?: string }) => (
@@ -60,7 +61,11 @@ const UserIcon = ({ size = 24 }: { size?: number }) => (
 );
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface NavUser { name: string; username: string }
+interface NavUser { 
+  id: string;
+  name: string; 
+  username: string;
+}
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 const CollapseIcon = () => (
@@ -96,6 +101,7 @@ const Navbar = () => {
   const [user, setUser] = useState<NavUser | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [requestCount, setRequestCount] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem("sz_theme");
     return saved === "dark";
@@ -112,7 +118,84 @@ const Navbar = () => {
     return () => window.removeEventListener("sz_auth_change", sync);
   }, []);
 
-  // Dark mode effect
+  // Fetch request count
+  const fetchRequestCount = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await api.getSwapRequestsByUser(user.id);
+      
+      // Debug: Log to console temporarily
+      if (response.data && response.data.length > 0) {
+        console.log('Swap requests found:', response.data.length);
+        console.log('Sample request:', response.data[0]);
+      }
+      
+      if (response.data) {
+        // Process the data to get received pending requests
+        const allRequests = response.data.map((r: any) => ({
+          ...r,
+          direction: r.from_user_id === user.id ? "sent" : "received",
+        }));
+        
+        const receivedRequests = allRequests.filter((req: any) => {
+          const isReceived = req.direction === "received";
+          const isPending = req.status === "pending";
+          const notExpired = new Date(req.expires_at).getTime() > Date.now();
+          
+          return isReceived && isPending && notExpired;
+        });
+        
+        console.log('Filtered received pending requests:', receivedRequests.length);
+        setRequestCount(receivedRequests.length);
+      } else {
+        setRequestCount(0);
+      }
+    } catch (error) {
+      console.error('[Navbar] Failed to fetch request count:', error);
+      setRequestCount(0);
+    }
+  };
+
+  // Update request count when user changes or on page load
+  useEffect(() => {
+    fetchRequestCount();
+  }, [user?.id]);
+
+  // Listen for request changes and page navigation
+  useEffect(() => {
+    const handleRequestsChange = () => {
+      fetchRequestCount();
+    };
+
+    // Listen for request updates
+    window.addEventListener("sz_requests_change", handleRequestsChange);
+    
+    // Also refresh when navigating (in case user was on requests page)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchRequestCount();
+      }
+    };
+    
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    
+    // Refresh every 30 seconds to catch any updates
+    const interval = setInterval(fetchRequestCount, 30000);
+
+    return () => {
+      window.removeEventListener("sz_requests_change", handleRequestsChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearInterval(interval);
+    };
+  }, [user?.id]);
+
+  // Refresh count when navigating away from requests page
+  useEffect(() => {
+    // Small delay to ensure any request status changes have been processed
+    const timer = setTimeout(fetchRequestCount, 100);
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.setAttribute("data-theme", "dark");
@@ -184,7 +267,11 @@ const Navbar = () => {
             <img src="/ICONS/Listing.png" alt="List" style={{ width: 18, height: 18, objectFit: 'contain', filter: 'var(--icon-filter)' }} /> List a Product
           </Link>
           <Link to="/requests" onClick={() => setProfileOpen(false)} className="nb-dropdown-item">
-            <img src="/ICONS/Return.png" alt="Requests" style={{ width: 18, height: 18, objectFit: 'contain', filter: 'var(--icon-filter)' }} /> Requests
+            <img src="/ICONS/Return.png" alt="Requests" style={{ width: 18, height: 18, objectFit: 'contain', filter: 'var(--icon-filter)' }} /> 
+            Requests
+            {requestCount > 0 && (
+              <span className="nb-dropdown-badge">{requestCount}</span>
+            )}
           </Link>
           <div className="nb-dropdown-divider" />
           <button className="nb-dropdown-item" onClick={toggleDarkMode}>
@@ -283,8 +370,12 @@ const Navbar = () => {
               onClick={() => setProfileOpen((p) => !p)}
               aria-label="Profile"
             >
-              <span className="nb-icon">
+              <span className="nb-icon" style={{ position: 'relative' }}>
                 <UserIcon size={24} />
+                {(requestCount > 0) && (
+                  <span className="nb-badge nb-badge--requests">{requestCount > 9 ? '9+' : requestCount}</span>
+                )}
+                {/* Temporary test badge - remove after testing */}
               </span>
               <span className="nb-label">{getUserDisplayName()}</span>
               <span className="nb-tooltip">{typeof user?.name === "string" && user.name.trim() ? user.name : "Profile"}</span>
@@ -521,6 +612,12 @@ const Navbar = () => {
           z-index: 10;
         }
 
+        /* Request badge on profile - slightly different color */
+        .nb-badge--requests {
+          background: #313C5C;
+          box-shadow: 0 2px 6px rgba(49,60,92,0.4);
+        }
+
         .nb-label {
           font-size: 0.92rem;
           font-weight: 500;
@@ -637,10 +734,24 @@ const Navbar = () => {
           width: 100%;
           text-align: left;
           font-family: inherit;
+          position: relative;
         }
         .nb-dropdown-item:hover { background: var(--bg-section); color: var(--text-dark); }
         .nb-dropdown-item--logout { color: #f87171; }
         .nb-dropdown-item--logout:hover { background: rgba(228, 88, 33, 0.1); color: #e45821; }
+
+        /* Badge in dropdown */
+        .nb-dropdown-badge {
+          background: #313C5C;
+          color: #fff;
+          font-size: 0.6rem;
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 8px;
+          min-width: 16px;
+          text-align: center;
+          margin-left: auto;
+        }
 
 
         /* ══════════════════════════════════════════

@@ -14,6 +14,7 @@ const Signup = () => {
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -159,12 +160,31 @@ const Signup = () => {
 
   // ── Google OAuth ───────────────────────────────────────────────────────────
   const handleGoogleSignup = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) {
-      setError(error.message || "Google sign-in failed. Please try again.");
+    setGoogleLoading(true);
+    setError("");
+    
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          skipBrowserRedirect: false,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account'
+          }
+        }
+      });
+      
+      if (error) {
+        throw new Error(error.message || "Google sign-up failed. Please try again.");
+      }
+      
+      // The auth state change will be handled by the useEffect in App.tsx
+      // Keep loading state until redirect happens
+    } catch (err: any) {
+      setError(err.message || "Google sign-up failed. Please try again.");
+      setGoogleLoading(false);
     }
   };
 
@@ -286,12 +306,22 @@ const Signup = () => {
                 <div className="auth-social-row">
                   <button
                     type="button"
-                    className="auth-social-btn"
+                    className={`auth-social-btn ${googleLoading ? 'loading' : ''}`}
                     id="signup-google"
                     onClick={handleGoogleSignup}
+                    disabled={googleLoading || loading}
                   >
-                    <FcGoogle size={20} />
-                    <span>GOOGLE</span>
+                    {googleLoading ? (
+                      <>
+                        <span className="auth-spinner-small" />
+                        <span>REDIRECTING...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FcGoogle size={20} />
+                        <span>CONTINUE WITH GOOGLE</span>
+                      </>
+                    )}
                   </button>
                   <button type="button" className="auth-social-btn" id="signup-apple">
                     <AiFillApple size={20} />
@@ -614,6 +644,21 @@ const Signup = () => {
           border-radius: 50%;
           animation: spin 0.7s linear infinite;
         }
+
+        .auth-spinner-small {
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(26,46,10,0.3);
+          border-top-color: rgba(26,46,10,0.8);
+          border-radius: 50%;
+          animation: spin 0.7s linear infinite;
+        }
+
+        html[data-theme='dark'] .auth-spinner-small {
+          border: 2px solid rgba(255,255,255,0.3);
+          border-top-color: rgba(255,255,255,0.8);
+        }
+
         @keyframes spin { to { transform: rotate(360deg); } }
 
         .auth-resend {
@@ -707,6 +752,17 @@ const Signup = () => {
           background: #f2f8dc;
           transform: translateY(-1px);
         }
+
+        .auth-social-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          transform: none !important;
+        }
+
+        .auth-social-btn.loading {
+          pointer-events: none;
+        }
+
         html[data-theme='dark'] .auth-social-btn:hover {
           background: #2a2a2a;
           transform: translateY(-1px);

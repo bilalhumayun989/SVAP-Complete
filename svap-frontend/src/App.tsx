@@ -4,6 +4,7 @@ import Lenis from 'lenis'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import './App.css'
 import { supabase } from './services/supabase'
+import { api } from './services/api'
 import { NotificationProvider, useNotifications } from './context/NotificationContext'
 import Navbar from './components/Main-components/Navbar'
 import Homemain from './components/Home-page/Homemain'
@@ -111,27 +112,155 @@ function AppInner() {
   const navigate = useNavigate()
   const isFullScreen = FULL_SCREEN_ROUTES.some(r => pathname.startsWith(r))
 
+  // Check for existing session on app load
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user && !localStorage.getItem("sz_user")) {
+        // User has a valid session but no local storage - restore it
+        const user = session.user;
+        const metadata = user.user_metadata || {};
+        
+        try {
+          // Fetch the full profile from backend
+          const profileResponse = await api.getProfile(user.id);
+          const profileData = profileResponse.data;
+          
+          const name = profileData?.full_name || metadata.full_name || metadata.name || user.email?.split('@')[0] || "User";
+          const username = profileData?.username || name.replace(/\s+/g, "").toLowerCase();
+          
+          localStorage.setItem("sz_user", JSON.stringify({
+            id: user.id,
+            name: name,
+            username: `@${username}`,
+            city: profileData?.city || "Pakistan",
+            email: user.email,
+            avatar: profileData?.avatar_url || metadata.avatar_url || metadata.picture || null,
+            provider: metadata.provider || 'email',
+            phone: profileData?.phone || null,
+            bio: profileData?.bio || ""
+          }));
+          window.dispatchEvent(new Event("sz_auth_change"));
+        } catch (error) {
+          console.error('Error fetching profile during session restoration:', error);
+          
+          // Fallback
+          const name = metadata.full_name || metadata.name || user.email?.split('@')[0] || "User";
+          localStorage.setItem("sz_user", JSON.stringify({
+            id: user.id,
+            name: name,
+            username: `@${name.replace(/\s+/g, "").toLowerCase()}`,
+            city: "Pakistan",
+            email: user.email,
+            avatar: metadata.avatar_url || metadata.picture || null,
+            provider: metadata.provider || 'email'
+          }));
+          window.dispatchEvent(new Event("sz_auth_change"));
+        }
+      }
+    };
+    
+    checkExistingSession();
+  }, []);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event: AuthChangeEvent, session: Session | null) => {
+      async (event: AuthChangeEvent, session: Session | null) => {
         if (event === 'SIGNED_IN' && session?.user) {
           const user = session.user;
           const metadata = user.user_metadata || {};
-          const name = metadata.full_name || metadata.name || "User";
-          const username = name ? `@${name.replace(/\\s+/g, "").toLowerCase()}` : "@user";
           
-          const existingUser = localStorage.getItem("sz_user");
-          if (!existingUser) {
-            localStorage.setItem("sz_user", JSON.stringify({
+          // For Google OAuth users, use more descriptive data
+          const name = metadata.full_name || metadata.name || user.email?.split('@')[0] || "User";
+          const isGoogleUser = metadata.provider === 'google' || metadata.iss === 'https://accounts.google.com';
+          
+          try {
+            // Check if profile exists in backend
+            const profileResponse = await api.getProfile(user.id);
+            let profileData = profileResponse.data;
+            
+            // If no profile exists, create one
+            if (!profileData || profileResponse.error) {
+              const username = isGoogleUser 
+                ? name.replace(/\s+/g, "").toLowerCase()
+                : name.replace(/\s+/g, "_").toLowerCase();
+              
+              if (isGoogleUser) {
+                // Use the specific Google profile creation endpoint
+                const createResponse = await api.createGoogleProfile({
+                  userId: user.id,
+                  email: user.email!,
+                  name,
+                  avatar_url: metadata.avatar_url || metadata.picture || null,
+                  provider: 'google'
+                });
+                
+                if (createResponse.error) {
+                  console.error('Google profile creation failed:', createResponse.error);
+                  // Fallback to basic profile data if creation fails
+                  profileData = {
+                    username,
+                    full_name: name,
+                    email: user.email,
+                    avatar_url: metadata.avatar_url || metadata.picture || null
+                  };
+                } else {
+                  profileData = createResponse.data;
+                }
+              } else {
+                // For non-Google users, use regular profile update
+                const createProfileData = {
+                  username,
+                  full_name: name,
+                  email: user.email,
+                  avatar_url: metadata.avatar_url || metadata.picture || null
+                };
+                
+                const createResponse = await api.updateProfile(user.id, createProfileData);
+                profileData = createResponse.data || createProfileData;
+              }
+            }
+            
+            // Create user session data with proper username
+            const userSessionData = {
+              id: user.id,
+              name: profileData?.full_name || name,
+              username: profileData?.username ? `@${profileData.username}` : `@${name.replace(/\s+/g, "").toLowerCase()}`,
+              city: profileData?.city || "Pakistan",
+              email: user.email,
+              avatar: profileData?.avatar_url || metadata.avatar_url || metadata.picture || null,
+              provider: metadata.provider || 'email',
+              phone: profileData?.phone || null,
+              bio: profileData?.bio || ""
+            };
+            
+            // Always update localStorage with fresh data
+            localStorage.setItem("sz_user", JSON.stringify(userSessionData));
+            window.dispatchEvent(new Event("sz_auth_change"));
+            
+            // Navigate appropriately
+            if (isGoogleUser) {
+              navigate("/", { replace: true });
+            } else {
+              navigate("/");
+            }
+          } catch (error) {
+            console.error('Error creating/fetching profile:', error);
+            
+            // Fallback - create basic user session even if profile creation failed
+            const fallbackUserData = {
               id: user.id,
               name: name,
-              username: username,
+              username: `@${name.replace(/\s+/g, "").toLowerCase()}`,
               city: "Pakistan",
               email: user.email,
-              avatar: metadata.avatar_url || metadata.picture || null
-            }));
+              avatar: metadata.avatar_url || metadata.picture || null,
+              provider: metadata.provider || 'email'
+            };
+            
+            localStorage.setItem("sz_user", JSON.stringify(fallbackUserData));
             window.dispatchEvent(new Event("sz_auth_change"));
-            navigate("/");
+            navigate("/", { replace: true });
           }
         } else if (event === 'SIGNED_OUT') {
           localStorage.removeItem("sz_user");
@@ -139,6 +268,7 @@ function AppInner() {
         }
       }
     );
+    
     return () => {
       subscription?.unsubscribe();
     }

@@ -14,6 +14,12 @@ router.post('/signup', authController.signup);
 // POST /api/auth/login
 router.post('/login', authController.login);
 
+// POST /api/auth/create-google-profile
+router.post('/create-google-profile', authController.createGoogleProfile);
+
+// POST /api/auth/refresh-profile
+router.post('/refresh-profile', authController.refreshProfile);
+
 // GET /api/auth/profile/:userId
 router.get('/profile/:userId', authController.getProfile);
 
