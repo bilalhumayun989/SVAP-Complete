@@ -29,22 +29,73 @@ const generateUniqueUsername = async (preferredUsername, userId) => {
   }
 };
 
+const getExistingAuthUserByEmail = async (email) => {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail || !supabaseAdmin) return null;
+
+  let existingUser = null;
+  let page = 1;
+
+  while (true) {
+    const { data: pg, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    if (!pg?.users?.length) break;
+
+    existingUser = pg.users.find((user) => user.email?.toLowerCase() === normalizedEmail) || null;
+    if (existingUser || pg.users.length < 1000) break;
+    page += 1;
+  }
+
+  if (existingUser) return existingUser;
+
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('id, email')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+
+  if (profileError && profileError.code !== 'PGRST116') throw profileError;
+  if (!profile) return null;
+
+  return {
+    id: profile.id,
+    email: profile.email,
+    app_metadata: { provider: 'email' },
+    identities: [],
+  };
+};
+
 // ── POST /api/auth/send-otp ─────────────────────────────────────────────────
 exports.sendOtp = async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const existingUser = await getExistingAuthUserByEmail(normalizedEmail);
+
+    if (existingUser) {
+      const identities = existingUser.identities || [];
+      const provider = existingUser.app_metadata?.provider || identities.find((identity) => identity.provider)?.provider || 'email';
+      const isGoogleUser = provider === 'google' || identities.some((identity) => identity.provider === 'google');
+
+      return res.status(409).json({
+        error: isGoogleUser
+          ? 'Email already registered via Google. Please try to login with Google.'
+          : 'Email already registered. Please try to login with Google.',
+      });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expires_at = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
     const { error: dbError } = await authClient
       .from('otp_verifications')
-      .upsert({ email, otp, expires_at, verified: false });
+      .upsert({ email: normalizedEmail, otp, expires_at, verified: false });
 
     if (dbError) throw dbError;
 
-    await sendOtpEmail(email, otp);
+    await sendOtpEmail(normalizedEmail, otp);
     res.json({ message: 'OTP sent successfully to email' });
   } catch (err) {
     console.error('[sendOtp] Error:', err.message);
@@ -165,7 +216,7 @@ exports.signup = async (req, res) => {
       return res.status(400).json({ error: 'Username is already taken. Please choose another.' });
     }
 
-    // Check if user already exists in auth (from OTP flow)
+    // Check if user already exists in auth (from OTP flow or Google OAuth)
     let existingAuthUser = null;
     let page = 1;
     while (!existingAuthUser) {
@@ -174,6 +225,16 @@ exports.signup = async (req, res) => {
       existingAuthUser = pg.users.find(u => u.email?.toLowerCase() === email.toLowerCase()) || null;
       if (existingAuthUser || pg.users.length < 1000) break;
       page++;
+    }
+
+    if (existingAuthUser) {
+      const provider = existingAuthUser.app_metadata?.provider || existingAuthUser.identities?.find((identity) => identity.provider)?.provider || 'email';
+      const isGoogleUser = provider === 'google' || existingAuthUser.identities?.some((identity) => identity.provider === 'google');
+      return res.status(409).json({
+        error: isGoogleUser
+          ? 'Yeh email Google se registered hai. Continue with Google button use karein login ke liye.'
+          : 'Yeh email already registered hai. Please login karein.',
+      });
     }
 
     let userId;
@@ -303,9 +364,6 @@ exports.createGoogleProfile = async (req, res) => {
       total_listings: 0,
       is_verified: false,
       cnic_submitted: false,
-      notif_swaps: true,
-      notif_orders: true,
-      notif_marketing: false,
       created_at: new Date().toISOString()
     };
 
@@ -331,9 +389,6 @@ exports.createGoogleProfile = async (req, res) => {
           total_listings: 0,
           is_verified: false,
           cnic_submitted: false,
-          notif_swaps: true,
-          notif_orders: true,
-          notif_marketing: false,
           created_at: new Date().toISOString()
         };
         
@@ -429,8 +484,7 @@ exports.refreshProfile = async (req, res) => {
         email: user.email,
         avatar_url: metadata.avatar_url || metadata.picture || null,
         city: 'Pakistan',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        created_at: new Date().toISOString()
       };
 
       const { data: newProfile, error: createError } = await supabaseAdmin
@@ -471,8 +525,6 @@ exports.refreshProfile = async (req, res) => {
       }
       
       if (Object.keys(updates).length > 0) {
-        updates.updated_at = new Date().toISOString();
-        
         const { data: updatedProfile, error: updateError } = await supabaseAdmin
           .from('profiles')
           .update(updates)
@@ -512,9 +564,8 @@ exports.updateProfile = async (req, res) => {
     // Filter out any undefined or null values and fields that shouldn't be updated
     const cleanUpdates = {};
     const allowedFields = [
-      'username', 'full_name', 'email', 'phone', 'avatar_url', 'city', 'bio', 'address',
-      'swap_score', 'total_swaps', 'total_listings', 'is_verified', 'cnic_submitted',
-      'cnic_front_path', 'cnic_back_path', 'notif_swaps', 'notif_orders', 'notif_marketing'
+      'username', 'full_name', 'email', 'phone', 'avatar_url', 'city', 'address',
+      'swap_score', 'total_swaps', 'total_listings', 'is_verified', 'cnic_submitted'
     ];
     
     for (const [key, value] of Object.entries(updates)) {
@@ -566,21 +617,6 @@ exports.updateProfile = async (req, res) => {
 
     if (error) {
       console.error('[updateProfile] error:', error.message);
-      // If it's a column error, try without the problematic fields
-      if (error.message.includes('column') && error.message.includes('bio')) {
-        const { bio, ...updatesWithoutBio } = cleanUpdates;
-        const { data: retryData, error: retryError } = await supabaseAdmin
-          .from('profiles')
-          .update(updatesWithoutBio)
-          .eq('id', userId)
-          .select()
-          .single();
-          
-        if (retryError) {
-          return res.status(400).json({ error: retryError.message });
-        }
-        return res.json({ data: retryData });
-      }
       return res.status(400).json({ error: error.message });
     }
 

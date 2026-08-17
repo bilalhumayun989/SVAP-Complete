@@ -321,19 +321,7 @@ const Profile = () => {
               {profileUser.city && <p className="pf-city">{profileUser.city}</p>}
 
               <div className="pf-stats">
-                {[
-                  { val: listings.length, lbl: "Posts" },
-                  { val: "2.1K", lbl: "Followers" },
-                  { val: 0, lbl: "Orders" },
-                ].map((s, i, arr) => (
-                  <div key={s.lbl} className="pf-stat-block">
-                    <div className="pf-stat">
-                      <span className="pf-stat-val">{s.val}</span>
-                      <span className="pf-stat-lbl">{s.lbl}</span>
-                    </div>
-                    {i < arr.length - 1 && <div className="pf-stat-sep" />}
-                  </div>
-                ))}
+               
               </div>
 
               <div className="pf-btns">
@@ -634,7 +622,7 @@ const Profile = () => {
         .pf-bio { font-size: 0.82rem; color: var(--pf-ink-soft); margin: 0 0 4px; line-height: 1.5; }
         .pf-city { font-size: 0.74rem; color: var(--pf-muted); margin: 0 0 12px; }
 
-        .pf-stats { display: flex; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+        .pf-stats { display: flex; align-items: center; flex-wrap: wrap; }
         .pf-stat-block { display: flex; align-items: center; }
         .pf-stat { display: flex; flex-direction: column; align-items: flex-start; padding: 0 12px 0 0; }
         .pf-stat-val { font-size: 1rem; font-weight: 700; color: var(--pf-ink); line-height: 1.2; }
@@ -1170,7 +1158,7 @@ const Profile = () => {
             padding: 28px 22px 24px;
             display: flex;
             flex-direction: column;
-            min-height: 580px;
+            min-height: 480px;
           }
           html[data-theme='dark'] .pf-aside {
             background: #0f0f0f;
@@ -1181,7 +1169,7 @@ const Profile = () => {
           .pf-avatar-letter { font-size: 2rem; }
           .pf-name { font-size: 1.22rem; }
           .pf-info { padding-top: 14px; width: 100%; }
-          .pf-stats { padding: 12px 0; margin: 2px 0 16px; border-top: 1px solid var(--pf-line-soft); border-bottom: 1px solid var(--pf-line-soft); }
+          .pf-stats { padding: 12px 0; margin: 2px 0 16px; border-bottom: 1px solid var(--pf-line-soft); }
           .pf-stat { padding: 0 10px 0 0; }
           .pf-btns { flex-direction: column; gap: 9px; }
           .pf-btn { width: 100%; padding: 10px 16px; text-align: center; font-size: 0.78rem; }
@@ -1215,14 +1203,14 @@ const Profile = () => {
             padding: 32px 26px 28px;
             display: flex;
             flex-direction: column;
-            min-height: 640px;
+            min-height: 440px;
           }
           .pf-header { flex-direction: column; align-items: flex-start; padding-bottom: 26px; }
           .pf-story-ring { width: 104px; height: 104px; }
           .pf-info { padding-top: 18px; width: 100%; }
           .pf-name { font-size: 1.32rem; }
           .pf-bio { font-size: 0.85rem; }
-          .pf-stats { padding: 16px 0; margin: 4px 0 20px; border-top: 1px solid var(--pf-line-soft); border-bottom: 1px solid var(--pf-line-soft); }
+          .pf-stats { padding: 16px 0; margin: 4px 0 20px; border-bottom: 1px solid var(--pf-line-soft); }
           .pf-btns { flex-direction: column; gap: 10px; }
           .pf-btn { width: 100%; padding: 11px 18px; text-align: center; }
           .pf-story-strip { flex-wrap: wrap; border-bottom: none; padding-top: 22px; margin-top: auto; border-top: 1px solid var(--pf-line-soft); }

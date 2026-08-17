@@ -99,7 +99,7 @@ const Login = () => {
         localStorage.setItem("sz_user", JSON.stringify({
           id: data.user.id,
           name: profile?.full_name || profile?.username || data.user.email?.split('@')[0] || "User",
-          username: profile?.username ? `@${profile.username}` : `@${data.user.email?.split('@')[0] || 'user'}`,
+          username: profile?.username ? `@${profile.username.replace(/\s+/g, "").toLowerCase()}` : `@${(data.user.email?.split('@')[0] || 'user').replace(/\s+/g, "").toLowerCase()}`,
           city: profile?.city || "Pakistan",
           email: data.user.email,
           avatar: profile?.avatar_url || null,
@@ -247,14 +247,14 @@ const Login = () => {
               ) : (
                 <>
                   <FcGoogle size={20} />
-                  <span>CONTINUE WITH GOOGLE</span>
+                  <span>GOOGLE</span>
                 </>
               )}
             </button>
-            <button type="button" className="auth-social-btn" id="login-apple">
-              <AiFillApple size={20} />
-              <span>APPLE</span>
-            </button>
+        <button type="button" className="auth-social-btn" id="login-apple" disabled>
+  <AiFillApple size={20} />
+  <span>APPLE</span>
+</button>
           </div>
         </form>
 

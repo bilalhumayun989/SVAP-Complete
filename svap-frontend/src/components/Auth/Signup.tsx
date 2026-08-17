@@ -27,6 +27,7 @@ const Signup = () => {
     confirmPassword: "",
   });
   const [error, setError] = useState("");
+  const [showLoginRedirect, setShowLoginRedirect] = useState(false);
 
   // Countdown timer for resend
   useEffect(() => {
@@ -37,8 +38,12 @@ const Signup = () => {
 
   const handleChange = (k: string, v: string) => {
     setError("");
+    setShowLoginRedirect(false);
     setForm((f) => ({ ...f, [k]: v }));
   };
+
+  const isDuplicateEmailError = (message = "") => /already registered|Google se registered/i.test(message);
+  const goToLogin = () => navigate('/login');
 
   // ── STEP 1: Send OTP ───────────────────────────────────────────────────────
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -60,7 +65,12 @@ const Signup = () => {
       setOtpDigits(["", "", "", "", "", ""]);
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (err: any) {
-      setError(err.message || "Failed to send OTP");
+      const message = err.message || "Failed to send OTP";
+      setError(message);
+      setShowLoginRedirect(isDuplicateEmailError(message));
+      if (!isDuplicateEmailError(message)) {
+        setStep("form");
+      }
     } finally {
       setLoading(false);
     }
@@ -144,7 +154,8 @@ const Signup = () => {
         "sz_user",
         JSON.stringify({
           id: userId,
-          username: "@" + form.username,
+          name: form.username,
+          username: "@" + form.username.replace(/\s+/g, "").toLowerCase(),
           email: userEmail,
           phone: form.phone,
         })
@@ -200,7 +211,12 @@ const Signup = () => {
       setResendTimer(60);
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (err: any) {
-      setError(err.message || "Failed to resend OTP");
+      const message = err.message || "Failed to resend OTP";
+      setError(message);
+      setShowLoginRedirect(isDuplicateEmailError(message));
+      if (!isDuplicateEmailError(message)) {
+        setStep("form");
+      }
     } finally {
       setLoading(false);
     }
@@ -293,9 +309,17 @@ const Signup = () => {
 
                 {error && <p className="auth-error">{error}</p>}
 
-                <button type="submit" className="auth-primary-btn" disabled={loading}>
-                  {loading ? <span className="auth-spinner" /> : <span>Send Verification Code</span>}
-                </button>
+                {showLoginRedirect && (
+                  <button type="button" className="auth-primary-btn" onClick={goToLogin}>
+                    Login karein
+                  </button>
+                )}
+
+                {!showLoginRedirect && (
+                  <button type="submit" className="auth-primary-btn" disabled={loading}>
+                    {loading ? <span className="auth-spinner" /> : <span>Send Verification Code</span>}
+                  </button>
+                )}
 
                 <div className="auth-divider">
                   <span className="auth-divider-line" />
@@ -319,14 +343,14 @@ const Signup = () => {
                     ) : (
                       <>
                         <FcGoogle size={20} />
-                        <span>CONTINUE WITH GOOGLE</span>
+                        <span>GOOGLE</span>
                       </>
                     )}
                   </button>
-                  <button type="button" className="auth-social-btn" id="signup-apple">
-                    <AiFillApple size={20} />
-                    <span>APPLE</span>
-                  </button>
+                <button type="button" className="auth-social-btn" id="login-apple" disabled>
+  <AiFillApple size={20} />
+  <span>APPLE</span>
+</button>
                 </div>
               </form>
 
