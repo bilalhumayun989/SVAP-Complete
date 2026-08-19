@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiPackage, FiClock, FiCheckCircle, FiMapPin, FiCreditCard, FiTruck } from "react-icons/fi";
+import { API_URL } from "../../services/api";
 
 type RealOrder = {
   id: string;
@@ -25,8 +26,6 @@ const TABS = [
   { label: "Pending", value: "pending" },
   { label: "Completed", value: "completed" },
 ];
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const OrdersPage = () => {
   const navigate = useNavigate();
