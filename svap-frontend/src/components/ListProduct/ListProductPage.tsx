@@ -5,6 +5,7 @@ import {
   FiAlertCircle, FiCheck,
 } from "react-icons/fi";
 import { api } from "../../services/api";
+import { generateUUID } from "../../utils/uuid";
 
 const CATEGORIES = ["Electronics", "Gaming", "Fashion", "Sports", "Books", "Home", "Vehicles", "Toys", "Phones", "Clothing", "Furniture", "Jewelry", "Other"];
 const SUB_CATEGORIES: Record<string, string[]> = {
@@ -82,7 +83,7 @@ const ListProductPage = () => {
         user = { id: 'dummy-user-id-1234', name: 'Guest User' };
       }
 
-      const productId = crypto.randomUUID();
+      const productId = generateUUID();
       const imageUrls = [];
 
       for (const p of photos) {
