@@ -28,7 +28,6 @@ as $$
 declare
   base_username text;
   username_candidate text;
-  suffix text;
   counter int := 0;
 begin
   base_username := lower(
@@ -44,12 +43,11 @@ begin
     base_username := 'user';
   end if;
 
-  suffix := substr(replace(new.id::text, '-', ''), 1, 8);
-  username_candidate := base_username || '_' || suffix;
+  username_candidate := base_username;
 
   while exists (select 1 from public.profiles where username = username_candidate) loop
     counter := counter + 1;
-    username_candidate := base_username || '_' || suffix || '_' || counter;
+    username_candidate := base_username || '_' || counter;
   end loop;
 
   insert into public.profiles (id, email, username, full_name, avatar_url)

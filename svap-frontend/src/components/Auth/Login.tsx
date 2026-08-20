@@ -279,7 +279,7 @@ const Login = () => {
         .auth-bg {
           position: fixed;
           inset: 0;
-          background: linear-gradient(180deg, rgba(252,255,245,1) 0%, rgba(239,248,220,1) 100%);
+          background: linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%);
           z-index: 0;
         }
 
@@ -294,7 +294,7 @@ const Login = () => {
           left: -180px;
           width: 560px;
           height: 560px;
-          background: radial-gradient(circle, rgba(141,198,63,0.18) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(228,88,33,0.06) 0%, transparent 70%);
           pointer-events: none;
         }
 
@@ -390,7 +390,7 @@ const Login = () => {
 
         .auth-input {
           width: 100%;
-          background: #f2f8dc;
+          background: #f8f9fb;
           border: 1px solid rgba(141,198,63,0.32);
           border-radius: 14px;
           color: var(--text-dark);

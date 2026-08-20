@@ -238,11 +238,10 @@ function AppInner() {
             localStorage.setItem("sz_user", JSON.stringify(userSessionData));
             window.dispatchEvent(new Event("sz_auth_change"));
             
-            // Navigate appropriately
-            if (isGoogleUser) {
+            // Only leave auth pages after sign-in. Auth refresh events can fire
+            // while the user is already browsing another route.
+            if (pathname === '/login' || pathname === '/signup') {
               navigate("/", { replace: true });
-            } else {
-              navigate("/");
             }
           } catch (error) {
             console.error('Error creating/fetching profile:', error);
@@ -260,7 +259,9 @@ function AppInner() {
             
             localStorage.setItem("sz_user", JSON.stringify(fallbackUserData));
             window.dispatchEvent(new Event("sz_auth_change"));
-            navigate("/", { replace: true });
+            if (pathname === '/login' || pathname === '/signup') {
+              navigate("/", { replace: true });
+            }
           }
         } else if (event === 'SIGNED_OUT') {
           localStorage.removeItem("sz_user");
@@ -272,7 +273,7 @@ function AppInner() {
     return () => {
       subscription?.unsubscribe();
     }
-  }, [navigate]);
+  }, [navigate, pathname]);
 
   useEffect(() => {
     if (isFullScreen) return

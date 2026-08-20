@@ -443,7 +443,7 @@ const Signup = () => {
           content: '';
           position: fixed;
           inset: 0;
-          background: linear-gradient(180deg, rgba(252,255,245,1) 0%, rgba(239,248,220,1) 100%);
+          background: linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%);
           z-index: 0;
           pointer-events: none;
         }
@@ -455,7 +455,7 @@ const Signup = () => {
           width: 100%;
           max-width: 420px;
           background: rgba(255,255,255,0.95);
-          border: 1px solid rgba(141,198,63,0.18);
+          border: 1px solid rgba(228,88,33,0.14);
           border-radius: 20px;
           padding: 36px 28px;
           box-sizing: border-box;
