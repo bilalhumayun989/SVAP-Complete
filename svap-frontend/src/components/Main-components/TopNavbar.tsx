@@ -22,6 +22,7 @@ export default function TopNavbar() {
   const isRequestsPage = location.pathname === "/requests";
   const isProductPage = location.pathname.startsWith("/product/");
   const isListProductPage = location.pathname === "/list-product";
+  const isAuthPage = location.pathname === "/login" || location.pathname === "/signup";
 
   const isFullScreen =
     location.pathname === "/reels" ||
@@ -42,7 +43,7 @@ export default function TopNavbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  if (isFullScreen || isRequestsPage || isListProductPage) return null;
+  if (isFullScreen || isRequestsPage || isListProductPage || isAuthPage) return null;
 
   const toggleTheme = () => {
     const next = !isDark;

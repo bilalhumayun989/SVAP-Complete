@@ -415,10 +415,7 @@ const ListProductPage = () => {
         /* ── Base ── */
         .lp-page {
           min-height: 100vh;
-          background:
-            radial-gradient(circle at top left, rgba(228,88,33,0.08), transparent 32%),
-            radial-gradient(circle at bottom right, rgba(49,60,92,0.08), transparent 30%),
-            linear-gradient(180deg, #f8f9fc 0%, #ffffff 40%, #f8f9fc 100%);
+          background: #ffffff;
           padding: 24px 24px 72px;
           box-sizing: border-box;
           font-family: 'Poppins','Helvetica Neue',Arial,sans-serif;
@@ -434,10 +431,7 @@ const ListProductPage = () => {
         .lp-bg {
           position: fixed;
           inset: 0;
-          background:
-            radial-gradient(circle at 20% 20%, rgba(174,220,90,0.12), transparent 24%),
-            radial-gradient(circle at 80% 0%, rgba(96,121,255,0.10), transparent 26%),
-            linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(247,255,235,0.55) 100%);
+          background: #ffffff;
           z-index: 0;
           pointer-events: none;
         }

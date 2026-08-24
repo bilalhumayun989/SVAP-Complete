@@ -618,9 +618,25 @@ const Login = () => {
         }
 
         @media (max-width: 480px) {
-          .auth-card {
-            padding: 32px 24px;
+          .auth-page {
+            min-height: 100dvh;
+            padding: 18px 10px;
+            align-items: center;
           }
+          .auth-card {
+            width: 100%;
+            max-width: 360px;
+            padding: 26px 16px;
+            border-radius: 18px;
+          }
+          .auth-card-header { margin-bottom: 22px; }
+          .auth-title { font-size: 1.6rem; }
+          .auth-subtitle { font-size: 0.82rem; }
+          .auth-form { gap: 14px; }
+          .auth-input { padding: 12px 40px; font-size: 0.88rem; }
+          .auth-primary-btn { padding: 13px 16px; font-size: 0.88rem; }
+          .auth-social-btn { padding: 11px 8px; font-size: 0.78rem; }
+          .auth-switch { font-size: 0.78rem; }
         }
 
         @media (min-width: 2400px) {
