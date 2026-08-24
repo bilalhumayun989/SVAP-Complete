@@ -354,9 +354,9 @@ const Requests = () => {
       </div>
 
       <style>{`
-        .req-page { min-height:100vh; padding:28px 20px 80px; position:relative; background:var(--bg); box-sizing:border-box; font-family:'Poppins',sans-serif; }
+        .req-page { min-height:100vh; padding:28px 20px 80px; position:relative; background:#fff; box-sizing:border-box; font-family:'Poppins',sans-serif; }
         html[data-theme='dark'] .req-page { background:#0a0a0a; }
-        .req-bg { position:fixed; inset:0; background:linear-gradient(180deg,rgba(247,255,235,1) 0%,rgba(239,248,220,1) 100%); z-index:0; pointer-events:none; }
+        .req-bg { position:fixed; inset:0; background:#fff; z-index:0; pointer-events:none; }
         html[data-theme='dark'] .req-bg { background:#0a0a0a; }
         .req-container { position:relative; z-index:1; max-width:780px; margin:0 auto; }
         .req-header { display:flex; align-items:center; gap:16px; margin-bottom:28px; }
@@ -406,7 +406,7 @@ const Requests = () => {
         .req-btn--checkout { background:#313C5C; border:1px solid rgba(49,60,92,0.3); color:#fff; grid-column:1/-1; }
         .req-btn--checkout:hover { background:#252e48; }
         .req-pending-label { display:flex; align-items:center; gap:6px; font-size:0.76rem; color:var(--text-muted); font-style:italic; }
-        .req-empty { text-align:center; padding:52px 24px; color:var(--text-muted); background:var(--bg-section); border-radius:20px; border:1px solid rgba(165,194,111,0.2); display:flex; flex-direction:column; align-items:center; gap:10px; }
+        .req-empty { text-align:center; padding:52px 24px; color:var(--text-muted); background:#fff; border-radius:20px; border:1px solid rgba(165,194,111,0.2); display:flex; flex-direction:column; align-items:center; gap:10px; }
         .req-empty p { font-size:1rem; font-weight:700; color:var(--text-dark); margin:0; }
         .req-empty span { font-size:0.84rem; max-width:320px; }
         .req-browse-btn { margin-top:10px; padding:10px 24px; background:#E45821; color:#fff; border:none; border-radius:10px; font-size:0.84rem; font-weight:700; cursor:pointer; transition:background 0.2s; font-family:inherit; }
