@@ -54,7 +54,12 @@ export async function getAllRequests(userId: string): Promise<SwapRequest[]> {
   try {
     const res = await api.getSwapRequestsByUser(userId);
     if (res.error) throw new Error(res.error);
-    return (res.data || []).map((r: SwapRequest) => ({
+    const uniqueRequests = Array.from(
+      new Map<string, SwapRequest>(
+        (res.data || []).map((request: SwapRequest) => [request.id, request])
+      ).values()
+    );
+    return uniqueRequests.map((r: SwapRequest) => ({
       ...r,
       direction: r.from_user_id === userId ? "sent" : "received",
     }));

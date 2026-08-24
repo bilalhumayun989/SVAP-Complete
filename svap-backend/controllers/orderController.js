@@ -113,7 +113,7 @@ exports.getOrders = async (req, res) => {
     const { data, error } = await supabaseAdmin
       .from('orders')
       .select('*')
-      .eq('from_user_id', user_id)
+      .or(`from_user_id.eq.${user_id},to_user_id.eq.${user_id}`)
       .in('status', ['pending', 'completed', 'delivered'])
       .order('created_at', { ascending: false });
 
@@ -142,7 +142,7 @@ exports.updateOrderStatus = async (req, res) => {
       .from('orders')
       .update({ status })
       .eq('id', id)
-      .eq('from_user_id', user_id)
+      .or(`from_user_id.eq.${user_id},to_user_id.eq.${user_id}`)
       .select()
       .single();
 

@@ -67,6 +67,7 @@ const Profile = () => {
   const [reels, setReels] = useState<any[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string | number; name: string } | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [orderUpdating, setOrderUpdating] = useState<string | null>(null);
   const [profileUser, setProfileUser] = useState<any>({
     name: "User",
     username: "@user",
@@ -164,7 +165,10 @@ const Profile = () => {
             .map((order: any) => [order.swap_request_id, order])
         );
         if (swapsRes.data) {
-          setSwapRequests(swapsRes.data.map((r: any) => ({
+          const uniqueSwapRequests = Array.from(
+            new Map(swapsRes.data.map((request: any) => [request.id, request])).values()
+          );
+          setSwapRequests(uniqueSwapRequests.map((r: any) => ({
             id: r.id,
             direction: r.from_user_id === savedUser.id ? 'sent' : 'received',
             status: r.status,
@@ -517,16 +521,23 @@ const Profile = () => {
                             const raw = localStorage.getItem('sz_user');
                             const currentUser = raw ? JSON.parse(raw) : null;
                             if (!currentUser?.id) return;
-                            const response = await api.updateOrderStatus(swap.orderId, 'completed', currentUser.id);
-                            if (!response.error) {
+                            setOrderUpdating(String(swap.orderId));
+                            try {
+                              const response = await api.updateOrderStatus(swap.orderId, 'completed', currentUser.id);
+                              if (response.error) throw new Error(response.error);
                               setSwapRequests(prev => prev.map(item =>
                                 item.id === swap.id ? { ...item, orderStatus: 'completed' } : item
                               ));
+                            } catch (error: any) {
+                              alert(error.message || 'Could not update order status');
+                            } finally {
+                              setOrderUpdating(null);
                             }
                           }}
+                          disabled={orderUpdating === String(swap.orderId)}
                         >
                           <FiCheck size={14} />
-                          Order Received
+                          {orderUpdating === String(swap.orderId) ? 'Updating...' : 'Order Received'}
                         </button>
                       )}
                     </div>
@@ -851,7 +862,7 @@ const Profile = () => {
 
         .pf-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(2, 1fr);
           gap: 12px;
         }
 

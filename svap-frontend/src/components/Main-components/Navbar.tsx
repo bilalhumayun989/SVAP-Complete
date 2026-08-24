@@ -4,6 +4,7 @@ import { FiLogOut, FiMoon, FiSun } from "react-icons/fi";
 import { supabase } from "../../services/supabase";
 import { useNotifications } from "../../context/NotificationContext";
 import { api } from "../../services/api";
+import { getAllRequests } from "../../hooks/useSwapRequests";
 
 // ─── Brand PNG Icon Component ─────────────────────────────────────────────────
 const BrandIcon = ({ src, alt, size = 24, className }: { src: string; alt: string; size?: number; className?: string }) => (
@@ -120,37 +121,40 @@ const Navbar = () => {
 
   // Fetch request count
   const fetchRequestCount = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setRequestCount(0);
+      return;
+    }
     
     try {
-      const response = await api.getSwapRequestsByUser(user.id);
-      
-      // Debug: Log to console temporarily
-      if (response.data && response.data.length > 0) {
-        console.log('Swap requests found:', response.data.length);
-        console.log('Sample request:', response.data[0]);
-      }
-      
-      if (response.data) {
-        // Process the data to get received pending requests
-        const allRequests = response.data.map((r: any) => ({
-          ...r,
-          direction: r.from_user_id === user.id ? "sent" : "received",
-        }));
-        
-        const receivedRequests = allRequests.filter((req: any) => {
-          const isReceived = req.direction === "received";
-          const isPending = req.status === "pending";
-          const notExpired = new Date(req.expires_at).getTime() > Date.now();
-          
-          return isReceived && isPending && notExpired;
-        });
-        
-        console.log('Filtered received pending requests:', receivedRequests.length);
-        setRequestCount(receivedRequests.length);
-      } else {
-        setRequestCount(0);
-      }
+      const [allRequests, ordersResponse] = await Promise.all([
+        getAllRequests(user.id),
+        api.getOrders(user.id),
+      ]);
+      const checkoutOrders = Array.isArray(ordersResponse)
+        ? ordersResponse.filter((order: any) => order.swap_request_id)
+        : [];
+      const checkoutRequestIds = new Set(
+        checkoutOrders.map((order: any) => order.swap_request_id)
+      );
+      const currentUserCheckoutRequestIds = new Set(
+        checkoutOrders
+          .filter((order: any) => order.from_user_id === user.id)
+          .map((order: any) => order.swap_request_id)
+      );
+      const isCheckoutRequest = (request: { id: string; status: string }) =>
+        checkoutRequestIds.has(request.id) || ["accepted", "completed"].includes(request.status);
+      const incoming = allRequests.filter(
+        request => request.direction === "received" && !isCheckoutRequest(request)
+      );
+      const outgoing = allRequests.filter(
+        request => request.direction === "sent" && !isCheckoutRequest(request)
+      );
+      const checkout = allRequests.filter(
+        request => isCheckoutRequest(request) && !currentUserCheckoutRequestIds.has(request.id)
+      );
+
+      setRequestCount(incoming.length + outgoing.length + checkout.length);
     } catch (error) {
       console.error('[Navbar] Failed to fetch request count:', error);
       setRequestCount(0);
