@@ -56,6 +56,7 @@ const CheckoutPage = () => {
       
       const orderData = {
         swap_request_id: navigationData?.swapRequestId || null,
+        product_id: navigationData?.productId || null,
         from_user_id: user?.id,
         to_user_id: toUserId,
         delivery_name: state.deliveryAddress?.fullName,
@@ -331,7 +332,7 @@ const CheckoutPage = () => {
 
           .checkout-summary {
             position: static;
-            order: -1;
+            order: initial;
           }
         }
 

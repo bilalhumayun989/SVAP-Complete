@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import {
   FiArrowLeft,
-  FiEye, FiCheck
+  FiEye, FiCheck, FiBookmark
 } from 'react-icons/fi'
 import { api } from '../../services/api'
 
@@ -29,6 +29,7 @@ interface DetailProduct {
   condition?: string
   swapFor?: string
   category?: string
+  reel?: string
   owner_id: string
   user: { name: string; avatar: string; email?: string }
 }
@@ -48,6 +49,8 @@ const ProductDetailPage = () => {
   const [swapLoading, setSwapLoading] = useState(false)
   const [canSendSwap, setCanSendSwap] = useState(true)
   const [swapCooldownMessage, setSwapCooldownMessage] = useState<string | null>(null)
+  const [isSaved, setIsSaved] = useState(false)
+  const [saveLoading, setSaveLoading] = useState(false)
 
   // Current logged-in user id from localStorage
   const myUserId = (() => { try { return JSON.parse(localStorage.getItem('sz_user') || '{}').id; } catch { return null; } })()
@@ -72,6 +75,7 @@ const ProductDetailPage = () => {
             condition: data.condition || '',
             swapFor: data.swap_for || '',
             category: data.category || '',
+            reel: data.video_url || '',
             owner_id: data.user_id || '',
             user: {
               name: data.profiles?.username || data.profiles?.full_name || 'Unknown',
@@ -131,6 +135,35 @@ const ProductDetailPage = () => {
     };
     checkEligibility();
   }, [id, myUserId]);
+
+  useEffect(() => {
+    const loadSavedState = async () => {
+      if (!myUserId || !id) return;
+      const res = await api.getSavedProductIds(myUserId);
+      const savedIds = Array.isArray(res.data) ? res.data : Array.isArray(res) ? res : [];
+      setIsSaved(savedIds.some((savedId: any) => String(savedId) === String(id)));
+    };
+    loadSavedState().catch(() => setIsSaved(false));
+  }, [id, myUserId]);
+
+  const toggleSaved = async () => {
+    if (!myUserId || !id) {
+      navigate('/login');
+      return;
+    }
+    setSaveLoading(true);
+    try {
+      const res = isSaved
+        ? await api.unsaveProduct(myUserId, id)
+        : await api.saveProduct(myUserId, id);
+      if (res.error) throw new Error(res.error);
+      setIsSaved(value => !value);
+    } catch (error) {
+      console.error('[toggleSaved]', error);
+    } finally {
+      setSaveLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -271,24 +304,30 @@ const ProductDetailPage = () => {
             <span className="pdp-seller-arrow">›</span>
           </div>
 
-          <div className="pdp-divider" />
-
-          {/* Swap-for */}
           {product.swapFor && (
-            <div className="pdp-swap-for">
-              <div>
-                <p className="pdp-swap-label">Looking to swap for</p>
-                <p className="pdp-swap-item">{product.swapFor}</p>
+            <>
+              <div className="pdp-divider" />
+              <div className="pdp-swap-for">
+                <div>
+                  <p className="pdp-swap-label">Looking to swap for</p>
+                  <p className="pdp-swap-item">{product.swapFor}</p>
+                </div>
               </div>
-            </div>
+            </>
           )}
-
-          <div className="pdp-divider" />
 
           {/* CTA — only show Svap button if this is NOT the user's own product */}
           {myUserId !== product.owner_id && (
             <>
               <div className="pdp-cta-row">
+                <button
+                  className={`pdp-save-btn${isSaved ? ' pdp-save-btn--active' : ''}`}
+                  onClick={toggleSaved}
+                  disabled={saveLoading}
+                  aria-label={isSaved ? 'Remove from saved' : 'Save product'}
+                >
+                  <FiBookmark size={17} fill={isSaved ? 'currentColor' : 'none'} />
+                </button>
                 <button
                   className={`pdp-cta pdp-cta-swap ${requested ? 'pdp-cta-requested' : ''} ${!canSendSwap ? 'pdp-cta-disabled' : ''}`}
                   disabled={!canSendSwap && !requested}
@@ -334,6 +373,14 @@ const ProductDetailPage = () => {
           {myUserId && myUserId === product.owner_id && (
             <div className="pdp-cta-row">
               <button
+                className={`pdp-save-btn${isSaved ? ' pdp-save-btn--active' : ''}`}
+                onClick={toggleSaved}
+                disabled={saveLoading}
+                aria-label={isSaved ? 'Remove from saved' : 'Save product'}
+              >
+                <FiBookmark size={17} fill={isSaved ? 'currentColor' : 'none'} />
+              </button>
+              <button
                 className="pdp-cta pdp-cta-edit"
                 onClick={() => navigate(`/edit-product/${product.id}`)}
               >
@@ -351,6 +398,13 @@ const ProductDetailPage = () => {
 
         </div>
       </div>
+
+      {product.reel && (
+        <section className="pdp-reel-section">
+          <p className="pdp-reel-label">Reel</p>
+          <video className="pdp-reel" src={product.reel} controls playsInline preload="metadata" />
+        </section>
+      )}
 
       {/* ══ Related products ══ */}
       <div className="pdp-related-wrap">
@@ -792,6 +846,7 @@ const ProductDetailPage = () => {
           gap: 12px;
           padding-top: 0;
         }
+        .pdp-save-btn { display: none; }
         .pdp-cta {
           display: flex;
           align-items: center;
@@ -903,6 +958,25 @@ const ProductDetailPage = () => {
           margin: 0 auto;
           padding: 48px 32px 56px;
           box-sizing: border-box;
+        }
+        .pdp-reel-section {
+          max-width: 2400px;
+          margin: 28px auto 0;
+          padding: 0 32px;
+        }
+        .pdp-reel-label {
+          color: var(--text-dark);
+          font-size: 0.82rem;
+          font-weight: 600;
+          margin: 0 0 10px;
+        }
+        .pdp-reel {
+          display: block;
+          width: min(100%, 420px);
+          max-height: 620px;
+          border-radius: 16px;
+          background: #000;
+          object-fit: cover;
         }
         .pdp-related-title {
           color: var(--text-dark);
@@ -1020,9 +1094,70 @@ const ProductDetailPage = () => {
         @media (max-width: 768px) {
           .pdp-related-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
           .pdp-cta-row { grid-template-columns: 1fr; }
+          .pdp-root { padding-bottom: 82px; }
+          .pdp-back-wrap {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 2;
+            padding: 0;
+          }
+          .pdp-back { color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.65); }
+          .pdp-main { padding: 0; gap: 12px; }
+          .pdp-img-card {
+            border-radius: 0;
+            border: none;
+            aspect-ratio: 4 / 5;
+            box-shadow: none;
+          }
+          .pdp-thumbs, .pdp-views { margin-left: 16px; margin-right: 16px; }
+          .pdp-right { padding: 0 16px; gap: 14px; }
+          .pdp-title { font-size: 1.35rem; }
+          .pdp-desc { font-size: 0.84rem; line-height: 1.55; }
+          .pdp-seller { padding: 12px 14px; border-radius: 14px; }
+          .pdp-swap-for { padding: 14px; border-radius: 14px; }
+          .pdp-cta-row {
+            position: fixed;
+            z-index: 40;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: block;
+            padding: 12px 16px;
+            background: var(--bg);
+            border-top: 1px solid rgba(165,194,111,0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+          .pdp-save-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 40px;
+            border: 1px solid rgba(165,194,111,0.35);
+            border-radius: 50%;
+            background: var(--card-bg);
+            color: var(--text-muted);
+            cursor: pointer;
+          }
+          .pdp-save-btn--active { color: #E45821; border-color: #E45821; }
+          .pdp-cta { width: auto; flex: 1; min-height: 50px; border-radius: 999px; }
+          .pdp-reel-section { margin-top: 12px; padding: 0 16px; }
+          .pdp-reel-label { margin-bottom: 8px; }
+          .pdp-reel {
+            width: 100%;
+            max-height: 380px;
+            aspect-ratio: 16 / 10;
+            object-fit: cover;
+            border-radius: 12px;
+            background: #000;
+          }
         }
         @media (max-width: 480px) {
-          .pdp-main { padding: 16px 16px 0; }
+          .pdp-main { padding: 0; }
           .pdp-related-wrap { padding: 24px 16px 32px; }
           .pdp-related-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
         }

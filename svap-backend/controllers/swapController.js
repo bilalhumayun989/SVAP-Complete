@@ -137,19 +137,6 @@ exports.createSwapRequest = async (req, res) => {
     if (swapError) return res.status(400).json({ error: swapError.message });
     const swapDataWithProfiles = await attachRequestProfiles(swapData);
 
-    // Create notification for the receiver (to_user_id)
-    const senderName = swapDataWithProfiles.from_profile?.username || 'Someone';
-    const productTitle = swapDataWithProfiles.requested?.title || 'your item';
-
-    await supabaseAdmin.from('notifications').insert({
-      user_id: to_user_id,
-      type: 'swap_request',
-      title: 'New Swap Request',
-      body: `@${senderName} wants to swap for your ${productTitle}`,
-      route: '/requests',
-      is_read: false,
-    });
-
     res.json({ data: swapDataWithProfiles });
   } catch (err) {
     console.error('[createSwapRequest]', err.message);
@@ -177,19 +164,17 @@ exports.updateSwapRequestStatus = async (req, res) => {
     if (error) return res.status(400).json({ error: error.message });
     const hydrated = await attachRequestProfiles(data);
 
-    // Notify the sender (from_user_id) about the status update
-    if (hydrated && hydrated.from_user_id) {
+    // Acceptance only unlocks checkout. Notify the sender after the receiver
+    // actually completes checkout in the order controller.
+    if (hydrated && hydrated.from_user_id && status === 'rejected') {
       const updaterName = hydrated.to_profile?.username || 'Someone';
       const productTitle = hydrated.requested?.title || 'your item';
-      const isAccepted = status === 'accepted';
 
       await supabaseAdmin.from('notifications').insert({
         user_id: hydrated.from_user_id,
-        type: isAccepted ? 'swap_accepted' : 'swap_rejected',
-        title: isAccepted ? 'Swap Request Accepted!' : 'Swap Request Rejected',
-        body: isAccepted
-          ? `@${updaterName} accepted your request — ${productTitle}`
-          : `@${updaterName} rejected your request — ${productTitle}`,
+        type: 'swap_rejected',
+        title: 'Swap Request Rejected',
+        body: `@${updaterName} rejected your request — ${productTitle}`,
         route: '/requests',
         is_read: false,
       });

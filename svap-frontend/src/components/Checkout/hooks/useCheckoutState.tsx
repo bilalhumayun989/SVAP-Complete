@@ -10,13 +10,14 @@ import type {
 import { CostCalculator } from '../utils/costCalculations';
 import { CheckoutValidator } from '../utils/validation';
 import { api } from '../../../services/api';
+import { DELIVERY_METHODS } from '../utils/constants';
 
 const initialState: CheckoutState = {
   transactionType: 'purchase',
   items: [],
   entrySource: 'product',
   deliveryAddress: null,
-  deliveryMethod: null,
+  deliveryMethod: DELIVERY_METHODS[0],
   paymentMethod: null,
   costBreakdown: {
     itemsTotal: 0,

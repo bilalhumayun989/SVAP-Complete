@@ -41,6 +41,14 @@ export const OrderSummary = ({
       }
     }
 
+
+    if (transactionType !== 'svap' && costBreakdown.serviceFee > 0) {
+      costItems.push({
+        label: 'Service fee',
+        amount: costBreakdown.serviceFee,
+        formatted: CostCalculator.formatCurrency(costBreakdown.serviceFee),
+      });
+    }
     // Always show delivery fee
     costItems.push({
       label: 'Delivery',
@@ -49,13 +57,6 @@ export const OrderSummary = ({
         ? 'Free' 
         : CostCalculator.formatCurrency(costBreakdown.deliveryFee),
       isFree: costBreakdown.deliveryFee === 0,
-    });
-
-    // Always show service fee
-    costItems.push({
-      label: 'Service fee',
-      amount: costBreakdown.serviceFee,
-      formatted: CostCalculator.formatCurrency(costBreakdown.serviceFee),
     });
 
     return costItems;

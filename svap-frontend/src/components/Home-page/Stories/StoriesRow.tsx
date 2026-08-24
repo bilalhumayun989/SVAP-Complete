@@ -113,7 +113,7 @@ const StoriesRow = () => {
               </div>
             </div>
             <span className="story-name">{story.title}</span>
-            <span className="story-seller">{story.user.name}</span>
+            {/* <span className="story-seller">{story.user.name}</span> */}
           </button>
         ))}
       </div>
@@ -122,12 +122,11 @@ const StoriesRow = () => {
         .stories-section {
           width: 100%;
           background: var(--bg);
-          border-bottom: 1px solid var(--border);
-          padding: 12px 0 4px;
+          padding: 72px 0 4px;
         }
 
         .stories-head {
-          padding: 0 16px 4px;
+          padding: 0px 16px 4px;
         }
 
         .stories-title {

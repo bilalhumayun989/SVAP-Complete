@@ -1,8 +1,7 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import {
-  FiArrowLeft, FiX,
-  FiAlertCircle, FiCheck,
+  FiX,
+  FiAlertCircle, FiCheck, FiFilm,
 } from "react-icons/fi";
 import { api } from "../../services/api";
 import { generateUUID } from "../../utils/uuid";
@@ -27,9 +26,9 @@ const CITIES = ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "M
 const MAX_PHOTOS = 6;
 
 const ListProductPage = () => {
-  const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<{ file: File, url: string }[]>([]);
+  const [reel, setReel] = useState<{ file: File, url: string } | null>(null);
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [category, setCategory] = useState("");
@@ -55,6 +54,15 @@ const ListProductPage = () => {
     e.target.value = "";
   };
 
+  const handleReelSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("video/")) return;
+    setReel({ file, url: URL.createObjectURL(file) });
+    setErrors((prev) => ({ ...prev, reel: "" }));
+    e.target.value = "";
+  };
+
   const validate = () => {
     const e: Record<string, string> = {};
     if (!title.trim()) e.title = "Title is required";
@@ -63,6 +71,7 @@ const ListProductPage = () => {
     if (!condition) e.condition = "Condition is required";
     if (!city) e.city = "City is required";
     if (!photos.length) e.photos = "Add at least one photo";
+    if (window.matchMedia("(max-width: 768px)").matches && !reel) e.reel = "Add a reel video";
     if (!swapFor.trim()) e.swapFor = "Please enter what you want to swap for";
     setErrors(e);
     return !Object.keys(e).length;
@@ -102,6 +111,15 @@ const ListProductPage = () => {
         }
       }
 
+      let reelUrl: string | undefined;
+      if (reel) {
+        const reelFormData = new FormData();
+        reelFormData.append('video', reel.file);
+        const reelUpload = await api.uploadVideo(reelFormData);
+        if (!reelUpload.url) throw new Error(reelUpload.error || 'Reel upload failed');
+        reelUrl = reelUpload.url;
+      }
+
       const response = await api.createProduct({
         id: productId,
         user_id: user.id,
@@ -111,11 +129,12 @@ const ListProductPage = () => {
         condition,
         swap_for: swapFor,
         image_urls: imageUrls,
+        ...(reelUrl ? { video_url: reelUrl } : {}),
         status: 'active',
         saved_count: 0
       });
 
-      if (response.error) throw new Error(response.error);
+      if (response?.error) throw new Error(response.error);
 
       // Save city to user profile so it shows up on product cards
       if (user.id && user.id !== 'dummy-user-id-1234' && city) {
@@ -139,7 +158,7 @@ const ListProductPage = () => {
   };
 
   const resetForm = () => {
-    setPhotos([]); setTitle(""); setCategory("");
+    setPhotos([]); setReel(null); setTitle(""); setCategory("");
     setSubCategory(""); setBrand(""); setModel(""); setDescription("");
     setCondition(""); setPrice(""); setSwapFor(""); setCity(""); setArea("");
     setErrors({});
@@ -160,9 +179,6 @@ const ListProductPage = () => {
 
         {/* Page header */}
         <div className="lp-page-header">
-          <button className="lp-back" onClick={() => navigate(-1)}>
-            <FiArrowLeft size={15} /> Back
-          </button>
           <div>
             <h1 className="lp-title">List an Item</h1>
             <p className="lp-sub">Fill in the details below to publish your listing on SVAP</p>
@@ -198,21 +214,32 @@ const ListProductPage = () => {
                   </button>
                 </div>
               ))}
-              {Array.from({ length: Math.max(0, MAX_PHOTOS - photos.length) }).map((_, i) => (
-                <button
-                  key={`empty-${i}`}
-                  type="button"
-                  className="lp-photo-tile lp-photo-tile--add"
-                  onClick={() => fileRef.current?.click()}
-                  aria-label="Add photo"
-                >
-                  +
-                </button>
-              ))}
             </div>
 
             <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handlePhotoAdd} />
             {errors.photos && <p className="lp-err"><FiAlertCircle size={11} />{errors.photos}</p>}
+          </div>
+
+          <div className={`lp-reel-upload${errors.reel ? " lp-reel-upload--err" : ""}`}>
+            <div className="lp-reel-heading">
+              <span className="lp-label">REEL VIDEO <span className="lp-req">REQUIRED</span></span>
+            </div>
+            {reel ? (
+              <div className="lp-reel-preview-wrap">
+                <video src={reel.url} className="lp-reel-preview" controls playsInline />
+                <button type="button" className="lp-reel-remove" onClick={() => setReel(null)} aria-label="Remove reel">
+                  <FiX size={14} />
+                </button>
+              </div>
+            ) : (
+              <button type="button" className="lp-reel-dropzone" onClick={() => document.getElementById("lp-reel-input")?.click()}>
+                <FiFilm size={18} />
+                <span>Add a short reel</span>
+                <small>Up to 60 seconds</small>
+              </button>
+            )}
+            <input id="lp-reel-input" type="file" accept="video/*" hidden onChange={handleReelSelect} />
+            {errors.reel && <p className="lp-err"><FiAlertCircle size={11} />{errors.reel}</p>}
           </div>
 
           {/* Form — below photos */}
@@ -427,7 +454,7 @@ const ListProductPage = () => {
         }
 
         /* ── Page header ── */
-        .lp-page-header { margin-bottom: 32px; }
+        .lp-page-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 32px; }
         .lp-back {
           display: inline-flex; align-items: center; gap: 6px;
           color: var(--text-muted); font-size: 0.82rem; font-weight: 600;
@@ -576,6 +603,44 @@ const ListProductPage = () => {
           transition: background 0.18s;
         }
         .lp-photo-remove:hover { background: rgba(248,113,113,0.9); }
+
+        .lp-reel-upload {
+          display: none;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .lp-reel-heading { display: flex; flex-direction: column; gap: 3px; }
+        .lp-reel-hint { color: var(--text-muted); font-size: 0.7rem; }
+        .lp-reel-dropzone {
+          min-height: 64px;
+          display: grid;
+          grid-template-columns: 24px 1fr;
+          grid-template-rows: auto auto;
+          align-items: center;
+          column-gap: 8px;
+          padding: 12px 14px;
+          border: 1px solid rgba(165,194,111,0.2);
+          border-radius: 10px;
+          background: #f8fbf2;
+          color: #E45821;
+          text-align: left;
+          cursor: pointer;
+          font-family: inherit;
+        }
+        html[data-theme='dark'] .lp-reel-dropzone { background: #1a1a1a; border-color: rgba(255,255,255,0.12); }
+        .lp-reel-dropzone span { color: var(--text-dark); font-size: 0.78rem; font-weight: 600; }
+        .lp-reel-dropzone small { grid-column: 2; color: var(--text-muted); font-size: 0.65rem; }
+        .lp-reel-preview-wrap { position: relative; }
+        .lp-reel-preview { width: 100%; max-height: 220px; display: block; border-radius: 10px; background: #000; }
+        .lp-reel-remove {
+          position: absolute; top: 8px; right: 8px; width: 28px; height: 28px;
+          border: none; border-radius: 50%; background: rgba(0,0,0,0.65); color: #fff;
+          display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .lp-reel-upload--err .lp-reel-dropzone { border-color: rgba(248,113,113,0.55); }
+        @media (max-width: 768px) {
+          .lp-reel-upload { display: flex; }
+        }
 
         @media (max-width: 480px) {
           .lp-photo-tiles { grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -773,10 +838,17 @@ const ListProductPage = () => {
 
         /* ── Responsive ── */
         @media (max-width: 480px) {
-          .lp-page { padding: 14px 14px 52px; }
-          .lp-section { padding: 18px 16px; }
+          .lp-page { padding: 24px 16px 72px; }
+          .lp-page-header { gap: 14px; margin-bottom: 18px; align-items: flex-start; }
+          .lp-page-header > div { min-width: 0; flex: 1; }
+          .lp-back { width: 20px; height: 24px; margin: 1px 0 0; flex: 0 0 20px; }
+          .lp-back-label { display: none; }
+          .lp-section { padding: 14px 12px; border-radius: 14px; gap: 12px; }
           .lp-row { grid-template-columns: 1fr; gap: 10px; }
-          .lp-title { font-size: clamp(1.65rem, 7vw, 2.2rem); }
+          .lp-title { font-size: 1.45rem; line-height: 1.15; }
+          .lp-sub { font-size: 0.72rem; }
+          .lp-dropzone { padding: 22px 12px; border-radius: 12px; }
+          .lp-section-head { padding-bottom: 9px; }
 
         }
       `}</style>

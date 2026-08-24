@@ -309,6 +309,10 @@ const HomeReelsRow = () => {
           font-family: 'Poppins', sans-serif;
         }
 
+        @media (max-width: 1024px) {
+          .hreels-section { display: none; }
+        }
+
         @media (max-width: 767px) {
           .hreels-section { padding: 14px 0 10px; }
           .hreels-header { padding: 0 16px 10px; }

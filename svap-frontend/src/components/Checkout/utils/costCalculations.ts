@@ -62,7 +62,9 @@ export class CostCalculator {
       ? Math.max(itemsTotal, cashDifference)
       : itemsTotal;
     
-    const serviceFee = this.calculateServiceFee(serviceFeeBase);
+    const serviceFee = transactionType === 'svap'
+      ? 0
+      : this.calculateServiceFee(serviceFeeBase);
     
     // Total calculation differs for purchase vs swap
     let totalAmount: number;

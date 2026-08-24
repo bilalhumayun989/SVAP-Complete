@@ -63,4 +63,7 @@
   .app-main {
     padding-top: 64px;
   }
+  .app-main--no-topbar {
+    padding-top: 0;
+  }
 }

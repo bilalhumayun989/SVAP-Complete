@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  X, User, Lock, MapPin, Sun, Moon, Monitor,
-  LogOut, Trash2, ChevronRight,
+  ArrowLeft, AtSign, LockKeyhole, House, ArrowLeftRight, Truck,
+  Megaphone, CircleHelp, Sun, Moon, Monitor, LogOut, Trash2,
+  ChevronRight,
 } from "lucide-react";
 import { api } from "../../services/api";
 
@@ -52,6 +53,9 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
   // delete confirm
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [swapNotifications, setSwapNotifications] = useState(true);
+  const [orderNotifications, setOrderNotifications] = useState(true);
+  const [promotionNotifications, setPromotionNotifications] = useState(false);
 
   // reset sub-page on close
   useEffect(() => {
@@ -277,8 +281,8 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
              : sub === "address" ? "Delivery Address"
              : "Settings"}
           </span>
-          <button className="sd-close" onClick={onClose} aria-label="Close settings">
-            <X size={18} />
+          <button className="sd-close" onClick={onClose} aria-label="Back from settings">
+            <ArrowLeft size={18} />
           </button>
         </div>
 
@@ -294,22 +298,48 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               <div className="sd-section-label">Account</div>
 
               <button className="sd-row" onClick={() => { setUSuccess(false); setUError(""); setSub("username"); }}>
-                <span className="sd-row-icon"><User size={16} /></span>
+                <span className="sd-row-icon"><AtSign size={16} /></span>
                 <span className="sd-row-text">Change Username</span>
                 <ChevronRight size={15} className="sd-row-arrow" />
               </button>
 
               <button className="sd-row" onClick={() => { setPSuccess(false); setPError(""); setSub("password"); }}>
-                <span className="sd-row-icon"><Lock size={16} /></span>
+                <span className="sd-row-icon"><LockKeyhole size={16} /></span>
                 <span className="sd-row-text">Change Password</span>
                 <ChevronRight size={15} className="sd-row-arrow" />
               </button>
 
               <button className="sd-row" onClick={() => { setASuccess(false); setAError(""); setSub("address"); }}>
-                <span className="sd-row-icon"><MapPin size={16} /></span>
+                <span className="sd-row-icon"><House size={16} /></span>
                 <span className="sd-row-text">Delivery Address</span>
                 <ChevronRight size={15} className="sd-row-arrow" />
               </button>
+
+              <div className="sd-divider" />
+
+              {/* Notifications section */}
+              <div className="sd-section-label">Notifications</div>
+              <div className="sd-row sd-row--setting">
+                <span className="sd-row-icon"><ArrowLeftRight size={16} /></span>
+                <span className="sd-row-text"><span>Swap Requests</span><small>New requests and updates</small></span>
+                <button className={`sd-toggle${swapNotifications ? " sd-toggle--active" : ""}`} onClick={() => setSwapNotifications(value => !value)} aria-label="Toggle swap request notifications">
+                  <span />
+                </button>
+              </div>
+              <div className="sd-row sd-row--setting">
+                <span className="sd-row-icon"><Truck size={16} /></span>
+                <span className="sd-row-text"><span>Orders</span><small>Order status updates</small></span>
+                <button className={`sd-toggle${orderNotifications ? " sd-toggle--active" : ""}`} onClick={() => setOrderNotifications(value => !value)} aria-label="Toggle order notifications">
+                  <span />
+                </button>
+              </div>
+              <div className="sd-row sd-row--setting">
+                <span className="sd-row-icon"><Megaphone size={16} /></span>
+                <span className="sd-row-text"><span>Promotions</span><small>Deals and announcements</small></span>
+                <button className={`sd-toggle${promotionNotifications ? " sd-toggle--active" : ""}`} onClick={() => setPromotionNotifications(value => !value)} aria-label="Toggle promotion notifications">
+                  <span />
+                </button>
+              </div>
 
               <div className="sd-divider" />
 
@@ -331,6 +361,13 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               </div>
 
               <div className="sd-divider" />
+
+              <div className="sd-section-label">About</div>
+              <button className="sd-row">
+                <span className="sd-row-icon"><CircleHelp size={16} /></span>
+                <span className="sd-row-text">About Svap</span>
+                <ChevronRight size={15} className="sd-row-arrow" />
+              </button>
 
               {/* Logout */}
               <button className="sd-row sd-row--logout" onClick={handleLogout}>
@@ -374,40 +411,37 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
 
         .sd-drawer {
           position: fixed;
-          bottom: 0; left: 0; right: 0;
+          top: 0; right: 0; bottom: 0; left: auto;
           z-index: 999;
           background: var(--bg, #fff);
-          border-radius: 24px 24px 0 0;
-          box-shadow: 0 -8px 40px rgba(0,0,0,0.22);
-          max-height: 88vh;
+          width: 100vw;
+          max-width: 100dvw;
+          box-shadow: -8px 0 40px rgba(0,0,0,0.22);
+          height: 100dvh;
           overflow-y: auto;
           -webkit-overflow-scrolling: touch;
-          animation: sd-slide-up 0.28s cubic-bezier(0.34,1.56,0.64,1);
+          animation: sd-slide-left 0.28s cubic-bezier(0.22,1,0.36,1);
           font-family: 'Poppins', sans-serif;
         }
-        @keyframes sd-slide-up {
-          from { transform: translateY(100%); opacity: 0; }
-          to   { transform: translateY(0);    opacity: 1; }
+        @keyframes sd-slide-left {
+          from { transform: translateX(100%); }
+          to   { transform: translateX(0); }
         }
-        html[data-theme='dark'] .sd-drawer { background: #111; border-top: 1px solid #222; }
+        html[data-theme='dark'] .sd-drawer { background: #111; border-left: 1px solid #222; }
 
         .sd-handle {
-          width: 40px; height: 4px;
-          border-radius: 2px;
-          background: rgba(0,0,0,0.15);
-          margin: 12px auto 0;
+          display: none;
         }
-        html[data-theme='dark'] .sd-handle { background: rgba(255,255,255,0.18); }
 
         .sd-header {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 16px 20px 10px;
+          display: flex; align-items: center; justify-content: flex-start;
+          padding: 14px 12px 12px;
           border-bottom: 1px solid rgba(0,0,0,0.07);
         }
         html[data-theme='dark'] .sd-header { border-bottom-color: rgba(255,255,255,0.07); }
 
         .sd-header-title {
-          font-size: 1.05rem; font-weight: 700;
+          font-size: 0.95rem; font-weight: 700;
           color: var(--text-dark, #111);
         }
         html[data-theme='dark'] .sd-header-title { color: #fff; }
@@ -419,6 +453,8 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; color: var(--text-dark, #111);
           transition: background 0.15s;
+          order: -1;
+          margin-right: 10px;
         }
         .sd-close:hover { background: rgba(0,0,0,0.07); }
         html[data-theme='dark'] .sd-close { border-color: rgba(255,255,255,0.12); color: #fff; }
@@ -443,22 +479,46 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
         html[data-theme='dark'] .sd-row:hover { background: rgba(255,255,255,0.05); }
 
         .sd-row-icon {
-          width: 36px; height: 36px; border-radius: 10px;
-          background: rgba(228,88,33,0.1);
-          border: 1px solid rgba(228,88,33,0.2);
+          width: 20px; height: 20px; border-radius: 0;
+          background: transparent;
+          border: none;
           display: flex; align-items: center; justify-content: center;
-          color: #E45821; flex-shrink: 0;
+          color: var(--text-muted, #888); flex-shrink: 0;
         }
-        .sd-row-icon--logout { background: rgba(99,102,241,0.1); border-color: rgba(99,102,241,0.25); color: #6366f1; }
-        .sd-row-icon--danger { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); color: #ef4444; }
+        .sd-row-icon--logout { color: #6366f1; }
+        .sd-row-icon--danger { color: #ef4444; }
 
         .sd-row-text {
           flex: 1; font-size: 0.9rem; font-weight: 500;
           color: var(--text-dark, #111);
         }
+        .sd-row-text span,
+        .sd-row-text small { display: block; }
+        .sd-row-text small {
+          margin-top: 3px; color: #777; font-size: 0.65rem; font-weight: 400;
+        }
         html[data-theme='dark'] .sd-row-text { color: #fff; }
+        html[data-theme='dark'] .sd-row-text small { color: #666; }
         .sd-row--logout .sd-row-text { color: #6366f1; }
         .sd-row--danger .sd-row-text { color: #ef4444; }
+
+        .sd-row--setting { cursor: default; }
+        .sd-row--setting:hover { background: transparent; }
+        .sd-toggle {
+          width: 34px; height: 20px; padding: 2px;
+          border: 1px solid #aaa; border-radius: 999px;
+          background: #777; cursor: pointer; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: flex-start;
+          transition: background 0.15s, border-color 0.15s;
+        }
+        .sd-toggle span {
+          width: 14px; height: 14px; border-radius: 50%; background: #ddd;
+          transition: transform 0.15s, background 0.15s;
+        }
+        .sd-toggle--active {
+          background: #9f421f; border-color: #9f421f; justify-content: flex-end;
+        }
+        .sd-toggle--active span { background: #ed6b3b; }
 
         .sd-row-arrow { color: #ccc; flex-shrink: 0; }
         html[data-theme='dark'] .sd-row-arrow { color: #555; }

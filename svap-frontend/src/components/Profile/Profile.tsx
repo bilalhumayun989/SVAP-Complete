@@ -154,12 +154,22 @@ const Profile = () => {
         }
 
         // Load swap requests (sent + received)
-        const swapsRes = await api.getSwapRequestsByUser(savedUser.id);
+        const [swapsRes, ordersRes] = await Promise.all([
+          api.getSwapRequestsByUser(savedUser.id),
+          api.getOrders(savedUser.id),
+        ]);
+        const ordersBySwapId = new Map(
+          (Array.isArray(ordersRes) ? ordersRes : [])
+            .filter((order: any) => order.swap_request_id)
+            .map((order: any) => [order.swap_request_id, order])
+        );
         if (swapsRes.data) {
           setSwapRequests(swapsRes.data.map((r: any) => ({
             id: r.id,
             direction: r.from_user_id === savedUser.id ? 'sent' : 'received',
             status: r.status,
+            orderId: ordersBySwapId.get(r.id)?.id || null,
+            orderStatus: ordersBySwapId.get(r.id)?.status || null,
             created_at: r.created_at,
             offeredTitle: r.offered?.title || 'Unknown',
             offeredImage: r.offered?.image_urls?.[0] || 'https://placehold.co/400x400',
@@ -327,9 +337,6 @@ const Profile = () => {
               <div className="pf-btns">
                 <button className="pf-btn pf-btn--primary" onClick={() => navigate("/profile/edit")}>
                   Edit profile
-                </button>
-                <button className="pf-btn pf-btn--ghost">
-                  Share
                 </button>
               </div>
             </div>
@@ -501,6 +508,27 @@ const Profile = () => {
                         {isPending   && <><FiClock size={11} /> Pending</>}
                         {!isComplete && !isRejected && !isPending && swap.status}
                       </div>
+                      {swap.orderId && swap.orderStatus === 'pending' && (
+                        <button
+                          type="button"
+                          className="pf-order-received-btn"
+                          onClick={async (event) => {
+                            event.stopPropagation();
+                            const raw = localStorage.getItem('sz_user');
+                            const currentUser = raw ? JSON.parse(raw) : null;
+                            if (!currentUser?.id) return;
+                            const response = await api.updateOrderStatus(swap.orderId, 'completed', currentUser.id);
+                            if (!response.error) {
+                              setSwapRequests(prev => prev.map(item =>
+                                item.id === swap.id ? { ...item, orderStatus: 'completed' } : item
+                              ));
+                            }
+                          }}
+                        >
+                          <FiCheck size={14} />
+                          Order Received
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -644,7 +672,55 @@ const Profile = () => {
         .pf-btn--ghost { background: var(--pf-surface); color: var(--pf-ink); border: 1px solid var(--pf-line); }
         .pf-btn--ghost:hover { background: var(--pf-line-soft); }
 
-    
+        @media (max-width: 639px) {
+          .pf-header {
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 12px;
+          }
+          .pf-avatar-area {
+            width: 52px;
+          }
+          .pf-story-ring {
+            width: 52px;
+            height: 52px;
+          }
+          .pf-avatar-letter {
+            font-size: 1.45rem;
+          }
+          .pf-info {
+            width: calc(100% - 64px);
+            padding-top: 0;
+          }
+          .pf-btns {
+            width: calc(100% + 64px);
+            margin-top: 14px;
+            margin-left: -64px;
+          }
+          .pf-btn--primary {
+            width: 100%;
+            padding: 7px 16px;
+            border: 1px solid var(--pf-ink);
+            border-radius: 999px;
+            background: transparent;
+            color: var(--pf-ink);
+            font-size: 0.68rem;
+          }
+          html[data-theme='dark'] .pf-btn--primary {
+            border-color: #f5f5f5;
+            color: #f5f5f5;
+          }
+          .pf-btn--primary:hover {
+            background: var(--pf-line-soft);
+            color: var(--pf-ink);
+          }
+          html[data-theme='dark'] .pf-btn--primary:hover {
+            background: #1a1a1a;
+            color: #fff;
+          }
+        }
+
         .pf-scircle--has {
           border: 2px solid var(--pf-orange);
           padding: 2px;
@@ -669,7 +745,6 @@ const Profile = () => {
           border-bottom: 1px solid var(--pf-line);
           background: var(--pf-bg);
           position: sticky;
-          top: 0;
           z-index: 5;
         }
 
@@ -978,6 +1053,30 @@ const Profile = () => {
           transform: translateY(-2px);
           box-shadow: 0 8px 24px rgba(0,0,0,0.08);
         }
+        .pf-order-received-btn {
+          align-self: stretch;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          min-height: 40px;
+          padding: 10px 16px;
+          border: 1px solid #E45821;
+          border-radius: 10px;
+          background: #E45821;
+          color: #fff;
+          font: inherit;
+          font-size: 0.78rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+        }
+        .pf-order-received-btn:hover {
+          background: #c94d1c;
+          box-shadow: 0 5px 14px rgba(228,88,33,0.25);
+          transform: translateY(-1px);
+        }
+        .pf-order-received-btn:active { transform: translateY(0); }
         html[data-theme='dark'] .pf-swap-card {
           background: #1a1a1a;
           border-color: #2a2a2a;

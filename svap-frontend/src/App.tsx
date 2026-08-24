@@ -111,6 +111,8 @@ function AppInner() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const isFullScreen = FULL_SCREEN_ROUTES.some(r => pathname.startsWith(r))
+  const isProductRoute = pathname.startsWith('/product/')
+  const isListProductPage = pathname === '/list-product'
 
   // Check for existing session on app load
   useEffect(() => {
@@ -314,7 +316,7 @@ function AppInner() {
         </Routes>
       ) : (
         <div className="app-layout">
-          <main className="app-main">
+            <main className={`app-main${isListProductPage ? ' app-main--no-topbar' : ''}`}>
             <Routes>
               <Route path="/"                   element={<Homemain />} />
               <Route path="/categories"         element={<AllCategoriesPage />} />
@@ -344,7 +346,7 @@ function AppInner() {
               <Route path="/cookie-policy"      element={<CookiePolicy />} />
             </Routes>
           </main>
-          <MobileNav />
+          {!isProductRoute && <MobileNav />}
         </div>
       )}
     </>

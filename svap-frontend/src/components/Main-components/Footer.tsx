@@ -404,6 +404,10 @@ const Footer = () => {
            MEDIA QUERIES
         ════════════════════════════ */
 
+        @media (max-width: 1024px) {
+          .ft-root { display: none; }
+        }
+
         /* 1280px – 1599px */
         @media (max-width: 1599px) {
           .ft-inner { padding: 40px 36px 28px; }

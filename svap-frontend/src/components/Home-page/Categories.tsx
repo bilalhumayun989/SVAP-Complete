@@ -319,6 +319,9 @@ const Categories = () => {
         @media (max-width: 800px) {
           .cat-section { display: none; }
         }
+        @media (max-width: 1024px) {
+          .cat-viewall { display: none; }
+        }
       `}</style>
     </>
   );

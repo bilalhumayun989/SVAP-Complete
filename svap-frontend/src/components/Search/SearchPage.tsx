@@ -264,6 +264,7 @@ const SearchPage = () => {
         .sp-cat-img { width:100%; height:100%; object-fit:cover; }
         .sp-cat-overlay { position:absolute; inset:0; background:rgba(0,0,0,0.38); }
         .sp-cat-label { position:absolute; bottom:8px; left:0; right:0; text-align:center; color:#fff; font-size:0.75rem; font-weight:700; }
+        @media (max-width:800px) { .sp-bar-wrap { display:none; } }
         @media (max-width:480px) { .sp-cat-grid{grid-template-columns:repeat(3,1fr);} }
       `}</style>
     </div>

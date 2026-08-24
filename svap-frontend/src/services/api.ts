@@ -171,6 +171,18 @@ export const api = {
     const res = await fetch(`${API_URL}/swap-requests/user/${encodeURIComponent(userId)}`);
     return res.json();
   },
+  getOrders: async (userId: string) => {
+    const res = await fetch(`${API_URL}/orders?user_id=${encodeURIComponent(userId)}`);
+    return res.json();
+  },
+  updateOrderStatus: async (id: string, status: string, userId: string) => {
+    const res = await fetch(`${API_URL}/orders/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, user_id: userId }),
+    });
+    return res.json();
+  },
 
   // Notifications
   getNotifications: async (userId: string) => {

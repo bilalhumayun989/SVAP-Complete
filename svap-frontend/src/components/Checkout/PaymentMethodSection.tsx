@@ -150,16 +150,16 @@ export const PaymentMethodSection = ({
 
         .payment-methods {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
         }
 
         .payment-option {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 12px;
-          padding: 20px 16px;
+          gap: 6px;
+          padding: 10px 6px;
           background: var(--bg);
           border: 1px solid var(--border);
           border-radius: 12px;
@@ -167,6 +167,7 @@ export const PaymentMethodSection = ({
           transition: all 0.2s;
           text-align: center;
           position: relative;
+          min-width: 0;
         }
 
         .payment-option:hover:not(:disabled) {
@@ -207,6 +208,8 @@ export const PaymentMethodSection = ({
           display: flex;
           flex-direction: column;
           gap: 4px;
+          min-width: 0;
+          width: 100%;
         }
 
         .option-name {
@@ -214,9 +217,12 @@ export const PaymentMethodSection = ({
           flex-direction: column;
           align-items: center;
           gap: 6px;
-          font-size: 0.95rem;
+          font-size: 0.78rem;
           font-weight: 600;
           color: var(--text-dark);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .recommended-badge {
@@ -230,8 +236,9 @@ export const PaymentMethodSection = ({
         }
 
         .option-description {
-          font-size: 0.8rem;
+          font-size: 0.68rem;
           color: var(--text-mid);
+          display: none;
         }
 
         .selection-indicator {
@@ -264,14 +271,10 @@ export const PaymentMethodSection = ({
 
         /* Mobile responsiveness */
         @media (max-width: 768px) {
-          .payment-methods {
-            grid-template-columns: 1fr;
-          }
-
           .payment-option {
-            flex-direction: row;
             text-align: left;
-            padding: 16px;
+            align-items: center;
+            padding: 9px 5px;
           }
 
           .option-icon {
@@ -281,13 +284,16 @@ export const PaymentMethodSection = ({
 
           .option-content {
             flex: 1;
-            align-items: flex-start;
+            align-items: center;
           }
 
           .option-name {
-            flex-direction: row;
+            flex-direction: column;
             align-items: center;
+            font-size: 0.72rem;
           }
+
+          .recommended-badge { display: none; }
         }
 
         /* Large screens */

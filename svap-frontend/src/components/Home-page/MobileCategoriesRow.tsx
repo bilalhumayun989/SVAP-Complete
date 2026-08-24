@@ -149,7 +149,7 @@ const MobileCategoriesRow = () => {
       </section>
 
       <style>{`
-        /* Only visible on mobile/tablet ≤800px */
+        /* Hidden by default; mobile/tablet styles below are retained for future use. */
         .mcat-section { display: none; }
 
         @media (max-width: 800px) {
@@ -249,6 +249,10 @@ const MobileCategoriesRow = () => {
             text-align: center;
             white-space: nowrap;
           }
+        }
+
+        @media (max-width: 1024px) {
+          .mcat-section { display: none; }
         }
       `}</style>
     </>

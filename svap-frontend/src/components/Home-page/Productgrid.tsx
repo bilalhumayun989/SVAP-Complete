@@ -23,6 +23,16 @@ const ProductGrid = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [isCompactViewport, setIsCompactViewport] = useState(() =>
+    window.matchMedia("(max-width: 1024px)").matches
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 1024px)");
+    const handleViewportChange = () => setIsCompactViewport(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleViewportChange);
+    return () => mediaQuery.removeEventListener("change", handleViewportChange);
+  }, []);
 
   useEffect(() => {
     const userId = (() => { try { return JSON.parse(localStorage.getItem("sz_user") || "{}").id; } catch { return null; } })();
@@ -62,8 +72,8 @@ const ProductGrid = () => {
     fetchProducts();
   }, []);
 
-  const visibleProducts = products.slice(0, visibleCount);
-  const hasMore = visibleCount < products.length;
+  const visibleProducts = isCompactViewport ? products : products.slice(0, visibleCount);
+  const hasMore = !isCompactViewport && visibleCount < products.length;
 
   return (
     <>
@@ -276,6 +286,7 @@ const ProductGrid = () => {
         @media (max-width: 1024px) {
           .pg-inner { padding: 20px 14px 28px; }
           .pg-grid  { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+          .pg-viewall { display: none; }
         }
         @media (max-width: 600px) {
           .pg-inner { padding: 16px 12px 20px; }

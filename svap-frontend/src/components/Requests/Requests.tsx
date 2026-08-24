@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiCheck, FiX, FiInbox, FiSend, FiRepeat } from "react-icons/fi";
+import { FiCheck, FiX, FiInbox, FiSend, FiRepeat, FiCreditCard } from "react-icons/fi";
 import {
   getAllRequests,
   updateRequestStatus,
@@ -10,7 +10,13 @@ import {
 import { useNotifications } from "../../context/NotificationContext";
 import { api } from "../../services/api";
 
-type Tab = "received" | "sent";
+type Tab = "incoming" | "outgoing" | "checkout";
+
+type CheckoutOrder = {
+  swap_request_id: string | null;
+  from_user_id: string;
+  status: string;
+};
 
 const getDisplayName = (profile?: { username: string | null }) =>
   profile?.username || "Deleted User";
@@ -18,8 +24,9 @@ const getDisplayName = (profile?: { username: string | null }) =>
 const Requests = () => {
   const navigate = useNavigate();
   const { refreshCount } = useNotifications();
-  const [tab, setTab] = useState<Tab>("received");
+  const [tab, setTab] = useState<Tab>("incoming");
   const [requests, setRequests] = useState<SwapRequest[]>([]);
+  const [checkoutOrders, setCheckoutOrders] = useState<CheckoutOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
 
@@ -29,8 +36,14 @@ const Requests = () => {
 
   const refresh = useCallback(async () => {
     if (!userId) { setLoading(false); return; }
-    const data = await getAllRequests(userId);
+    const [data, ordersResponse] = await Promise.all([
+      getAllRequests(userId),
+      api.getOrders(userId),
+    ]);
     setRequests(data);
+    setCheckoutOrders(
+      Array.isArray(ordersResponse) ? ordersResponse.filter((order: CheckoutOrder) => order.swap_request_id) : []
+    );
     setLoading(false);
   }, [userId]);
 
@@ -73,9 +86,29 @@ const Requests = () => {
 
   useEffect(() => { refresh(); }, [tick, refresh]);
 
-  const received = requests.filter(r => r.direction === "received");
-  const sent = requests.filter(r => r.direction === "sent");
-  const active = tab === "received" ? received : sent;
+  const currentUserCheckoutRequestIds = new Set(
+    checkoutOrders
+      .filter(order => order.from_user_id === userId)
+      .map(order => order.swap_request_id)
+      .filter((id): id is string => Boolean(id))
+  );
+  const checkoutRequestIds = new Set(
+    checkoutOrders
+      .map(order => order.swap_request_id)
+      .filter((id): id is string => Boolean(id))
+  );
+  const isCheckoutRequest = (request: SwapRequest) =>
+    checkoutRequestIds.has(request.id) || ["accepted", "completed"].includes(request.status);
+  const incoming = requests.filter(r => r.direction === "received" && !isCheckoutRequest(r));
+  const outgoing = requests.filter(r => r.direction === "sent" && !isCheckoutRequest(r));
+  const currentUserCheckoutOrders = checkoutOrders.filter(order => order.from_user_id === userId);
+  const checkoutOrderByRequest = new Map(
+    currentUserCheckoutOrders.map(order => [order.swap_request_id, order])
+  );
+  const checkout = requests.filter(
+    request => isCheckoutRequest(request) && !currentUserCheckoutRequestIds.has(request.id)
+  );
+  const active = tab === "incoming" ? incoming : tab === "outgoing" ? outgoing : checkout;
 
   const handleAction = async (id: string, action: "accepted" | "rejected") => {
     if (action === "rejected") {
@@ -90,7 +123,8 @@ const Requests = () => {
     }
   };
 
-  const pendingReceivedCount = received.filter(r => r.status === "pending").length;
+  const pendingIncomingCount = incoming.filter(r => r.status === "pending").length;
+  const pendingOutgoingCount = outgoing.filter(r => r.status === "pending").length;
 
   return (
     <div className="req-page">
@@ -100,37 +134,45 @@ const Requests = () => {
         <div className="req-header">
           <div className="req-header-icon"><FiRepeat size={22} /></div>
           <div>
-            <h1 className="req-title">Swap Requests</h1>
+            <h1 className="req-title">Requests</h1>
             <p className="req-subtitle">
-              {pendingReceivedCount > 0
-                ? `${pendingReceivedCount} pending request${pendingReceivedCount > 1 ? "s" : ""}`
-                : "No pending requests"}
+              {pendingIncomingCount > 0
+                ? `${pendingIncomingCount} incoming request${pendingIncomingCount > 1 ? "s" : ""}`
+                : "Manage your swap requests and checkouts"}
             </p>
           </div>
         </div>
 
         <div className="req-tabs">
           <button
-            className={`req-tab ${tab === "received" ? "req-tab--active" : ""}`}
-            onClick={() => setTab("received")}
+            className={`req-tab ${tab === "incoming" ? "req-tab--active" : ""}`}
+            onClick={() => setTab("incoming")}
           >
             <FiInbox size={15} />
-            Received
-            {pendingReceivedCount > 0 && (
-              <span className="req-tab-badge">{pendingReceivedCount}</span>
+            Incoming
+            {pendingIncomingCount > 0 && (
+              <span className="req-tab-badge">{pendingIncomingCount}</span>
             )}
           </button>
           <button
-            className={`req-tab ${tab === "sent" ? "req-tab--active" : ""}`}
-            onClick={() => setTab("sent")}
+            className={`req-tab ${tab === "outgoing" ? "req-tab--active" : ""}`}
+            onClick={() => setTab("outgoing")}
           >
             <FiSend size={15} />
-            Sent
-            {sent.filter(r => r.status === "pending").length > 0 && (
+            Outgoing
+            {pendingOutgoingCount > 0 && (
               <span className="req-tab-badge req-tab-badge--blue">
-                {sent.filter(r => r.status === "pending").length}
+                {pendingOutgoingCount}
               </span>
             )}
+          </button>
+          <button
+            className={`req-tab ${tab === "checkout" ? "req-tab--active" : ""}`}
+            onClick={() => setTab("checkout")}
+          >
+            <FiCreditCard size={15} />
+            Checkout
+            {checkout.length > 0 && <span className="req-tab-badge req-tab-badge--checkout">{checkout.length}</span>}
           </button>
         </div>
 
@@ -139,20 +181,26 @@ const Requests = () => {
             <div className="req-empty"><p>Loading...</p></div>
           ) : active.length === 0 ? (
             <div className="req-empty">
-              {tab === "received" ? (
+              {tab === "incoming" ? (
                 <>
                   <FiInbox size={36} />
-                  <p>No swap requests received yet</p>
+                  <p>No incoming swap requests</p>
                   <span>When someone sends you a swap request, it will appear here</span>
                 </>
-              ) : (
+              ) : tab === "outgoing" ? (
                 <>
                   <FiSend size={36} />
-                  <p>You haven't sent any swap requests yet</p>
+                  <p>No outgoing swap requests</p>
                   <span>Browse listings and tap "Send Swap Request"</span>
                   <button className="req-browse-btn" onClick={() => navigate("/")}>
                     Browse Listings
                   </button>
+                </>
+              ) : (
+                <>
+                  <FiCreditCard size={36} />
+                  <p>No checkout records yet</p>
+                  <span>Swap checkouts will appear here after an order is placed</span>
                 </>
               )}
             </div>
@@ -184,13 +232,16 @@ const Requests = () => {
                   </div>
 
                   <div className="req-swap-row">
-                    <div className="req-item">
+                    <button
+                      type="button"
+                      className="req-item req-product-link"
+                      onClick={() => navigate(`/product/${req.offered_product_id}`)}
+                      aria-label={`View ${req.offered?.title || "offered product"}`}
+                    >
                       <div className="req-item-img-wrap">
                         <img
                           src={
-                            req.direction === "received"
-                              ? req.from_profile?.avatar_url || `https://ui-avatars.com/api/?name=${getDisplayName(req.from_profile)}&background=random`
-                              : req.offered?.image_urls?.[0] || "https://placehold.co/80"
+                            req.offered?.image_urls?.[0] || "https://placehold.co/80"
                           }
                           alt=""
                           className="req-item-img"
@@ -201,15 +252,13 @@ const Requests = () => {
                           {req.direction === "received" ? "Their Offer" : "You Offered"}
                         </span>
                         <span className="req-item-name">
-                          {req.direction === "received" 
-                            ? getDisplayName(req.from_profile)
-                            : req.offered?.title || "Unknown"}
+                          {req.offered?.title || "Unknown"}
                         </span>
                         {req.direction === "received" && (
-                          <span className="req-item-sub">{req.offered?.title || ""}</span>
+                          <span className="req-item-sub">@{getDisplayName(req.from_profile)}</span>
                         )}
                       </div>
-                    </div>
+                    </button>
 
                     <div className="req-swap-arrow">
                       <FiRepeat size={16} />
@@ -235,7 +284,7 @@ const Requests = () => {
                     </div>
                   </div>
 
-                  {tab === "received" && isPending && (
+                  {tab === "incoming" && isPending && (
                     <div className="req-actions">
                       <button
                         className="req-btn req-btn--reject"
@@ -254,8 +303,7 @@ const Requests = () => {
                     </div>
                   )}
 
-                  {/* Already accepted — show continue to checkout */}
-                  {tab === "received" && req.status === "accepted" && !isExpired && (
+                  {tab === "incoming" && req.status === "accepted" && !currentUserCheckoutRequestIds.has(req.id) && (
                     <div className="req-actions">
                       <button
                         className="req-btn req-btn--checkout"
@@ -267,21 +315,34 @@ const Requests = () => {
                     </div>
                   )}
 
-                  {tab === "sent" && isPending && (
+                  {tab === "outgoing" && isPending && (
                     <div className="req-pending-label">
                       <img src="/ICONS/Time.png" alt="Time" style={{ width: 12, height: 12, objectFit: 'contain', marginRight: 6 }} /> Waiting for response…
                     </div>
                   )}
 
-                  {/* Sent request accepted — sender can also checkout */}
-                  {tab === "sent" && req.status === "accepted" && !isExpired && (
+                  {tab === "outgoing" && req.status === "accepted" && !currentUserCheckoutRequestIds.has(req.id) && (
                     <div className="req-actions">
                       <button
                         className="req-btn req-btn--checkout"
                         onClick={() => navigate("/checkout", { state: { entrySource: "swap", swapRequestId: req.id } })}
                       >
                         <FiCheck size={14} />
-                        <span>PROCEED TO CHECKOUT</span>
+                        <span>CONTINUE TO CHECKOUT</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {tab === "checkout" && (
+                    <div className="req-actions">
+                      <button
+                        className="req-btn req-btn--checkout"
+                        onClick={() => checkoutOrderByRequest.has(req.id)
+                          ? navigate("/orders")
+                          : navigate("/checkout", { state: { entrySource: "swap", swapRequestId: req.id } })}
+                      >
+                        {checkoutOrderByRequest.has(req.id) ? <FiCreditCard size={14} /> : <FiCheck size={14} />}
+                        <span>{checkoutOrderByRequest.has(req.id) ? "VIEW ORDER STATUS" : "CONTINUE TO CHECKOUT"}</span>
                       </button>
                     </div>
                   )}
@@ -302,7 +363,7 @@ const Requests = () => {
         .req-header-icon { width:48px; height:48px; border-radius:14px; background:rgba(228,88,33,0.1); border:1px solid rgba(228,88,33,0.2); color:#E45821; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
         .req-title { font-size:clamp(1.4rem,2.5vw,1.9rem); font-weight:800; color:var(--text-dark); margin:0 0 2px; letter-spacing:-0.02em; }
         .req-subtitle { font-size:0.83rem; color:var(--text-muted); margin:0; }
-        .req-tabs { display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid rgba(165,194,111,0.2); padding-bottom:0; }
+        .req-tabs { display:flex; gap:18px; margin-bottom:20px; border-bottom:1px solid rgba(165,194,111,0.2); padding-bottom:0; }
         .req-tab { display:flex; align-items:center; gap:7px; padding:10px 18px 12px; font-size:0.85rem; font-weight:600; color:var(--text-muted); background:none; border:none; border-bottom:2.5px solid transparent; cursor:pointer; transition:color 0.18s,border-color 0.18s; font-family:inherit; position:relative; top:1px; }
         .req-tab:hover { color:var(--text-dark); }
         .req-tab--active { color:#E45821; border-bottom-color:#E45821; font-weight:700; }
@@ -325,6 +386,8 @@ const Requests = () => {
         .req-status-badge--expired { background:rgba(100,100,100,0.1); color:var(--text-muted); border:1px solid rgba(100,100,100,0.2); }
         .req-swap-row { display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
         .req-item { flex:1; display:flex; align-items:center; gap:12px; min-width:0; }
+        .req-product-link { border:0; padding:0; background:transparent; color:inherit; text-align:left; font:inherit; cursor:pointer; }
+        .req-product-link:hover .req-item-name { color:#E45821; }
         .req-item--right { flex-direction:row-reverse; }
         .req-item-img-wrap { width:64px; height:64px; border-radius:14px; overflow:hidden; background:var(--bg-section); border:1px solid rgba(165,194,111,0.26); flex-shrink:0; }
         .req-item-img { width:100%; height:100%; object-fit:cover; }
@@ -353,7 +416,30 @@ const Requests = () => {
         html[data-theme='dark'] .req-item-sub { color:#666; }
         html[data-theme='dark'] .req-swap-arrow { background:#111; border-color:#2a2a2a; }
         html[data-theme='dark'] .req-empty { background:#111; border-color:#222; }
-        @media (max-width:600px) { .req-page{padding:90px 14px 60px;} .req-card{padding:18px 16px;} .req-item-img-wrap{width:52px;height:52px;} .req-item-name{font-size:0.82rem;} .req-actions{grid-template-columns:1fr;} .req-tab{padding:8px 12px 10px;font-size:0.8rem;} }
+        @media (max-width:600px) {
+          .req-page { margin-top:-64px; padding:28px 10px 80px; }
+          .req-container { width:100%; }
+          .req-header { gap:10px; margin-bottom:18px; }
+          .req-header-icon { width:38px; height:38px; border-radius:11px; }
+          .req-header-icon svg { width:18px; height:18px; }
+          .req-title { font-size:1.2rem; }
+          .req-subtitle { font-size:0.7rem; }
+          .req-card { padding:14px 10px; border-radius:14px; }
+          .req-item-img-wrap { width:52px; height:52px; }
+          .req-item-name { font-size:0.78rem; }
+          .req-item-label { font-size:0.55rem; }
+          .req-item-sub { font-size:0.64rem; }
+          .req-swap-row { gap:7px; margin-bottom:12px; }
+          .req-swap-arrow { width:28px; height:28px; }
+          .req-swap-arrow svg { width:14px; height:14px; }
+          .req-actions { grid-template-columns:1fr; }
+          .req-tabs { gap:8px; }
+          .req-tab { flex:1; justify-content:center; padding:7px 3px 9px; font-size:0.7rem; gap:4px; }
+          .req-tab svg { width:13px; height:13px; }
+          .req-empty { padding:36px 14px; border-radius:14px; }
+          .req-empty p { font-size:0.82rem; }
+          .req-empty span { font-size:0.7rem; }
+        }
       `}</style>
     </div>
   );

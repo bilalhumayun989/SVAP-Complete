@@ -7,15 +7,8 @@ export const DELIVERY_METHODS: DeliveryMethod[] = [
     name: 'Standard',
     description: '3-5 days',
     estimatedDays: '3-5 business days',
-    cost: 300,
+    cost: 500,
     isRecommended: true,
-  },
-  {
-    id: 'express',
-    name: 'Express',
-    description: '24h delivery',
-    estimatedDays: '1-2 business days',
-    cost: 800,
   }
 ];
 
