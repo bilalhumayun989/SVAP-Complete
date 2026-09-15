@@ -4,78 +4,81 @@ const HelpCenter = () => {
   return (
     <FooterPageLayout
       title="Help Center"
-      subtitle="Find answers to common questions about buying, selling, and using SVAP."
+      subtitle="How can we help?"
     >
+      <p>
+        Find information and guidance on using Svap, managing your account, creating listings, making exchanges, payments, and resolving common issues.
+      </p>
+
       <h2>Getting Started</h2>
-      <p><strong>How do I create an account?</strong></p>
+      
+      <p><strong>What is Svap?</strong></p>
       <p>
-        You can sign up using your email, Google account, or Apple ID. Just tap
-        "Create Account" on the login page and follow the prompts. It takes
-        under 30 seconds.
+        Svap is a platform that enables users to exchange items with one another. Users can list items they own, discover items they want, and make exchange offers. Where there is a difference in value, the applicable amount can be paid as part of the exchange.
       </p>
 
-      <p><strong>How do I list an item?</strong></p>
+      <p><strong>How do I create a listing?</strong></p>
       <p>
-        Tap the "+" icon in the bottom navigation, snap a photo (or choose from
-        your gallery), add a title, description, and pick a category. That's it!
-        Your listing goes live immediately.
+        Select the item you wish to exchange, provide the required information, upload clear photographs, and submit your listing. Once published, your item will be available for other users to discover.
       </p>
 
-      <h2>Buying</h2>
-      <p><strong>How do I buy an item?</strong></p>
+      <p><strong>How do I find items?</strong></p>
       <p>
-        Browse listings near you, tap on any item you like, and send a swap
-        request or make an offer. The seller will respond within 24 hours.
+        Browse available categories or use search and filters to find items that match your interests.
       </p>
 
-      <p><strong>Is it safe to meet strangers?</strong></p>
+      <h2>Exchanges</h2>
+
+      <p><strong>How do I make an exchange offer?</strong></p>
       <p>
-        We always recommend meeting in public places (like a café or market)
-        and letting a friend know where you're going. See our{" "}
-        <a href="/safety-tips">Safety Tips</a> for more.
+        Select an item you are interested in and submit an offer by choosing the item or items you would like to exchange.
       </p>
 
-      <h2>Selling</h2>
-      <p><strong>Can I edit my listing after posting?</strong></p>
+      <p><strong>Can I exchange items of different values?</strong></p>
       <p>
-        Yes! Go to your Profile → Listings, tap the listing, and select "Edit."
-        You can update photos, price, description, and more.
+        Yes. If the values of the items differ, Svap allows the applicable difference to be paid as part of the transaction.
       </p>
 
-      <p><strong>How do I delete a listing?</strong></p>
+      <p><strong>Can I cancel an exchange?</strong></p>
       <p>
-        If your item is sold or you no longer want it listed, open the listing
-        and tap the trash icon. Deleted listings can't be recovered.
+        Cancellation is subject to the applicable transaction status and Svap's cancellation policy.
       </p>
 
-      <h2>Account & Billing</h2>
-      <p><strong>Is SVAP free to use?</strong></p>
+      <h2>Payments</h2>
+
+      <p><strong>How does payment work?</strong></p>
       <p>
-        Absolutely. SVAP is 100% free for buyers and sellers. No listing fees,
-        no transaction fees, no premium subscriptions.
+        If an exchange requires an additional payment, the applicable amount will be displayed before you confirm the transaction.
       </p>
 
-      <p><strong>I forgot my password. What do I do?</strong></p>
+      <p><strong>What if I have an issue with a payment?</strong></p>
       <p>
-        On the login screen, tap "Forgot password?" and enter your email. We'll
-        send you a reset link immediately.
+        If you believe there has been an error with a payment or transaction, contact our support team with your relevant order or transaction details.
       </p>
 
-      <div className="fp-highlight">
-        <p style={{ margin: 0, fontSize: "0.82rem" }}>
-          <strong>Need more help?</strong> Our support team responds within 2
-          business hours. Email us at{" "}
-          <a href="mailto:support@svap.app">support@svap.app</a> or visit our{" "}
-          <a href="/contact-us">Contact Us</a> page.
-        </p>
-      </div>
+      <h2>Inspection & Shipping</h2>
 
-      <h2>Popular Articles</h2>
-      <ul>
-        <li><a href="/safety-tips">Safety Tips for Buyers and Sellers</a></li>
-        <li><a href="/report-a-problem">How to Report a Problem User</a></li>
-        <li><a href="/privacy-policy">How We Protect Your Data</a></li>
-      </ul>
+      <p><strong>Why does Svap inspect items?</strong></p>
+      <p>
+        The inspection process is designed to provide an additional layer of confidence by verifying that items received by Svap correspond with the information provided in their listings.
+      </p>
+
+      <p><strong>Do both items need to be received before shipping?</strong></p>
+      <p>
+        Yes. Both items must be received and successfully verified before either item is shipped to its respective recipient.
+      </p>
+
+      <p><strong>What happens if one item fails inspection?</strong></p>
+      <p>
+        The exchange may be placed on hold while the discrepancy is reviewed. The appropriate resolution will depend on the circumstances and Svap's applicable policies.
+      </p>
+
+      <h2>Account Support</h2>
+      <p>
+        For assistance with account access, profile information, listings, exchanges, or other platform-related issues, contact our support team.
+      </p>
+
+     
     </FooterPageLayout>
   );
 };

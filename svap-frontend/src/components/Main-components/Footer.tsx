@@ -75,15 +75,8 @@ const Footer = () => {
                 <div className="ft-contact-list">
                   <div className="ft-contact-item">
                     <FiMail className="ft-contact-icon" />
-                    <span>support@svap.app</span>
+                    <span>Contactatsvap@gmail.com</span>
                   </div>
-                  {/* <div className="ft-contact-item">
-                    <FiPhone className="ft-contact-icon" />
-                    <span>+92 300 000000</span>
-                  </div> */}
-                  {/* <div className="ft-contact-item">
-                    <FiMapPin className="ft-contact-icon" />
-                  </div> */}
                 </div>
 
                 {/* Socials */}

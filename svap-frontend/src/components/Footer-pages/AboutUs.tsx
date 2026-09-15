@@ -3,55 +3,46 @@ import FooterPageLayout from "./FooterPageLayout";
 const AboutUs = () => {
   return (
     <FooterPageLayout
-      title="About SVAP"
-      subtitle="Pakistan's smartest platform to buy, sell & svap products securely with verified users."
+      title="About Us"
+      subtitle="A smarter way to exchange."
     >
       <p>
-        SVAP was born out of a simple idea: people in Pakistan should have a
-        trusted, fun, and completely free space to give their pre-loved items a
-        second life. Whether you're decluttering your home, upgrading your
-        gadgets, or hunting for a bargain, SVAP connects you with real people in
-        your city — no middlemen, no hidden fees, just honest swaps and sales.
+        Svap is an exchange platform designed to make it easier for people to exchange items they own for items they want. Users can discover, list, and exchange products within a simple and convenient marketplace.
       </p>
-
-      <h2>Mission</h2>
       <p>
-        We believe that sustainability starts locally. By making it effortless to
-        rehome items that still have value, we reduce waste, save money for
-        families, and build stronger communities — one swap at a time.
+        When the value of two items differs, Svap enables users to pay the applicable difference, making exchanges more flexible and accessible.
       </p>
-
-      <h2>Our Values</h2>
-      <ul>
-        <li><strong>Trust:</strong> Every user is verified, every listing is moderated.</li>
-        <li><strong>Simplicity:</strong> List in under 60 seconds with just a photo.</li>
-        <li><strong>Community:</strong> We're building neighbourhoods, not marketplaces.</li>
-        <li><strong>Sustainability:</strong> Keeping usable items out of landfills.</li>
-        <li><strong>Transparency:</strong> No listing fees, no surprise charges.</li>
-      </ul>
+      <p>
+        Our goal is to create a seamless exchange experience while giving pre-owned items greater value and extending their lifecycle.
+      </p>
 
       <div className="fp-highlight">
         <p style={{ margin: 0, fontSize: "0.82rem" }}>
-          <strong>Did you know?</strong> Since launching in 2024, SVAP users have
-          given over 150,000 items a second life — saving an estimated 750,000 kg
-          from going to waste.
+          <strong>Skip the Spend. Svap Instead.</strong>
         </p>
       </div>
 
-      <h2>Leadership</h2>
-      <p>
-        SVAP was founded by a team of Pakistani product designers and engineers
-        who met while working on community-focused tech projects in Karachi and
-        Lahore. We're backed by local angel investors who share our vision of a
-        more sustainable, connected Pakistan.
-      </p>
-
-      <h2>Join Us</h2>
-      <p>
-        We're a small, scrappy team — and we're growing. If you're passionate
-        about sustainability, community tech, or just love a good bargain, drop
-        us a line at <a href="mailto:hello@svap.app">hello@svap.app</a>.
-      </p>
+      <h2>How Svap Works</h2>
+      <ul>
+        <li>
+          <strong>List your item:</strong> Create a listing with clear photographs and accurate information about your item, including its condition and relevant details.
+        </li>
+        <li>
+          <strong>Find what you want:</strong> Browse Svap and discover items listed by other users. When you find something you are interested in, you can make an exchange offer.
+        </li>
+        <li>
+          <strong>Agree on the exchange:</strong> Once both users agree to an exchange, each item is sent to Svap for inspection.
+        </li>
+        <li>
+          <strong>Svap inspects both items:</strong> Our team receives and reviews both items to verify that they correspond with their respective listings and descriptions.
+        </li>
+        <li>
+          <strong>Both items must pass inspection:</strong> The exchange only proceeds once both items have been received and verified. If an item does not match its listing, the exchange may be placed on hold while the issue is reviewed.
+        </li>
+        <li>
+          <strong>Items are shipped to their new owners:</strong> Once both items have successfully passed inspection, they are shipped to the respective recipients.
+        </li>
+      </ul>
     </FooterPageLayout>
   );
 };

@@ -32,13 +32,13 @@ export const OrderSummary = ({
       });
     } else {
       // For purchases, show items total
-      if (costBreakdown.itemsTotal > 0) {
-        costItems.push({
-          label: 'Items total',
-          amount: costBreakdown.itemsTotal,
-          formatted: CostCalculator.formatCurrency(costBreakdown.itemsTotal),
-        });
-      }
+      // if (costBreakdown.itemsTotal > 0) {
+      //   costItems.push({
+      //     label: 'Items total',
+      //     amount: costBreakdown.itemsTotal,
+      //     formatted: CostCalculator.formatCurrency(costBreakdown.itemsTotal),
+      //   });
+      // }
     }
 
 

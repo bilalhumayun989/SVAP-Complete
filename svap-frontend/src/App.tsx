@@ -35,9 +35,9 @@ import HelpCenter from './components/Footer-pages/HelpCenter'
 import SafetyTips from './components/Footer-pages/SafetyTips'
 import ReportProblem from './components/Footer-pages/ReportProblem'
 import ContactUs from './components/Footer-pages/ContactUs'
-// import PrivacyPolicy from './components/Footer-pages/PrivacyPolicy'
 import TermsOfService from './components/Footer-pages/TermsOfService'
 import CookiePolicy from './components/Footer-pages/CookiePolicy'
+import PrivacyPolicy from './components/Footer-pages/PrivacyPolicy.tsx'
 
 export const lenisRef: { current: Lenis | null } = { current: null }
 
@@ -341,7 +341,7 @@ function AppInner() {
               <Route path="/safety-tips"        element={<SafetyTips />} />
               <Route path="/report-a-problem"   element={<ReportProblem />} />
               <Route path="/contact-us"         element={<ContactUs />} />
-              {/* <Route path="/privacy-policy"     element={<PrivacyPolicy />} /> */}
+              <Route path="/privacy-policy"     element={<PrivacyPolicy />} />
               <Route path="/terms-of-service"   element={<TermsOfService />} />
               <Route path="/cookie-policy"      element={<CookiePolicy />} />
             </Routes>

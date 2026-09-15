@@ -4,90 +4,85 @@ const SafetyTips = () => {
   return (
     <FooterPageLayout
       title="Safety Tips"
-      subtitle="Guidelines to help you buy and sell safely on SVAP."
+      subtitle="Exchange with confidence."
     >
       <p>
-        Your safety is our priority. Whether you're buying or selling, following
-        these simple tips will help you have a smooth, secure experience on SVAP.
+        At Svap, we are committed to creating a reliable and secure environment for our community. Our inspection process provides an additional layer of protection, but users should also take reasonable precautions when listing items and interacting with others.
       </p>
 
-      <h2>For Buyers</h2>
+      <h2>Provide Accurate Information</h2>
+      <p>
+        Ensure that your listing accurately represents the item you are offering.
+      </p>
+      <p>
+        Include clear photographs and provide accurate information about:
+      </p>
       <ul>
-        <li>
-          <strong>Meet in public:</strong> Always arrange to meet in a well-lit,
-          public place like a café, mall, or market. Never go to a private
-          residence.
-        </li>
-        <li>
-          <strong>Bring a friend:</strong> Let someone know where you're going
-          and who you're meeting. Better yet, bring a friend along.
-        </li>
-        <li>
-          <strong>Inspect before you pay:</strong> Check the item thoroughly
-          before handing over any money. Test electronics, check for damage,
-          verify authenticity.
-        </li>
-        <li>
-          <strong>Avoid advance payments:</strong> Never send money before seeing
-          the item in person. SVAP does not offer escrow or payment protection —
-          all transactions are peer-to-peer.
-        </li>
-        <li>
-          <strong>Trust your instincts:</strong> If something feels off, walk
-          away. There are always more listings.
-        </li>
+        <li>Condition</li>
+        <li>Size</li>
+        <li>Brand</li>
+        <li>Material</li>
+        <li>Age, where relevant</li>
+        <li>Any damage or defects</li>
+        <li>Any alterations or modifications</li>
+        <li>Other characteristics that may affect the item's value</li>
       </ul>
 
-      <h2>For Sellers</h2>
-      <ul>
-        <li>
-          <strong>Be honest in your listing:</strong> Take clear photos and
-          describe any flaws. Misrepresenting an item can lead to disputes and
-          account suspension.
-        </li>
-        <li>
-          <strong>Meet in public:</strong> Same rule applies — public places
-          only. Never invite buyers to your home.
-        </li>
-        <li>
-          <strong>Verify the buyer:</strong> Check their profile, reviews, and
-          how long they've been on SVAP. Be cautious of new accounts with no
-          activity.
-        </li>
-        <li>
-          <strong>Count cash carefully:</strong> Count money in front of the
-          buyer before handing over the item. Use exact change when possible.
-        </li>
-        <li>
-          <strong>Keep records:</strong> Take a photo of the transaction (with
-          the buyer's consent) as a record of the sale.
-        </li>
-      </ul>
+      <h2>Be Transparent About Condition</h2>
+      <p>
+        Do not conceal damage, defects, wear, or other relevant information.
+      </p>
+      <p>
+        Items are inspected against their listings, and discrepancies may delay or prevent an exchange from proceeding.
+      </p>
 
-      <h2>Red Flags — Walk Away If You See These</h2>
+      <h2>Review Listings Carefully</h2>
+      <p>
+        Before making an offer, review the photographs, description, condition, and other available information carefully.
+      </p>
+      <p>
+        If you require clarification about an item, ask questions before agreeing to the exchange.
+      </p>
+
+      <h2>Use Svap's Transaction Process</h2>
+      <p>
+        Keep your exchange and applicable payments within Svap's designated process.
+      </p>
+      <p>
+        Do not agree to bypass the platform's inspection, payment, or exchange procedures.
+      </p>
+
+      <h2>Protect Your Personal Information</h2>
+      <p>
+        Never share passwords, verification codes, banking credentials, or other sensitive information with another user.
+      </p>
+
+      <h2>Be Cautious With External Payments</h2>
+      <p>
+        Do not send money directly to another user outside Svap's designated payment process.
+      </p>
+      <p>
+        If someone asks you to make an unofficial payment or provides suspicious payment instructions, report the issue to Svap.
+      </p>
+
+      <h2>Report Suspicious Activity</h2>
+      <p>
+        Contact Svap if you encounter:
+      </p>
       <ul>
-        <li>Buyers who insist on shipping (SVAP is local-only).</li>
-        <li>Sellers who won't meet in person or show the item.</li>
-        <li>Requests to use external payment platforms (JazzCash, Easypaisa, bank transfer to unknown accounts).</li>
-        <li>Unusually high prices for common items.</li>
-        <li>Pressure to act immediately ("cash only," "first offer accepted").</li>
-        <li>Accounts created very recently with no profile picture or activity.</li>
+        <li>Misleading listings</li>
+        <li>Suspicious payment requests</li>
+        <li>Attempts to bypass the inspection process</li>
+        <li>Fraudulent or deceptive behaviour</li>
+        <li>Harassment or inappropriate conduct</li>
+        <li>Suspicious links or requests for sensitive information</li>
       </ul>
 
       <div className="fp-highlight">
         <p style={{ margin: 0, fontSize: "0.82rem" }}>
-          <strong>Report suspicious activity:</strong> If you encounter a user
-          who violates our safety guidelines, report them immediately using the
-          "Report" button on their profile or listing. Your report helps keep
-          SVAP safe for everyone.
+          A safer exchange starts with an accurate listing and responsible communication.
         </p>
       </div>
-
-      <h2>Additional Resources</h2>
-      <ul>
-        <li><a href="/help-center">Help Center — Full FAQ</a></li>
-        <li><a href="/contact-us">Contact Support — 24/7 assistance</a></li>
-      </ul>
     </FooterPageLayout>
   );
 };

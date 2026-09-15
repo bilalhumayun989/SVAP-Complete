@@ -4,111 +4,51 @@ const ContactUs = () => {
   return (
     <FooterPageLayout
       title="Contact Us"
-      subtitle="We'd love to hear from you. Reach out anytime."
+      subtitle="We're here to help with your questions, feedback, and support needs."
     >
       <p>
-        Have a question, suggestion, or just want to say hi? We're here to
-        help. Our support team is available 24/7 to assist you.
+        Have questions about Svap, need help with an exchange, or want to provide feedback? Our team is available to assist you.
       </p>
 
-      <h2>Support Hours</h2>
-      <table>
-        <tbody>
-          <tr>
-            <th>Monday – Friday</th>
-            <td>9:00 AM – 9:00 PM PKT</td>
-          </tr>
-          <tr>
-            <th>Saturday</th>
-            <td>10:00 AM – 6:00 PM PKT</td>
-          </tr>
-          <tr>
-            <th>Sunday</th>
-            <td>10:00 AM – 4:00 PM PKT</td>
-          </tr>
-          <tr>
-            <th>Holidays</th>
-            <td>Limited support — email responses within 24 hours</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h2>Contact Methods</h2>
-
-      <h3>Email</h3>
+      <h2>Email Us</h2>
       <p>
-        <a href="mailto:support@svap.app">support@svap.app</a> — For support
-        with your account, listings, or transactions.
+        For general inquiries, account support, listing assistance, payment questions, or reporting an issue:
       </p>
       <p>
-        <a href="mailto:hello@svap.app">hello@svap.app</a> — For press,
-        partnerships, and general inquiries.
-      </p>
-      <p>
-        <a href="mailto:safety@svap.app">safety@svap.app</a> — For urgent
-        safety concerns and reporting.
+        <a href="mailto:Contactatsvap@gmail.com">Contactatsvap@gmail.com</a>
       </p>
 
-      <h3>Phone</h3>
+      <h2>What to Include in Your Message</h2>
       <p>
-        <strong>+92 300 SVAP-APP</strong> (+92 300 782 7277) — For urgent
-        support during business hours.
+        To help us assist you as quickly as possible, please include:
       </p>
-
-      <h3>Office</h3>
-      <p>
-        SVAP Technologies<br />
-        Office #304, 3rd Floor, Business Arcade<br />
-        Gulshan-e-Iqbal, Karachi 75400<br />
-        Pakistan
-      </p>
-
-      <h3>Social Media</h3>
       <ul>
-        <li>
-          <a href="https://instagram.com/svap.app" target="_blank" rel="noopener noreferrer">
-            Instagram: @svap.app
-          </a>
-        </li>
-        <li>
-          <a href="https://twitter.com/svap_app" target="_blank" rel="noopener noreferrer">
-            Twitter: @svap_app
-          </a>
-        </li>
-        <li>
-          <a href="https://facebook.com/svap.app" target="_blank" rel="noopener noreferrer">
-            Facebook: facebook.com/svap.app
-          </a>
-        </li>
-        <li>
-          <a href="https://linkedin.com/company/svap-app" target="_blank" rel="noopener noreferrer">
-            LinkedIn: linkedin.com/company/svap-app
-          </a>
-        </li>
+        <li>Your name and account email address</li>
+        <li>Relevant order, listing, or transaction IDs</li>
+        <li>A detailed description of your question or issue</li>
+        <li>Any relevant photographs or screenshots</li>
+      </ul>
+
+      <h2>Response Times</h2>
+      <p>
+        We aim to respond to all inquiries as promptly as possible. Response times may vary depending on inquiry volume and the nature of the request.
+      </p>
+
+      <h2>Help & Support Resources</h2>
+      <p>
+        Before reaching out, you may find quick answers in our other resources:
+      </p>
+      <ul>
+        <li><a href="/help-center">Help Center</a> — Guides on listings, exchanges, payments, and account management</li>
+        <li><a href="/safety-tips">Safety Tips</a> — Guidelines for safe exchanges and protecting your account</li>
+        <li><a href="/report-problem">Report a Problem</a> — How to report issues with listings, users, or transactions</li>
       </ul>
 
       <div className="fp-highlight">
         <p style={{ margin: 0, fontSize: "0.82rem" }}>
-          <strong>Prefer to chat?</strong> Open the SVAP app, go to Profile →
-          Settings → Help & Support, and tap "Start Chat." Our team typically
-          responds within minutes during business hours.
+          <strong>Support Contact:</strong> Email us directly at <a href="mailto:Contactatsvap@gmail.com">Contactatsvap@gmail.com</a> for assistance.
         </p>
       </div>
-
-      <h2>Press & Media</h2>
-      <p>
-        For press inquiries, please contact our Head of Communications at{" "}
-        <a href="mailto:press@svap.app">press@svap.app</a>. We'll get back to
-        you within 1 business day.
-      </p>
-
-      <h2>Partnerships</h2>
-      <p>
-        Interested in partnering with SVAP? Whether it's a brand collaboration,
-        community event, or business integration — we'd love to explore
-        opportunities. Email us at{" "}
-        <a href="mailto:partnerships@svap.app">partnerships@svap.app</a>.
-      </p>
     </FooterPageLayout>
   );
 };

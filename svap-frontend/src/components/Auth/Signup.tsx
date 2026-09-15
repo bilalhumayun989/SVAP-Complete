@@ -254,7 +254,7 @@ const Signup = () => {
                       type="email"
                       value={form.email}
                       onChange={(e) => handleChange("email", e.target.value)}
-                      placeholder="Email Address"
+                      placeholder="Contactatsvap@gmail.com"
                       className="auth-input"
                     />
                   </div>

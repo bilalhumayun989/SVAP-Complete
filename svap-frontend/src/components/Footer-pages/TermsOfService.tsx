@@ -4,146 +4,199 @@ const TermsOfService = () => {
   return (
     <FooterPageLayout
       title="Terms of Service"
-      subtitle="The rules and guidelines for using the SVAP platform."
+      subtitle="Last Updated: [Date]"
     >
       <p>
-        <strong>Last updated:</strong> July 2024
+        These Terms of Service govern your access to and use of the Svap website, application, and services.[cite: 1]
       </p>
       <p>
-        Welcome to SVAP. These Terms of Service ("Terms") govern your access
-        to and use of the SVAP platform, including our website and mobile
-        application (collectively, the "Service"). By accessing or using SVAP,
-        you agree to be bound by these Terms. If you do not agree, please do
-        not use the Service.
+        By accessing or using Svap, you agree to comply with these Terms. If you do not agree with these Terms, you should not use the service.[cite: 1]
       </p>
 
-      <h2>1. About SVAP</h2>
+      <h2>1. Svap Services</h2>
       <p>
-        SVAP is a peer-to-peer platform that connects buyers and sellers of
-        pre-loved items in Pakistan. SVAP is not a party to any transaction
-        between users. We provide the platform; you provide the trust.
+        Svap provides a platform that enables users to list, discover, and exchange items.[cite: 1]
       </p>
-
-      <h2>2. Eligibility</h2>
       <p>
-        You must be at least 18 years old to use SVAP. By using the Service,
-        you represent and warrant that you are 18 or older and have the legal
-        capacity to enter into these Terms.
+        Svap facilitates the exchange process, including the receipt and inspection of items before they are shipped to the respective recipients.[cite: 1]
+      </p>
+      <p>
+        Where applicable, Svap also facilitates payment of the difference in value between exchanged items.[cite: 1]
+      </p>
+      <p>
+        Unless expressly stated otherwise, Svap does not own or manufacture the items listed by users.[cite: 1]
       </p>
 
-      <h2>3. Account Registration</h2>
+      <h2>2. User Accounts</h2>
+      <p>
+        Users are responsible for providing accurate information when creating an account and for keeping their account information up to date.[cite: 1]
+      </p>
+      <p>
+        Users are responsible for maintaining the confidentiality of their account credentials and for activity conducted through their accounts.[cite: 1]
+      </p>
+
+      <h2>3. Listings</h2>
+      <p>
+        Users must provide accurate and complete information when listing an item.[cite: 1]
+      </p>
+      <p>
+        Listings should accurately represent the item's:[cite: 1]
+      </p>
       <ul>
-        <li>
-          You must create an account to list items or send swap requests.
-        </li>
-        <li>
-          You are responsible for maintaining the confidentiality of your
-          account and password.
-        </li>
-        <li>
-          You must notify us immediately of any unauthorized use of your
-          account.
-        </li>
-        <li>
-          You may not create multiple accounts or impersonate others.
-        </li>
+        <li>Condition[cite: 1]</li>
+        <li>Photographs[cite: 1]</li>
+        <li>Description[cite: 1]</li>
+        <li>Size and specifications[cite: 1]</li>
+        <li>Relevant characteristics[cite: 1]</li>
+        <li>Material defects or damage[cite: 1]</li>
+      </ul>
+      <p>
+        Users must have the legal right to offer an item for exchange.[cite: 1]
+      </p>
+      <p>
+        Svap reserves the right to remove or restrict listings that violate these Terms, applicable policies, or applicable law.[cite: 1]
+      </p>
+
+      <h2>4. Inspection and Verification</h2>
+      <p>
+        To facilitate exchanges, Svap requires both items involved in an exchange to be sent to Svap before either item is shipped to the respective recipient.[cite: 1]
+      </p>
+      <p>
+        Svap will inspect the items received and compare them against the information provided in their respective listings.[cite: 1]
+      </p>
+      <p>
+        The inspection may consider the item's stated condition, photographs, description, specifications, and other relevant characteristics.[cite: 1]
+      </p>
+      <p>
+        Both items must be received and successfully verified before either item is released for shipment.[cite: 1]
+      </p>
+      <p>
+        If an item materially differs from its listing or description, Svap may place the exchange on hold while the discrepancy is reviewed.[cite: 1]
+      </p>
+      <p>
+        Depending on the circumstances and applicable policies, Svap may request additional information, determine an appropriate resolution, cancel the exchange, or arrange for an item to be returned.[cite: 1]
+      </p>
+
+      <h2>5. Exchanges</h2>
+      <p>
+        Users may submit offers to exchange items listed on Svap.[cite: 1]
+      </p>
+      <p>
+        Users are responsible for reviewing the details of an exchange before confirming it.[cite: 1]
+      </p>
+      <p>
+        An exchange will proceed through Svap's designated process, including the applicable inspection, payment, and shipping procedures.[cite: 1]
+      </p>
+
+      <h2>6. Difference in Value</h2>
+      <p>
+        Where the agreed values of two exchanged items differ, the applicable difference may be paid as part of the transaction.[cite: 1]
+      </p>
+      <p>
+        The applicable amount and payment requirements will be presented to the user before the relevant transaction is confirmed.[cite: 1]
+      </p>
+
+      <h2>7. Payments and Fees</h2>
+      <p>
+        Any applicable fees or additional payments will be presented before the relevant transaction is completed.[cite: 1]
+      </p>
+      <p>
+        Payments may be processed through third-party payment providers and may be subject to their respective terms and policies.[cite: 1]
+      </p>
+
+      <h2>8. Shipping</h2>
+      <p>
+        Items must be sent to Svap for inspection as required by the exchange process.[cite: 1]
+      </p>
+      <p>
+        Neither item will be shipped to the respective recipient until both items have been received and successfully verified.[cite: 1]
+      </p>
+      <p>
+        Shipping arrangements, timelines, costs, and other applicable conditions are subject to Svap's relevant policies.[cite: 1]
+      </p>
+
+      <h2>9. Prohibited Activities</h2>
+      <p>Users may not use Svap to:[cite: 1]</p>
+      <ul>
+        <li>Conduct fraudulent or deceptive transactions[cite: 1]</li>
+        <li>List illegal or prohibited items[cite: 1]</li>
+        <li>Provide false or misleading information[cite: 1]</li>
+        <li>Misrepresent an item's condition or characteristics[cite: 1]</li>
+        <li>Circumvent Svap's inspection process[cite: 1]</li>
+        <li>Circumvent Svap's payment or transaction systems[cite: 1]</li>
+        <li>Harass, threaten, or abuse another user[cite: 1]</li>
+        <li>Attempt unauthorized access to accounts or systems[cite: 1]</li>
+        <li>Upload malicious or harmful content[cite: 1]</li>
+        <li>Violate applicable laws or regulations[cite: 1]</li>
+        <li>Infringe the rights of another person or entity[cite: 1]</li>
       </ul>
 
-      <h2>4. User Responsibilities</h2>
-      <p>As a user of SVAP, you agree to:</p>
-      <ul>
-        <li>Provide accurate and truthful information in your listings.</li>
-        <li>Only list items you own or have permission to sell.</li>
-        <li>Meet buyers and sellers in public, safe places.</li>
-        <li>Complete transactions in good faith.</li>
-        <li>Respect other users and follow our community guidelines.</li>
-        <li>Not use SVAP for illegal purposes or to sell prohibited items.</li>
-      </ul>
-
-      <h2>5. Prohibited Items</h2>
-      <p>You may NOT list or sell:</p>
-      <ul>
-        <li>Illegal drugs, alcohol, or tobacco products.</li>
-        <li>Weapons, ammunition, or explosives.</li>
-        <li>Stolen goods or items without clear ownership.</li>
-        <li>Counterfeit or replica branded items.</li>
-        <li>Live animals or plants.</li>
-        <li>Hazardous materials or chemicals.</li>
-        <li>Adult content or sexually explicit items.</li>
-        <li>Items requiring a license (e.g., prescription medications).</li>
-      </ul>
-
-      <h2>6. Fees and Payments</h2>
+      <h2>10. Cancellations and Refunds</h2>
       <p>
-        SVAP is completely free to use. We do not charge listing fees,
-        transaction fees, or subscription fees. All payments between buyers and
-        sellers are handled directly between the parties. SVAP is not
-        responsible for any payment disputes.
+        Cancellations, refunds, returns, and other transaction remedies are subject to the applicable Svap policies and the circumstances of the relevant transaction.[cite: 1]
       </p>
 
-      <h2>7. Intellectual Property</h2>
+      <h2>11. User Responsibility</h2>
       <p>
-        The SVAP name, logo, and design are our property. You may not use,
-        copy, or modify them without our permission. Content you post remains
-        yours, but you grant us a license to display it on the Service.
+        Users are responsible for the accuracy of their listings and for complying with these Terms and Svap's applicable policies.[cite: 1]
+      </p>
+      <p>
+        Users should review all relevant information before confirming an exchange.[cite: 1]
       </p>
 
-      <div className="fp-highlight">
-        <p style={{ margin: 0, fontSize: "0.82rem" }}>
-          <strong>Important:</strong> SVAP is a classified listing platform,
-          not an escrow service. All transactions are peer-to-peer. We strongly
-          recommend meeting in public places and following our{" "}
-          <a href="/safety-tips">Safety Tips</a>.
-        </p>
-      </div>
-
-      <h2>8. Disclaimers</h2>
+      <h2>12. Intellectual Property</h2>
       <p>
-        THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND. WE DO
-        NOT ENDORSE OR VERIFY USER LISTINGS, AND WE ARE NOT RESPONSIBLE FOR THE
-        ACCURACY, LEGALITY, OR QUALITY OF ITEMS LISTED. WE DO NOT MEDIATE
-        DISPUTES BETWEEN USERS.
+        All Svap branding, trademarks, logos, software, designs, content, and other proprietary materials remain the property of Svap or its respective licensors.[cite: 1]
+      </p>
+      <p>
+        Users may not reproduce, distribute, modify, or commercially exploit Svap's intellectual property without authorization.[cite: 1]
       </p>
 
-      <h2>9. Limitation of Liability</h2>
+      <h2>13. User Content</h2>
       <p>
-        TO THE MAXIMUM EXTENT PERMITTED BY LAW, SVAP SHALL NOT BE LIABLE FOR ANY
-        INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES, OR ANY LOSS OF
-        DATA, PROFITS, OR ITEMS. OUR TOTAL LIABILITY SHALL NOT EXCEED THE
-        AMOUNT YOU PAID TO US (WHICH IS ZERO, SINCE SVAP IS FREE).
+        Users retain ownership of content they submit to Svap.[cite: 1]
+      </p>
+      <p>
+        By submitting content, users grant Svap the rights necessary to host, display, reproduce, and use that content for the operation and improvement of the platform, subject to applicable law and the Privacy Policy.[cite: 1]
       </p>
 
-      <h2>10. Indemnification</h2>
+      <h2>14. Suspension and Termination</h2>
       <p>
-        You agree to indemnify and hold harmless SVAP from any claims, damages,
-        or expenses arising from your use of the Service or violation of these
-        Terms.
+        Svap may suspend, restrict, or terminate an account where it reasonably believes that a user has violated these Terms, applicable policies, or applicable law, or where such action is necessary to protect the platform or its users.[cite: 1]
       </p>
 
-      <h2>11. Termination</h2>
+      <h2>15. Changes to the Service</h2>
       <p>
-        We may suspend or terminate your account at any time, with or without
-        cause, with or without notice. You may delete your account at any time
-        through Settings → Account → Delete Account.
+        Svap may modify, update, suspend, or discontinue any part of its services from time to time.[cite: 1]
+      </p>
+      <p>
+        These Terms may also be updated when necessary. Continued use of Svap following an update constitutes acceptance of the revised Terms to the extent permitted by applicable law.[cite: 1]
       </p>
 
-      <h2>12. Governing Law</h2>
+      <h2>16. Disclaimer</h2>
       <p>
-        These Terms are governed by the laws of Pakistan. Any disputes shall be
-        resolved in the courts of Karachi, Pakistan.
+        Svap provides a platform and inspection process to facilitate exchanges between users.[cite: 1]
+      </p>
+      <p>
+        The inspection process is intended to assess whether an item corresponds with the information provided in its listing. It does not necessarily constitute a guarantee of authenticity, ownership, quality, or future performance unless expressly stated otherwise by Svap.[cite: 1]
       </p>
 
-      <h2>13. Changes to These Terms</h2>
+      <h2>17. Limitation of Liability</h2>
       <p>
-        We may update these Terms from time to time. We will notify you of
-        significant changes via email or in-app notification. Your continued
-        use of the Service after changes constitutes acceptance.
+        To the maximum extent permitted by applicable law, Svap will not be responsible for losses arising from circumstances outside its reasonable control or matters relating to user-provided information or user conduct, except where liability cannot legally be excluded or limited.[cite: 1]
       </p>
 
-      <h2>14. Contact Us</h2>
+      <h2>18. Governing Law</h2>
       <p>
-        Questions about these Terms? Contact us at{" "}
-        <a href="mailto:legal@svap.app">legal@svap.app</a>.
+        These Terms are governed by the applicable laws of [Jurisdiction], subject to any mandatory rights or protections available under applicable law.[cite: 1]
+      </p>
+
+      <h2>19. Contact</h2>
+      <p>
+        For questions regarding these Terms:[cite: 1]
+      </p>
+      <p>
+        Email: [Legal Email][cite: 1]
       </p>
     </FooterPageLayout>
   );
