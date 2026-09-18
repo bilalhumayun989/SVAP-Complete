@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FiEye, FiEyeOff, FiMail, FiArrowRight, FiArrowLeft, FiSun, FiMoon } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiMail, FiArrowRight, FiArrowLeft } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { api } from "../../services/api";
 import { supabase } from "../../services/supabase";
@@ -18,9 +18,6 @@ const Signup = () => {
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   
-  // Theme state
-  const [isDarkMode, setIsDarkMode] = useState(true);
-
   const [form, setForm] = useState({
     username: "",
     email: "",
@@ -205,18 +202,8 @@ const Signup = () => {
   };
 
   return (
-    <div className={isDarkMode ? "dark-auth-page" : "dark-auth-page light-mode"}>
+    <div className="dark-auth-page">
       <div className="dark-auth-card">
-        {/* Theme toggle button */}
-        <button
-          type="button"
-          className="theme-toggle-btn"
-          onClick={() => setIsDarkMode(!isDarkMode)}
-          aria-label="Toggle theme"
-        >
-          {isDarkMode ? <FiSun size={20} /> : <FiMoon size={20} />}
-        </button>
-        
         {step === "form" && (
           <>
             <div>
@@ -421,48 +408,16 @@ const Signup = () => {
         }
 
         .dark-auth-page {
-          --bg-main: #000000;
-          --text-main: #ffffff;
-          --text-muted: #8e8e93;
-          --text-label: rgba(255, 255, 255, 0.65);
-          --input-bg: #1c1c1e;
-          --input-bg-focus: #2c2c2e;
-          --input-border: transparent;
-          --input-placeholder: #636366;
-          --btn-bg: #E45821;
-          --btn-text: #ffffff;
-          --social-bg: #1c1c1e;
-          --social-bg-hover: #2c2c2e;
-          --link-color: #E45821;
-        }
-
-        .dark-auth-page.light-mode {
-          --bg-main: #f8f9fa;
-          --text-main: #121212;
-          --text-muted: #6c757d;
-          --text-label: #495057;
-          --input-bg: #ffffff;
-          --input-bg-focus: #ffffff;
-          --input-border: #e2e8f0;
-          --input-placeholder: #a0aec0;
-          --btn-bg: #E45821;
-          --btn-text: #ffffff;
-          --social-bg: #ffffff;
-          --social-bg-hover: #f1f5f9;
-          --link-color: #E45821;
-        }
-
-        .dark-auth-page {
           min-height: 100vh;
           min-height: 100dvh;
           width: 100%;
-          background-color: var(--bg-main);
+          background-color: var(--bg);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           padding: 24px 20px;
-          color: var(--text-main);
+          color: var(--text-dark);
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
           transition: background-color 0.3s ease, color 0.3s ease;
         }
@@ -479,13 +434,34 @@ const Signup = () => {
         .dark-home-back-btn {
           background: none;
           border: none;
-          color: var(--text-main);
+          color: var(--text-dark);
           cursor: pointer;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           padding: 0;
           margin-bottom: 16px;
+          transition: opacity 0.2s;
+        }
+
+        .dark-home-back-btn:hover {
+          opacity: 0.8;
+        }
+
+        .dark-auth-title {
+          color: var(--text-dark);
+          font-size: 2rem;
+          font-weight: 800;
+          margin: 0 0 4px 0;
+          letter-spacing: -0.02em;
+        }
+
+        .dark-auth-subtitle {
+          color: var(--text-muted);
+          font-size: 0.92rem;
+          margin: 0 0 20px 0;
+          font-weight: 400;
+        }
           transition: opacity 0.2s;
         }
 
@@ -531,10 +507,10 @@ const Signup = () => {
 
         .dark-input {
           width: 100%;
-          background: var(--input-bg);
-          border: 1px solid var(--input-border);
+          background: var(--card-bg);
+          border: 1px solid var(--border-light);
           border-radius: 16px;
-          color: var(--text-main);
+          color: var(--text-dark);
           font-size: 0.88rem;
           font-weight: 600;
           letter-spacing: 0.05em;
@@ -544,8 +520,10 @@ const Signup = () => {
         }
 
         .dark-input::placeholder {
-          color: var(--input-placeholder);
+          color: var(--text-muted);
           font-weight: 700;
+          opacity: 0.6;
+        }
           letter-spacing: 0.06em;
         }
 
@@ -576,14 +554,14 @@ const Signup = () => {
 
         .dark-switch {
           text-align: center;
-          color: #8e8e93;
+          color: var(--text-muted);
           font-size: 0.9rem;
           margin-top: auto;
           padding-top: 20px;
         }
 
         .dark-switch-link {
-          color: #ffffff;
+          color: #E45821;
           font-weight: 700;
           text-decoration: none;
           margin-left: 4px;

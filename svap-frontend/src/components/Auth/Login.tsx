@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FiEye, FiEyeOff, FiArrowRight, FiArrowLeft, FiSun, FiMoon } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiArrowRight, FiArrowLeft } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { AiFillApple } from "react-icons/ai";
 import { api } from "../../services/api";
@@ -16,9 +16,6 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  
-  // Theme state
-  const [isDarkMode, setIsDarkMode] = useState(true);
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
@@ -109,21 +106,12 @@ const Login = () => {
   };
 
   return (
-    <div className={`svap-auth-page ${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
+    <div className="svap-auth-page">
       <div className="svap-card">
-        {/* Top Nav (Back Button + Theme Toggle) */}
+        {/* Top Nav (Back Button) */}
         <div className="svap-top-nav">
           <button onClick={() => navigate(-1)} className="svap-back-btn" aria-label="Go Back">
             <FiArrowLeft size={22} />
-          </button>
-          
-          <button 
-            onClick={() => setIsDarkMode(!isDarkMode)} 
-            className="svap-theme-btn" 
-            aria-label="Toggle Theme"
-            type="button"
-          >
-            {isDarkMode ? <FiSun size={20} /> : <FiMoon size={20} />}
           </button>
         </div>
 
@@ -298,22 +286,7 @@ const Login = () => {
         }
 
         /* Color Scheme Variables */
-        .svap-auth-page.dark-mode {
-          --bg-main: #000000;
-          --text-main: #ffffff;
-          --text-muted: rgba(255, 255, 255, 0.5);
-          --text-label: rgba(255, 255, 255, 0.65);
-          --input-bg: #18191c;
-          --input-bg-focus: #1d1e22;
-          --input-border: rgba(255, 255, 255, 0.08);
-          --input-placeholder: rgba(255, 255, 255, 0.25);
-          --divider-line: rgba(255, 87, 34, 0.25);
-          --social-bg: #18191c;
-          --social-bg-hover: #202226;
-          --apple-icon-color: #ffffff;
-        }
-
-        .svap-auth-page.light-mode {
+        .svap-auth-page {
           --bg-main: #f8f9fa;
           --text-main: #121212;
           --text-muted: #6c757d;
@@ -326,6 +299,21 @@ const Login = () => {
           --social-bg: #ffffff;
           --social-bg-hover: #f1f5f9;
           --apple-icon-color: #000000;
+        }
+
+        html[data-theme='dark'] .svap-auth-page {
+          --bg-main: #000000;
+          --text-main: #ffffff;
+          --text-muted: rgba(255, 255, 255, 0.5);
+          --text-label: rgba(255, 255, 255, 0.65);
+          --input-bg: #18191c;
+          --input-bg-focus: #1d1e22;
+          --input-border: rgba(255, 255, 255, 0.08);
+          --input-placeholder: rgba(255, 255, 255, 0.25);
+          --divider-line: rgba(255, 87, 34, 0.25);
+          --social-bg: #18191c;
+          --social-bg-hover: #202226;
+          --apple-icon-color: #ffffff;
         }
 
         .svap-auth-page {
