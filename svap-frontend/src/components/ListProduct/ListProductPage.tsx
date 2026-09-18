@@ -22,7 +22,7 @@ const SUB_CATEGORIES: Record<string, string[]> = {
   Jewelry: ["Gold", "Silver", "Artificial", "Watches", "Rings & Bracelets"],
 };
 const CONDITIONS = ["Brand New", "Like New", "Good", "Fair", "For Parts"];
-const CITIES = ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Quetta", "Hyderabad", "Sialkot", "Other"];
+// const CITIES = ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Quetta", "Hyderabad", "Sialkot", "Other"];
 const MAX_PHOTOS = 6;
 
 const ListProductPage = () => {
@@ -39,7 +39,7 @@ const ListProductPage = () => {
   const [condition, setCondition] = useState("");
   const [price, setPrice] = useState("");
   const [swapFor, setSwapFor] = useState("");
-  const [city, setCity] = useState("");
+  // const [city, setCity] = useState("");
   const [area, setArea] = useState("");
   // const [submitted, setSubmitted] = useState(false);
   // Remove: const [submitted, setSubmitted] = useState(false);
@@ -69,7 +69,7 @@ const ListProductPage = () => {
     if (!category) e.category = "Category is required";
     if (!description.trim()) e.description = "Description is required";
     if (!condition) e.condition = "Condition is required";
-    if (!city) e.city = "City is required";
+    // City is fixed to Karachi, no validation needed
     if (!photos.length) e.photos = "Add at least one photo";
     if (window.matchMedia("(max-width: 768px)").matches && !reel) e.reel = "Add a reel video";
     if (!swapFor.trim()) e.swapFor = "Please enter what you want to swap for";
@@ -137,9 +137,10 @@ const ListProductPage = () => {
       if (response?.error) throw new Error(response.error);
 
       // Save city to user profile so it shows up on product cards
-      if (user.id && user.id !== 'dummy-user-id-1234' && city) {
+      const fixedCity = "Karachi";
+      if (user.id && user.id !== 'dummy-user-id-1234') {
         try {
-          await api.updateProfile(user.id, { city });
+          await api.updateProfile(user.id, { city: fixedCity });
         } catch (err) {
           // Ignore profile update errors
         }
@@ -160,7 +161,7 @@ const ListProductPage = () => {
   const resetForm = () => {
     setPhotos([]); setReel(null); setTitle(""); setCategory("");
     setSubCategory(""); setBrand(""); setModel(""); setDescription("");
-    setCondition(""); setPrice(""); setSwapFor(""); setCity(""); setArea("");
+    setCondition(""); setPrice(""); setSwapFor(""); setArea(""); // city is fixed
     setErrors({});
   };
 
@@ -374,29 +375,19 @@ const ListProductPage = () => {
                   <span className="lp-section-desc">Where the svap will happen</span>
                 </div>
               </div>
+              
               <div className="lp-row">
+                {/* City field - Fixed to Karachi only */}
                 <div className="lp-field">
                   <label className="lp-label">CITY <span className="lp-req">*</span></label>
-                  {city === "Other" ? (
-                    <input
-                      className={`lp-input${errors.city ? " lp-input--err" : ""}`}
-                      placeholder="Type your city..."
-                      value={area}
-                      onChange={(e) => setArea(e.target.value)}
-                      maxLength={50}
-                    />
-                  ) : (
-                    <select className={`lp-select${errors.city ? " lp-input--err" : ""}`}
-                      value={city} onChange={(e) => { setCity(e.target.value); setArea(""); }}>
-                      <option value="">Select city...</option>
-                      {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  )}
-                  {errors.city && <p className="lp-err"><FiAlertCircle size={11} />{errors.city}</p>}
+                  <select className="lp-select" value="Karachi" disabled>
+                    <option value="Karachi">Karachi</option>
+                  </select>
                 </div>
+                
                 <div className="lp-field">
                   <label className="lp-label">AREA / LOCALITY</label>
-                  <input className="lp-input" placeholder="e.g. DHA Phase 5"
+                  <input className="lp-input" placeholder="e.g. DHA Phase 5, Gulshan, etc."
                     value={area} onChange={(e) => setArea(e.target.value)} />
                 </div>
               </div>
@@ -636,9 +627,158 @@ const ListProductPage = () => {
           .lp-reel-upload { display: flex; }
         }
 
-        @media (max-width: 480px) {
-          .lp-photo-tiles { grid-template-columns: repeat(4, 1fr); gap: 8px; }
-          .lp-dropzone { padding: 24px 16px; }
+        /* ── Mobile styles ── */
+        @media (max-width: 768px) {
+          .lp-page {
+            background: #0A0A0A;
+            min-height: 100vh;
+          }
+          
+          .lp-bg { display: none; }
+          
+          .lp-wrap {
+            max-width: 100%;
+            padding: 0;
+            margin: 0;
+          }
+          
+          .lp-page-header {
+            padding: 20px 16px;
+            background: #0A0A0A;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+          }
+          
+          .lp-title {
+            color: #fff;
+            font-size: 1.5rem;
+            margin: 0 0 4px;
+          }
+          
+          .lp-sub {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.85rem;
+          }
+          
+          .lp-layout {
+            padding: 20px 16px;
+          }
+          
+          .lp-section {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+          }
+          
+          /* Photos section */
+          .lp-dropzone {
+            background: #1A1A1A;
+            border: 1.5px dashed rgba(228, 88, 33, 0.3);
+            border-radius: 12px;
+            padding: 32px 20px;
+            color: rgba(255,255,255,0.6);
+          }
+          
+          .lp-dropzone-hint {
+            color: rgba(255,255,255,0.4);
+            font-size: 0.8rem;
+          }
+          
+          .lp-photo-tiles {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+          }
+          
+          .lp-photo-tile {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+          }
+          
+          /* Form inputs */
+          .lp-input, .lp-select, .lp-textarea {
+            background: #1A1A1A;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 0.9rem;
+          }
+          
+          .lp-input::placeholder,
+          .lp-textarea::placeholder {
+            color: rgba(255,255,255,0.3);
+          }
+          
+          .lp-input:focus,
+          .lp-select:focus,
+          .lp-textarea:focus {
+            border-color: rgba(228, 88, 33, 0.5);
+            background: #232323;
+          }
+          
+          .lp-label {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+          }
+          
+          /* Category pills */
+          .lp-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          
+          .lp-pill {
+            background: #1A1A1A;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.7);
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+          }
+          
+          .lp-pill--active {
+            background: #E45821;
+            border-color: #E45821;
+            color: #fff;
+          }
+          
+          /* Submit button */
+          .lp-submit {
+            background: #E45821;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 20px;
+            margin-bottom: 80px;
+          }
+          
+          .lp-submit:disabled {
+            opacity: 0.5;
+          }
+          
+          /* Reel section */
+          .lp-reel-dropzone {
+            background: #1A1A1A;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 16px;
+          }
+          
+          .lp-reel-dropzone span {
+            color: #fff;
+          }
+          
+          .lp-reel-dropzone small {
+            color: rgba(255,255,255,0.4);
+          }
         }
 
         /* ── Form ── */
@@ -832,7 +972,7 @@ const ListProductPage = () => {
 
         /* ── Responsive ── */
         @media (max-width: 480px) {
-          .lp-page { padding: 24px 16px 72px; }
+          .lp-page { padding: 24px 6px 72px; }
           .lp-page-header { gap: 14px; margin-bottom: 18px; align-items: flex-start; }
           .lp-page-header > div { min-width: 0; flex: 1; }
           .lp-back { width: 20px; height: 24px; margin: 1px 0 0; flex: 0 0 20px; }

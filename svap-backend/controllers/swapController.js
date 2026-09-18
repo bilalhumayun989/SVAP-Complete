@@ -94,7 +94,7 @@ exports.checkSwapEligibility = async (req, res) => {
 // ── POST /api/swap-requests ────────────────────────────────────────────────
 exports.createSwapRequest = async (req, res) => {
   try {
-    const { from_user_id, to_user_id, offered_product_id, requested_product_id } = req.body;
+    const { from_user_id, to_user_id, offered_product_id, requested_product_id, premium_amount } = req.body;
 
     if (!from_user_id || !to_user_id || !offered_product_id || !requested_product_id) {
       return res.status(400).json({ error: 'from_user_id, to_user_id, offered_product_id, requested_product_id are required' });
@@ -124,9 +124,23 @@ exports.createSwapRequest = async (req, res) => {
 
     const expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
+    const insertPayload = {
+      from_user_id,
+      to_user_id,
+      offered_product_id,
+      requested_product_id,
+      status: 'pending',
+      expires_at,
+    };
+
+    // Only set premium_amount if provided and > 0
+    if (premium_amount && Number(premium_amount) > 0) {
+      insertPayload.premium_amount = Number(premium_amount);
+    }
+
     const { data: swapData, error: swapError } = await supabaseAdmin
       .from('swap_requests')
-      .insert({ from_user_id, to_user_id, offered_product_id, requested_product_id, status: 'pending', expires_at })
+      .insert(insertPayload)
       .select(`
         *,
         offered:products!offered_product_id(title, image_urls),

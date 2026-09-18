@@ -30,7 +30,7 @@ const footerLinks = [
     {
       heading: "Support",
       links: [
-        { label: "Help Center",      href: "/help-center" },
+        { label: "Help & Support",   href: "/help-support" },
         { label: "Safety Tips",      href: "/safety-tips" },
         { label: "Report a Problem", href: "/report-a-problem" },
         { label: "Contact Us",       href: "/contact-us" },

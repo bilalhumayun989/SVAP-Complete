@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom'
+﻿import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import {
   FiArrowLeft,
@@ -46,6 +46,7 @@ const ProductDetailPage = () => {
   const [showSwapModal, setShowSwapModal] = useState(false)
   const [myProducts, setMyProducts] = useState<any[]>([])
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
+  const [cashBoost, setCashBoost] = useState<string>('')
   const [swapLoading, setSwapLoading] = useState(false)
   const [canSendSwap, setCanSendSwap] = useState(true)
   const [swapCooldownMessage, setSwapCooldownMessage] = useState<string | null>(null)
@@ -463,10 +464,33 @@ const ProductDetailPage = () => {
               ))}
             </div>
 
+            {/* Cash Boost (optional) */}
+            <div className="pdp-cash-boost-wrap">
+              <label className="pdp-cash-boost-label" htmlFor="pdp-cash-boost">
+                {`💰 Add Cash Boost`} <span>(Optional)</span>
+              </label>
+              <div className="pdp-cash-boost-input-row">
+                <span className="pdp-cash-boost-prefix">PKR</span>
+                <input
+                  id="pdp-cash-boost"
+                  type="number"
+                  min="0"
+                  step="50"
+                  placeholder="0"
+                  value={cashBoost}
+                  onChange={e => setCashBoost(e.target.value)}
+                  className="pdp-cash-boost-input"
+                />
+              </div>
+              <p className="pdp-cash-boost-hint">
+                Sweetening the deal? Extra cash makes your offer more attractive. Rider collects on delivery.
+              </p>
+            </div>
+
             <div className="pdp-modal-actions">
               <button
                 className="pdp-modal-cancel"
-                onClick={() => { setShowSwapModal(false); setSelectedProductId(null); }}
+                onClick={() => { setShowSwapModal(false); setSelectedProductId(null); setCashBoost(''); }}
               >
                 Cancel
               </button>
@@ -479,6 +503,8 @@ const ProductDetailPage = () => {
                   const me = rawUser ? JSON.parse(rawUser) : null;
                   if (!me?.id) return;
 
+                  const boostAmount = parseFloat(cashBoost) || 0;
+
                   setSwapLoading(true);
                   try {
                     const res = await api.createSwapRequest({
@@ -486,10 +512,12 @@ const ProductDetailPage = () => {
                       to_user_id: product.owner_id,
                       offered_product_id: selectedProductId,
                       requested_product_id: product.id,
+                      premium_amount: boostAmount > 0 ? boostAmount : null,
                     });
                     if (res.error) throw new Error(res.error);
                     setShowSwapModal(false);
                     setSelectedProductId(null);
+                    setCashBoost('');
                     setRequested(true);
                     setCanSendSwap(false);
                     setSwapCooldownMessage(SWAP_COOLDOWN_MESSAGE);
@@ -501,6 +529,7 @@ const ProductDetailPage = () => {
                       setSwapCooldownMessage(SWAP_COOLDOWN_MESSAGE);
                       setShowSwapModal(false);
                       setSelectedProductId(null);
+                      setCashBoost('');
                     }
                     alert(err.message || 'Failed to send swap request');
                   } finally {
@@ -1316,6 +1345,69 @@ const ProductDetailPage = () => {
         }
         .pdp-modal-send:hover:not(:disabled) { background: #c94d1c; transform: translateY(-1px); }
         .pdp-modal-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Cash Boost */
+        .pdp-cash-boost-wrap {
+          margin: 0 0 4px;
+          padding: 16px 18px;
+          border-radius: 14px;
+          background: rgba(228,88,33,0.05);
+          border: 1px dashed rgba(228,88,33,0.35);
+        }
+        .pdp-cash-boost-label {
+          display: block;
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: var(--text-dark);
+          margin-bottom: 10px;
+          cursor: default;
+        }
+        .pdp-cash-boost-label span {
+          font-weight: 400;
+          color: var(--text-muted);
+          font-size: 0.75rem;
+        }
+        .pdp-cash-boost-input-row {
+          display: flex;
+          align-items: center;
+          border: 1.5px solid rgba(228,88,33,0.4);
+          border-radius: 10px;
+          overflow: hidden;
+          background: var(--card-bg);
+        }
+        .pdp-cash-boost-prefix {
+          padding: 0 12px;
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: #E45821;
+          border-right: 1.5px solid rgba(228,88,33,0.3);
+          background: rgba(228,88,33,0.07);
+          height: 40px;
+          display: flex;
+          align-items: center;
+          white-space: nowrap;
+        }
+        .pdp-cash-boost-input {
+          flex: 1;
+          border: none;
+          outline: none;
+          padding: 0 12px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: var(--text-dark);
+          background: transparent;
+          height: 40px;
+          font-family: inherit;
+        }
+        .pdp-cash-boost-hint {
+          margin: 8px 0 0;
+          font-size: 0.72rem;
+          color: var(--text-muted);
+          line-height: 1.5;
+        }
+        html[data-theme='dark'] .pdp-cash-boost-wrap { background: rgba(228,88,33,0.07); border-color: rgba(228,88,33,0.25); }
+        html[data-theme='dark'] .pdp-cash-boost-input-row { background: #1a1a1a; border-color: rgba(228,88,33,0.3); }
+        html[data-theme='dark'] .pdp-cash-boost-input { color: #fff; }
       `}</style>
     </div>
   )

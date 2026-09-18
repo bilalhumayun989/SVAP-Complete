@@ -417,7 +417,8 @@ const ReelsPage = () => {
         onClick={() => navigate(-1)}
         title="Go back"
       >
-        <FiArrowLeft size={24} />
+        <FiArrowLeft size={20} />
+        <span className="reels-back-label">Reels</span>
       </button>
 
       {/* Refresh / shuffle button */}
@@ -448,22 +449,30 @@ const ReelsPage = () => {
         .reels-back-btn {
           position: fixed;
           top: 20px;
-          left: 20px;
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          background: rgba(0, 0, 0, 0.5);
-          border: none;
+          left: 16px;
+          height: 40px;
+          padding: 0 16px 0 12px;
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.52);
+          border: 1px solid rgba(255,255,255,0.15);
           color: #fff;
           display: flex;
           align-items: center;
-          justify-content: center;
+          gap: 7px;
           cursor: pointer;
           z-index: 100;
           transition: background 0.2s;
-          backdrop-filter: blur(8px);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
         }
-        .reels-back-btn:hover { background: rgba(0, 0, 0, 0.7); }
+        .reels-back-btn:hover { background: rgba(0,0,0,0.72); }
+        .reels-back-label {
+          font-size: 0.92rem;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+          color: #fff;
+          line-height: 1;
+        }
 
         .reels-refresh-btn {
           position: fixed;
@@ -576,12 +585,19 @@ const ReelsPage = () => {
         .reel-actions {
           position: absolute;
           right: 14px;
-          bottom: 90px;
+          bottom: 80px; /* Desktop: neeche */
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 20px;
           z-index: 10;
+        }
+
+        /* Mobile: nav bar ke upar */
+        @media (max-width: 768px) {
+          .reel-actions {
+            bottom: 162px;
+          }
         }
 
        
@@ -642,8 +658,15 @@ const ReelsPage = () => {
         .reel-bottom {
           position: relative;
           z-index: 10;
-          padding: 0 14px 24px;
+          padding: 0 14px 20px; /* Desktop: neeche rakho */
           width: calc(100% - 80px);
+        }
+
+        /* Mobile: nav bar ke liye extra space */
+        @media (max-width: 768px) {
+          .reel-bottom {
+            padding-bottom: 126px;
+          }
         }
 
         .reel-user {

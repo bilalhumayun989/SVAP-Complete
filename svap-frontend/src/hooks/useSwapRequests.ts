@@ -6,7 +6,7 @@ export interface SwapRequest {
   to_user_id: string;
   offered_product_id: string;
   requested_product_id: string;
-  status: "pending" | "accepted" | "rejected" | "completed";
+  status: "pending" | "accepted" | "rejected" | "completed" | "unavailable";
   expires_at: string;
   created_at: string;
   // Joined data

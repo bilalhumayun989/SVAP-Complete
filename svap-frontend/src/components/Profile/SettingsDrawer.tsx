@@ -363,6 +363,11 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               <div className="sd-divider" />
 
               <div className="sd-section-label">About</div>
+              <button className="sd-row" onClick={() => navigate('/help-support')}>
+                <span className="sd-row-icon"><CircleHelp size={16} /></span>
+                <span className="sd-row-text">Help & Support</span>
+                <ChevronRight size={15} className="sd-row-arrow" />
+              </button>
               <button className="sd-row">
                 <span className="sd-row-icon"><CircleHelp size={16} /></span>
                 <span className="sd-row-text">About Svap</span>

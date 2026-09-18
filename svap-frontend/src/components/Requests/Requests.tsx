@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiCheck, FiX, FiInbox, FiSend, FiRepeat, FiCreditCard } from "react-icons/fi";
+import { FiCheck, FiX, FiSend, FiRepeat, FiCreditCard } from "react-icons/fi";
 import {
   getAllRequests,
   updateRequestStatus,
@@ -118,8 +118,8 @@ const Requests = () => {
       // Immediately mark as accepted in DB (notification auto-triggers in backend)
       await updateRequestStatus(id, "accepted", userId || undefined);
       refresh();
-      // Then navigate to checkout — user can always come back later
-      navigate("/checkout", { state: { entrySource: "swap", swapRequestId: id } });
+      // Then navigate to swap checkout â€” user can always come back later
+      navigate(`/checkout/${id}`);
     }
   };
 
@@ -132,7 +132,6 @@ const Requests = () => {
       <div className="req-container">
 
         <div className="req-header">
-          <div className="req-header-icon"><FiRepeat size={22} /></div>
           <div>
             <h1 className="req-title">Requests</h1>
             <p className="req-subtitle">
@@ -148,7 +147,6 @@ const Requests = () => {
             className={`req-tab ${tab === "incoming" ? "req-tab--active" : ""}`}
             onClick={() => setTab("incoming")}
           >
-            <FiInbox size={15} />
             Incoming
             {pendingIncomingCount > 0 && (
               <span className="req-tab-badge">{pendingIncomingCount}</span>
@@ -158,7 +156,6 @@ const Requests = () => {
             className={`req-tab ${tab === "outgoing" ? "req-tab--active" : ""}`}
             onClick={() => setTab("outgoing")}
           >
-            <FiSend size={15} />
             Outgoing
             {pendingOutgoingCount > 0 && (
               <span className="req-tab-badge req-tab-badge--blue">
@@ -170,7 +167,6 @@ const Requests = () => {
             className={`req-tab ${tab === "checkout" ? "req-tab--active" : ""}`}
             onClick={() => setTab("checkout")}
           >
-            <FiCreditCard size={15} />
             Checkout
             {checkout.length > 0 && <span className="req-tab-badge req-tab-badge--checkout">{checkout.length}</span>}
           </button>
@@ -183,7 +179,6 @@ const Requests = () => {
             <div className="req-empty">
               {tab === "incoming" ? (
                 <>
-                  <FiInbox size={36} />
                   <p>No incoming swap requests</p>
                   <span>When someone sends you a swap request, it will appear here</span>
                 </>
@@ -209,12 +204,14 @@ const Requests = () => {
               const isExpired = new Date(req.expires_at).getTime() <= Date.now();
               const timeLeft = getTimeRemaining(req.expires_at);
               const isPending = req.status === "pending" && !isExpired;
+              const isUnavailable = req.status === "unavailable";
 
               return (
                 <div
                   key={req.id}
                   className={`req-card ${
                     req.status === 'accepted' ? 'req-card--accepted' :
+                    req.status === 'unavailable' ? 'req-card--unavailable' :
                     req.status === 'rejected' || (isExpired && req.status === 'pending') ? 'req-card--rejected' :
                     !isPending ? 'req-card--resolved' : ''
                   } ${isExpired && req.status === "pending" ? "req-card--expired" : ""}`}
@@ -225,8 +222,8 @@ const Requests = () => {
                       <span>{isExpired ? "Expired" : `Expires in ${timeLeft}`}</span>
                     </div>
                     {(req.status !== "pending" || isExpired) && (
-                      <span className={`req-status-badge req-status-badge--${isExpired && req.status === "pending" ? "expired" : req.status}`}>
-                        {isExpired && req.status === "pending" ? "Expired" : req.status === "accepted" ? "Accepted" : req.status === "completed" ? "Completed" : "Rejected"}
+                      <span className={`req-status-badge req-status-badge--${isExpired && req.status === "pending" ? "expired" : req.status === "unavailable" ? "unavailable" : req.status}`}>
+                        {isExpired && req.status === "pending" ? "Expired" : req.status === "unavailable" ? "Already Swapped" : req.status === "accepted" ? "Accepted" : req.status === "completed" ? "Completed" : "Rejected"}
                       </span>
                     )}
                   </div>
@@ -307,7 +304,7 @@ const Requests = () => {
                     <div className="req-actions">
                       <button
                         className="req-btn req-btn--checkout"
-                        onClick={() => navigate("/checkout", { state: { entrySource: "swap", swapRequestId: req.id } })}
+                        onClick={() => navigate(`/checkout/${req.id}`)}
                       >
                         <FiCheck size={14} />
                         <span>CONTINUE TO CHECKOUT</span>
@@ -315,9 +312,23 @@ const Requests = () => {
                     </div>
                   )}
 
+                  {tab === "incoming" && isUnavailable && (
+                    <div className="req-unavailable-msg">
+                      <FiX size={14} />
+                      <span>This product has already been swapped with another user</span>
+                    </div>
+                  )}
+
                   {tab === "outgoing" && isPending && (
                     <div className="req-pending-label">
-                      <img src="/ICONS/Time.png" alt="Time" style={{ width: 12, height: 12, objectFit: 'contain', marginRight: 6 }} /> Waiting for response…
+                      <img src="/ICONS/Time.png" alt="Time" style={{ width: 12, height: 12, objectFit: 'contain', marginRight: 6 }} /> Waiting for responseâ€¦
+                    </div>
+                  )}
+
+                  {tab === "outgoing" && isUnavailable && (
+                    <div className="req-unavailable-msg">
+                      <FiX size={14} />
+                      <span>This product has already been swapped with another user</span>
                     </div>
                   )}
 
@@ -325,7 +336,7 @@ const Requests = () => {
                     <div className="req-actions">
                       <button
                         className="req-btn req-btn--checkout"
-                        onClick={() => navigate("/checkout", { state: { entrySource: "swap", swapRequestId: req.id } })}
+                        onClick={() => navigate(`/checkout/${req.id}`)}
                       >
                         <FiCheck size={14} />
                         <span>CONTINUE TO CHECKOUT</span>
@@ -339,7 +350,7 @@ const Requests = () => {
                         className="req-btn req-btn--checkout"
                         onClick={() => checkoutOrderByRequest.has(req.id)
                           ? navigate("/orders")
-                          : navigate("/checkout", { state: { entrySource: "swap", swapRequestId: req.id } })}
+                          : navigate(`/checkout/${req.id}`)}
                       >
                         {checkoutOrderByRequest.has(req.id) ? <FiCreditCard size={14} /> : <FiCheck size={14} />}
                         <span>{checkoutOrderByRequest.has(req.id) ? "VIEW ORDER STATUS" : "CONTINUE TO CHECKOUT"}</span>
@@ -375,6 +386,7 @@ const Requests = () => {
         .req-card--resolved { opacity:0.75; }
         .req-card--accepted { opacity:1; }
         .req-card--rejected { opacity:0.55; }
+        .req-card--unavailable { opacity:0.6; border-color:rgba(248,113,113,0.28); }
         .req-card--expired { border-color:rgba(248,113,113,0.22); opacity:0.55; }
         html[data-theme='dark'] .req-card { background:#1a1a1a; border-color:#2a2a2a; }
         .req-card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
@@ -383,6 +395,7 @@ const Requests = () => {
         .req-status-badge { font-size:0.7rem; font-weight:700; letter-spacing:0.06em; padding:3px 12px; border-radius:999px; }
         .req-status-badge--accepted,.req-status-badge--completed { background:rgba(174,220,90,0.15); color:var(--svap-lime); border:1px solid rgba(174,220,90,0.35); }
         .req-status-badge--rejected { background:rgba(248,113,113,0.12); color:#c04444; border:1px solid rgba(248,113,113,0.25); }
+        .req-status-badge--unavailable { background:rgba(248,113,113,0.15); color:#dc2626; border:1px solid rgba(248,113,113,0.3); }
         .req-status-badge--expired { background:rgba(100,100,100,0.1); color:var(--text-muted); border:1px solid rgba(100,100,100,0.2); }
         .req-swap-row { display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
         .req-item { flex:1; display:flex; align-items:center; gap:12px; min-width:0; }
@@ -406,6 +419,8 @@ const Requests = () => {
         .req-btn--checkout { background:#313C5C; border:1px solid rgba(49,60,92,0.3); color:#fff; grid-column:1/-1; }
         .req-btn--checkout:hover { background:#252e48; }
         .req-pending-label { display:flex; align-items:center; gap:6px; font-size:0.76rem; color:var(--text-muted); font-style:italic; }
+        .req-unavailable-msg { display:flex; align-items:center; gap:8px; padding:12px 16px; background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.22); border-radius:10px; color:#dc2626; font-size:0.78rem; font-weight:600; }
+        html[data-theme='dark'] .req-unavailable-msg { background:rgba(248,113,113,0.12); border-color:rgba(248,113,113,0.25); color:#f87171; }
         .req-empty { text-align:center; padding:52px 24px; color:var(--text-muted); background:#fff; border-radius:20px; border:1px solid rgba(165,194,111,0.2); display:flex; flex-direction:column; align-items:center; gap:10px; }
         .req-empty p { font-size:1rem; font-weight:700; color:var(--text-dark); margin:0; }
         .req-empty span { font-size:0.84rem; max-width:320px; }
@@ -417,7 +432,7 @@ const Requests = () => {
         html[data-theme='dark'] .req-swap-arrow { background:#111; border-color:#2a2a2a; }
         html[data-theme='dark'] .req-empty { background:#111; border-color:#222; }
         @media (max-width:600px) {
-          .req-page { margin-top:-64px; padding:28px 10px 80px; }
+          .req-page { margin-top:-64px; padding:28px 20px 80px; }
           .req-container { width:100%; }
           .req-header { gap:10px; margin-bottom:18px; }
           .req-header-icon { width:38px; height:38px; border-radius:11px; }
@@ -446,3 +461,4 @@ const Requests = () => {
 };
 
 export default Requests;
+

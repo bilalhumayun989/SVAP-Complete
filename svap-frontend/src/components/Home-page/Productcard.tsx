@@ -165,6 +165,7 @@ const ProductCard = ({ product, initialSaved = false }: ProductCardProps) => {
         onClick={go}
       >
         <div
+          className="pc-image-container"
           style={{
             overflow: "hidden",
             aspectRatio: "16/12",
@@ -359,6 +360,15 @@ const ProductCard = ({ product, initialSaved = false }: ProductCardProps) => {
           <SvapBtnIcon /> SVAP
         </button>
       </div>
+
+      {/* Mobile Styles */}
+      <style>{`
+        @media (max-width: 768px) {
+          .pc-image-container {
+            aspect-ratio: 4/5 !important; /* Mobile pe zyada height */
+          }
+        }
+      `}</style>
     </div>
   );
 };

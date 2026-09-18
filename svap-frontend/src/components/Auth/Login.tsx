@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowRight } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiArrowRight, FiArrowLeft } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { AiFillApple } from "react-icons/ai";
 import { api } from "../../services/api";
@@ -34,12 +34,7 @@ const Login = () => {
         }
       });
       
-      if (error) {
-        throw new Error(error.message || "Google sign-in failed. Please try again.");
-      }
-      
-      // The auth state change will be handled by the useEffect in App.tsx
-      // Keep loading state until redirect happens
+      if (error) throw new Error(error.message || "Google sign-in failed.");
     } catch (err: any) {
       setError(err.message || "Google sign-in failed. Please try again.");
       setGoogleLoading(false);
@@ -53,17 +48,14 @@ const Login = () => {
 
     try {
       if (otpMode === 'email_otp') {
-        // Send Email OTP via Custom Backend (Nodemailer)
         const response = await api.sendOtp(email.trim());
         if (response.error) throw new Error(response.error);
-        
         setOtpMode('verify_otp');
         setLoading(false);
         return;
       }
 
       if (otpMode === 'verify_otp') {
-        // Verify Email OTP via Custom Backend
         const response = await api.verifyOtp(email.trim(), otp);
         if (response.error) throw new Error(response.error);
         
@@ -85,12 +77,7 @@ const Login = () => {
         return;
       }
 
-      // Existing email/password login
-      const response = await api.login({
-        email,
-        password,
-      });
-
+      const response = await api.login({ email, password });
       if (response.error) throw new Error(response.error);
 
       const { data, profile } = response;
@@ -109,7 +96,7 @@ const Login = () => {
         window.dispatchEvent(new Event("sz_auth_change"));
         navigate("/");
       } else {
-        throw new Error("Login succeeded but no user returned. Please try again.");
+        throw new Error("Login succeeded but no user returned.");
       }
     } catch (err: any) {
       setError(err.message || "Login failed. Please check your credentials.");
@@ -119,535 +106,493 @@ const Login = () => {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-bg" />
-      <div className="auth-card">
-        <div className="auth-card-header">
-          <h1 className="auth-title">Welcome Back</h1>
-          <p className="auth-subtitle">Log In To Your SVAP Account</p>
+    <div className="svap-auth-page">
+      <div className="svap-card">
+        {/* Top Back Nav */}
+        <div className="svap-top-nav">
+          <button onClick={() => navigate(-1)} className="svap-back-btn" aria-label="Go Back">
+            <FiArrowLeft size={22} />
+          </button>
         </div>
 
-        <form onSubmit={handleLogin} className="auth-form">
-          <div className="auth-field">
-            <label className="auth-label">PHONE / EMAIL</label>
-            <div className="auth-input-wrap">
-              <FiMail className="auth-input-icon" />
-              <input
-                id="login-email"
-                type="text"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter phone or email"
-                className="auth-input"
-                autoComplete="email"
-                required
-              />
-            </div>
+        {/* Brand Header */}
+        <div className="svap-brand">
+          <img src="/Logo.png" alt="SVAP" className="svap-logo" />
+          <p className="svap-tagline">Skip the Spend. Svap Instead</p>
+        </div>
+
+        {/* Title */}
+        <div className="svap-header">
+          <h1 className="svap-title">Welcome Back</h1>
+          <p className="svap-subtitle">Log In To Your Svap Account</p>
+        </div>
+
+        {/* Form Container */}
+        <form onSubmit={handleLogin} className="svap-form">
+          <div className="svap-field">
+            <label className="svap-label">PHONE / EMAIL</label>
+            <input
+              id="login-email"
+              type="text"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g. you@example.com"
+              className="svap-input"
+              autoComplete="email"
+              required
+            />
           </div>
 
           {otpMode === 'none' && (
-            <div className="auth-field">
-              <label className="auth-label">PASSWORD</label>
-              <div className="auth-input-wrap">
-                <FiLock className="auth-input-icon" />
+            <div className="svap-field">
+              <label className="svap-label">PASSWORD</label>
+              <div className="svap-input-relative">
                 <input
                   id="login-password"
                   type={showPass ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  className="auth-input"
+                  placeholder="••••••••"
+                  className="svap-input"
                   autoComplete="current-password"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="auth-eye-btn"
+                  className="svap-toggle-pass"
                   aria-label="Toggle password visibility"
                 >
-                  {showPass ? <FiEyeOff /> : <FiEye />}
+                  {showPass ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                </button>
+              </div>
+
+              {/* OTP and Forgot Links Row */}
+              <div className="svap-options-row">
+                <button
+                  type="button"
+                  onClick={() => setOtpMode('email_otp')}
+                  className="svap-otp-toggle"
+                >
+                  Use OTP instead
+                </button>
+                <Link to="/forgot-password" className="svap-forgot-link">
+                  Forgot Password?
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {otpMode === 'email_otp' && (
+            <div className="svap-options-row">
+              <button
+                type="button"
+                onClick={() => setOtpMode('none')}
+                className="svap-otp-toggle"
+              >
+                Use Password instead
+              </button>
+            </div>
+          )}
+
+          {otpMode === 'verify_otp' && (
+            <div className="svap-field">
+              <label className="svap-label">OTP CODE</label>
+              <input
+                id="login-otp"
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="Enter 6-digit code"
+                className="svap-input"
+                required
+              />
+              <div className="svap-options-row">
+                <button
+                  type="button"
+                  onClick={() => setOtpMode('none')}
+                  className="svap-otp-toggle"
+                >
+                  Back to Password Login
                 </button>
               </div>
             </div>
           )}
-          
-          {otpMode === 'verify_otp' && (
-            <div className="auth-field">
-              <label className="auth-label">OTP CODE</label>
-              <div className="auth-input-wrap">
-                <FiLock className="auth-input-icon" />
-                <input
-                  id="login-otp"
-                  type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  placeholder="Enter 6-digit OTP"
-                  className="auth-input"
-                  required
-                />
-              </div>
-            </div>
-          )}
 
-          {otpMode === 'none' && (
-            <div className="auth-forgot-row">
-              <Link to="/forgot-password" className="auth-forgot-link">Forgot Password?</Link>
-              <button type="button" onClick={() => setOtpMode('email_otp')} className="auth-forgot-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                Login with OTP instead
-              </button>
-            </div>
-          )}
-          
-          {otpMode === 'email_otp' && (
-            <div className="auth-forgot-row">
-              <button type="button" onClick={() => setOtpMode('none')} className="auth-forgot-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                Login with Password instead
-              </button>
-            </div>
-          )}
-
-          {error && <p className="auth-error">{error}</p>}
+          {error && <p className="svap-error">{error}</p>}
 
           <button
             id="login-submit"
             type="submit"
-            className="auth-primary-btn"
+            className="svap-btn-primary"
             disabled={loading}
           >
-            {loading ? <span className="auth-spinner" /> : (
+            {loading ? (
+              <span className="svap-spinner" />
+            ) : (
               <>
                 <span>
-                  {otpMode === 'email_otp' ? "SEND OTP" : otpMode === 'verify_otp' ? "VERIFY OTP" : "LOG IN"}
+                  {otpMode === 'email_otp' ? "SEND CODE" : otpMode === 'verify_otp' ? "VERIFY CODE" : "LOG IN"}
                 </span>
-                <FiArrowRight />
+                <FiArrowRight size={18} />
               </>
             )}
           </button>
 
-          <div className="auth-divider">
-            <span className="auth-divider-line" />
-            <span className="auth-divider-text">Or Continue With</span>
-            <span className="auth-divider-line" />
+          {/* Or Divider */}
+          <div className="svap-divider">
+            <span className="svap-line" />
+            <span className="svap-divider-text">Or Continue With</span>
+            <span className="svap-line" />
           </div>
 
-          <div className="auth-social-row">
+          {/* Social Logins */}
+          <div className="svap-social-grid">
             <button 
               type="button" 
-              className={`auth-social-btn ${googleLoading ? 'loading' : ''}`}
+              className="svap-btn-social"
               id="login-google" 
               onClick={handleGoogleLogin}
               disabled={googleLoading || loading}
             >
               {googleLoading ? (
-                <>
-                  <span className="auth-spinner-small" />
-                  <span>REDIRECTING...</span>
-                </>
+                <span className="svap-spinner-sm" />
               ) : (
                 <>
-                  <FcGoogle size={20} />
+                  <FcGoogle size={18} />
                   <span>GOOGLE</span>
                 </>
               )}
             </button>
-        <button type="button" className="auth-social-btn" id="login-apple" disabled>
-  <AiFillApple size={20} />
-  <span>APPLE</span>
-</button>
+            <button type="button" className="svap-btn-social" id="login-apple" disabled>
+              <AiFillApple size={18} color="#fff" />
+              <span>APPLE</span>
+            </button>
           </div>
         </form>
 
-        <p className="auth-switch">
-          New To SVAP?{" "}
-          <Link to="/signup" className="auth-switch-link">Create Account</Link>
+        {/* Footer */}
+        <p className="svap-footer-text">
+          New To Svap?{" "}
+          <Link to="/signup" className="svap-footer-link">Create Account</Link>
         </p>
       </div>
 
       <style>{`
-        .auth-page {
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        .svap-auth-page {
           min-height: 100vh;
+          min-height: 100dvh;
+          width: 100%;
+          background-color: #000000;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 24px 20px;
+          color: #ffffff;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .svap-card {
+          width: 100%;
+          max-width: 440px;
+          min-height: calc(100dvh - 48px);
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+
+        .svap-top-nav {
+          width: 100%;
+          display: flex;
+          justify-content: flex-start;
+          margin-bottom: 8px;
+        }
+
+        .svap-back-btn {
+          background: transparent;
+          border: none;
+          color: #ffffff;
+          cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 40px 20px 40px;
-          position: relative;
-          background: var(--bg);
-          box-sizing: border-box;
+          padding: 4px;
+          transition: opacity 0.2s;
         }
 
-        .auth-bg {
-          position: fixed;
-          inset: 0;
-          background: linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%);
-          z-index: 0;
+        .svap-back-btn:hover {
+          opacity: 0.8;
         }
 
-        html[data-theme='dark'] .auth-bg {
-          background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
+        .svap-brand {
+          text-align: center;
+          margin-bottom: 24px;
         }
 
-        .auth-bg::before {
-          content: '';
-          position: absolute;
-          top: -180px;
-          left: -180px;
-          width: 560px;
-          height: 560px;
-          background: radial-gradient(circle, rgba(228,88,33,0.06) 0%, transparent 70%);
-          pointer-events: none;
+        .svap-logo {
+          max-width: 160px;
+          height: auto;
+          margin-bottom: 6px;
+          display: inline-block;
         }
 
-        html[data-theme='dark'] .auth-bg::before {
-          background: radial-gradient(circle, rgba(228,88,33,0.08) 0%, transparent 70%);
+        .svap-tagline {
+          color: rgba(255, 255, 255, 0.45);
+          font-size: 0.88rem;
         }
 
-        .auth-bg::after {
-          content: '';
-          position: absolute;
-          bottom: -160px;
-          right: -160px;
-          width: 520px;
-          height: 520px;
-          background: radial-gradient(circle, rgba(96,121,255,0.14) 0%, transparent 70%);
-          pointer-events: none;
+        .svap-header {
+          text-align: left;
+          margin-bottom: 20px;
         }
 
-        html[data-theme='dark'] .auth-bg::after {
-          background: radial-gradient(circle, rgba(96,121,255,0.08) 0%, transparent 70%);
+        .svap-title {
+          font-size: 2rem;
+          font-weight: 700;
+          color: #ffffff;
+          margin-bottom: 4px;
+          letter-spacing: -0.3px;
         }
 
-        .auth-card {
-          position: relative;
-          z-index: 1;
-          width: 100%;
-          max-width: 460px;
-          background: rgba(255,255,255,0.95);
-          border: 1px solid rgba(141,198,63,0.18);
-          border-radius: 24px;
-          padding: 44px 38px;
-          box-shadow: 0 28px 80px rgba(26,46,10,0.08);
+        .svap-subtitle {
+          font-size: 0.92rem;
+          color: rgba(255, 255, 255, 0.5);
         }
 
-        html[data-theme='dark'] .auth-card {
-          background: rgba(26, 26, 26, 0.95);
-          border: 1px solid rgba(228, 88, 33, 0.15);
-          box-shadow: 0 28px 80px rgba(0,0,0,0.4);
-        }
-
-        .auth-card-header {
-          margin-bottom: 28px;
-        }
-
-        .auth-title {
-          font-size: clamp(1.8rem, 3vw, 2.4rem);
-          font-weight: 800;
-          color: var(--text-dark);
-          margin: 0 0 10px;
-          line-height: 1.05;
-        }
-
-        .auth-subtitle {
-          font-size: 0.95rem;
-          color: var(--text-mid);
-          margin: 0;
-          letter-spacing: 0.02em;
-        }
-
-        .auth-form {
+        .svap-form {
           display: flex;
           flex-direction: column;
-          gap: 18px;
+          gap: 30px;
+          flex: 1;
+          justify-content: center;
         }
 
-        .auth-field {
+        .svap-field {
           display: flex;
           flex-direction: column;
           gap: 8px;
         }
 
-        .auth-label {
-          font-size: 0.72rem;
-          font-weight: 700;
-          letter-spacing: 0.14em;
-          color: var(--text-muted);
+        .svap-label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          letter-spacing: 0.8px;
+          color: rgba(255, 255, 255, 0.65);
           text-transform: uppercase;
         }
 
-        .auth-input-wrap {
+        .svap-input-relative {
           position: relative;
+          width: 100%;
           display: flex;
           align-items: center;
         }
 
-        .auth-input-icon {
-          position: absolute;
-          left: 14px;
-          color: rgba(26,46,10,0.35);
-          font-size: 16px;
-          pointer-events: none;
-        }
-
-        .auth-input {
+        .svap-input {
           width: 100%;
-          background: #f8f9fb;
-          border: 1px solid rgba(141,198,63,0.32);
+          background: #18191c;
+          border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 14px;
-          color: var(--text-dark);
-          font-size: 0.95rem;
-          padding: 14px 44px 14px 42px;
+          color: #ffffff;
+          font-size: 0.98rem;
+          padding: 16px 48px 16px 18px;
           outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s;
-          box-sizing: border-box;
+          transition: border-color 0.2s, background 0.2s;
         }
 
-        html[data-theme='dark'] .auth-input {
-          background: #1a1a1a;
-          border: 1px solid rgba(228, 88, 33, 0.25);
-          color: #f5f5f5;
+        .svap-input::placeholder {
+          color: rgba(255, 255, 255, 0.25);
         }
 
-        .auth-input::placeholder {
-          color: rgba(26,46,10,0.45);
+        .svap-input:focus {
+          border-color: #E85D35;
+          background: #1d1e22;
         }
 
-        html[data-theme='dark'] .auth-input::placeholder {
-          color: rgba(255, 255, 255, 0.4);
-        }
-
-        .auth-input:focus {
-          border-color: var(--svap-lime);
-          box-shadow: 0 0 0 4px rgba(141,198,63,0.12);
-          background: #fff;
-        }
-
-        html[data-theme='dark'] .auth-input:focus {
-          background: #0f0f0f;
-          border-color: #E45821;
-          box-shadow: 0 0 0 4px rgba(228, 88, 33, 0.1);
-        }
-
-        .auth-eye-btn {
+        .svap-toggle-pass {
           position: absolute;
-          right: 14px;
+          right: 16px;
           background: none;
           border: none;
-          color: rgba(26,46,10,0.45);
+          color: rgba(255, 255, 255, 0.4);
           cursor: pointer;
           display: flex;
           align-items: center;
+          justify-content: center;
+          padding: 4px;
+        }
+
+        .svap-toggle-pass:hover {
+          color: #ffffff;
+        }
+
+        .svap-options-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-top: 6px;
+          font-size: 0.85rem;
+        }
+
+        .svap-otp-toggle {
+          background: none;
+          border: none;
+          color: rgba(255, 255, 255, 0.6);
+          cursor: pointer;
           padding: 0;
+          font-size: 0.85rem;
           transition: color 0.2s;
         }
 
-        .auth-eye-btn:hover {
-          color: rgba(26,46,10,0.8);
+        .svap-otp-toggle:hover {
+          color: #ffffff;
+          text-decoration: underline;
         }
 
-        .auth-forgot-row {
-          display: flex;
-          justify-content: flex-end;
-          margin-top: -6px;
-        }
-
-        .auth-forgot-link {
-          font-size: 0.85rem;
-          color: var(--text-mid);
+        .svap-forgot-link {
+          color: #4a80db;
           text-decoration: none;
           transition: color 0.2s;
         }
 
-        .auth-forgot-link:hover {
-          color: var(--svap-darkblue);
+        .svap-forgot-link:hover {
+          text-decoration: underline;
         }
 
-        .auth-error {
-          font-size: 0.85rem;
-          color: #c04444;
-          margin: 0;
+        .svap-error {
+          font-size: 0.82rem;
+          color: #ff5555;
+          background: rgba(255, 85, 85, 0.1);
+          border: 1px solid rgba(255, 85, 85, 0.2);
+          border-radius: 8px;
           padding: 10px 14px;
-          background: rgba(255,107,107,0.12);
-          border: 1px solid rgba(255,107,107,0.24);
-          border-radius: 10px;
         }
 
-        .auth-primary-btn {
+        .svap-btn-primary {
+          width: 100%;
+          padding: 16px;
+          background: #E85D35;
+          border: none;
+          border-radius: 30px;
+          color: #ffffff;
+          font-size: 0.95rem;
+          font-weight: 700;
+          letter-spacing: 0.8px;
+          cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          width: 100%;
-          padding: 15px 20px;
-          background: var(--btn-cart);
-          border: none;
-          border-radius: 14px;
-          color: #fff;
-          background: #E45821;
-          font-size: 0.95rem;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          cursor: pointer;
-          transition: transform 0.2s, box-shadow 0.2s;
+          gap: 8px;
           margin-top: 4px;
+          transition: background 0.2s, opacity 0.2s;
         }
 
-        .auth-primary-btn:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 12px 30px rgba(96,121,255,0.18);
+        .svap-btn-primary:hover:not(:disabled) {
+          background: #f2663d;
         }
 
-        .auth-primary-btn:disabled {
-          opacity: 0.7;
+        .svap-btn-primary:disabled {
+          opacity: 0.6;
           cursor: not-allowed;
         }
 
-        .auth-spinner {
-          width: 18px;
-          height: 18px;
-          border: 2px solid rgba(255,255,255,0.4);
-          border-top-color: rgba(255,255,255,0.9);
-          border-radius: 50%;
-          animation: spin 0.7s linear infinite;
-        }
-
-        .auth-spinner-small {
-          width: 16px;
-          height: 16px;
-          border: 2px solid rgba(26,46,10,0.3);
-          border-top-color: rgba(26,46,10,0.8);
-          border-radius: 50%;
-          animation: spin 0.7s linear infinite;
-        }
-
-        html[data-theme='dark'] .auth-spinner-small {
-          border: 2px solid rgba(255,255,255,0.3);
-          border-top-color: rgba(255,255,255,0.8);
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        .auth-divider {
+        .svap-divider {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 14px;
+          margin: 10px 0;
         }
 
-        .auth-divider-line {
+        .svap-line {
           flex: 1;
           height: 1px;
-          background: rgba(26,46,10,0.15);
+          background: rgba(255, 87, 34, 0.25);
         }
 
-        html[data-theme='dark'] .auth-divider-line {
-          background: rgba(255, 255, 255, 0.1);
-        }
-
-        .auth-divider-text {
-          font-size: 0.78rem;
-          color: var(--text-mid);
+        .svap-divider-text {
+          font-size: 0.8rem;
+          color: rgba(255, 255, 255, 0.4);
           white-space: nowrap;
         }
 
-        .auth-social-row {
+        .svap-social-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 12px;
+          gap: 14px;
         }
 
-        .auth-social-btn {
+        .svap-btn-social {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          padding: 14px 16px;
-          background: #ffffff;
-          border: 1px solid rgba(0, 0, 0, 0.18);
+          gap: 8px;
+          padding: 14px;
+          background: #18191c;
+          border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 14px;
-          color: var(--text-dark);
-          font-size: 0.88rem;
-          font-weight: 600;
-          letter-spacing: 0.04em;
+          color: #ffffff;
+          font-size: 0.82rem;
+          font-weight: 700;
+          letter-spacing: 0.6px;
           cursor: pointer;
-          transition: background 0.2s, transform 0.2s;
+          transition: background 0.2s;
         }
 
-        html[data-theme='dark'] .auth-social-btn {
-          background: #1a1a1a;
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          color: #f5f5f5;
+        .svap-btn-social:hover:not(:disabled) {
+          background: #202226;
         }
 
-        .auth-social-btn:hover {
-          background: #f2f8dc;
-          transform: translateY(-1px);
-        }
-
-        .auth-social-btn:disabled {
-          opacity: 0.7;
+        .svap-btn-social:disabled {
+          opacity: 0.5;
           cursor: not-allowed;
-          transform: none !important;
         }
 
-        .auth-social-btn.loading {
-          pointer-events: none;
-        }
-
-        html[data-theme='dark'] .auth-social-btn:hover {
-          background: #2a2a2a;
-          transform: translateY(-1px);
-        }
-
-        .auth-switch {
-          margin: 20px 0 0;
+        .svap-footer-text {
           text-align: center;
-          font-size: 0.88rem;
-          color: var(--text-mid);
+          margin-top: auto;
+          padding-top: 24px;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.5);
         }
 
-        .auth-switch-link {
-          color: var(--text-dark);
+        .svap-footer-link {
+          color: #ffffff;
           font-weight: 700;
           text-decoration: none;
-          transition: color 0.2s;
+          margin-left: 4px;
         }
 
-        .auth-switch-link:hover {
-          color: #E45821;
+        .svap-footer-link:hover {
+          color: #E85D35;
         }
 
-        @media (max-width: 480px) {
-          .auth-page {
-            min-height: 100dvh;
-            padding: 18px 10px;
-            align-items: center;
-          }
-          .auth-card {
-            width: 100%;
-            max-width: 360px;
-            padding: 26px 16px;
-            border-radius: 18px;
-          }
-          .auth-card-header { margin-bottom: 22px; }
-          .auth-title { font-size: 1.6rem; }
-          .auth-subtitle { font-size: 0.82rem; }
-          .auth-form { gap: 14px; }
-          .auth-input { padding: 12px 40px; font-size: 0.88rem; }
-          .auth-primary-btn { padding: 13px 16px; font-size: 0.88rem; }
-          .auth-social-btn { padding: 11px 8px; font-size: 0.78rem; }
-          .auth-switch { font-size: 0.78rem; }
+        .svap-spinner {
+          width: 18px;
+          height: 18px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-top-color: #ffffff;
+          border-radius: 50%;
+          animation: svapSpin 0.6s linear infinite;
         }
 
-        @media (min-width: 2400px) {
-          .auth-card {
-            max-width: 520px;
-            padding: 52px 48px;
-          }
-          .auth-title { font-size: 2.4rem; }
-          .auth-input { font-size: 1rem; padding: 16px 50px 16px 46px; }
-          .auth-primary-btn { padding: 16px; font-size: 1rem; }
-          .auth-social-btn { padding: 14px 20px; font-size: 0.88rem; }
+        .svap-spinner-sm {
+          width: 14px;
+          height: 14px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-top-color: #ffffff;
+          border-radius: 50%;
+          animation: svapSpin 0.6s linear infinite;
+        }
+
+        @keyframes svapSpin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>

@@ -82,7 +82,7 @@ const ProductGrid = () => {
 
           {/* Header */}
           <div className="pg-header">
-            <h2 className="pg-title">Latest Listings</h2>
+            <h2 className="pg-title hidden md:block">Latest Listings</h2>
             <button className="pg-viewall" onClick={() => navigate('/all-listings')}>View All</button>
           </div>
 

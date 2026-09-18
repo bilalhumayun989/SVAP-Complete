@@ -35,8 +35,7 @@ app.use((req, res) => {
   res.status(404).json({ error: `Route ${req.originalUrl} not found` });
 });
 
-app.listen(port, () => {
-  console.log(`✅ SwapZone Backend running on http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {  console.log(`✅ SwapZone Backend running on http://localhost:${port}`);
   console.log('Routes:');
   console.log('  POST   /api/auth/signup');
   console.log('  POST   /api/auth/login');

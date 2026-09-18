@@ -15,8 +15,14 @@ exports.createOrder = async (req, res) => {
       shipping_cost,
       discount,
       total,
-      tracking_number
+      tracking_number,
+      transaction_ref,
+      status: requestedStatus,
     } = req.body;
+
+    // Allow 'pending_verification' from swap checkout, otherwise default to 'pending'
+    const allowedStatuses = ['pending', 'pending_verification'];
+    const orderStatus = allowedStatuses.includes(requestedStatus) ? requestedStatus : 'pending';
 
     const { data, error } = await supabaseAdmin
       .from('orders')
@@ -32,8 +38,9 @@ exports.createOrder = async (req, res) => {
         shipping_cost,
         discount: discount || 0,
         total,
-        tracking_number,
-        status: 'pending'
+        tracking_number: tracking_number || null,
+        transaction_ref: transaction_ref || null,
+        status: orderStatus,
       })
       .select()
       .single();
@@ -47,14 +54,16 @@ exports.createOrder = async (req, res) => {
     // are no longer actionable, whether checkout started from a swap or a listing.
     if (swap_request_id || product_id) {
       let requestedProductId = product_id;
+      let offeredProductId = null;
 
       if (swap_request_id) {
         const { data: swapRequest } = await supabaseAdmin
           .from('swap_requests')
-          .select('requested_product_id, status, from_user_id, to_user_id')
+          .select('requested_product_id, offered_product_id, status, from_user_id, to_user_id')
           .eq('id', swap_request_id)
           .single();
         requestedProductId = swapRequest?.requested_product_id;
+        offeredProductId = swapRequest?.offered_product_id;
 
         if (swapRequest?.status === 'accepted' && from_user_id !== swapRequest.from_user_id) {
           await supabaseAdmin.from('notifications').insert({
@@ -68,25 +77,54 @@ exports.createOrder = async (req, res) => {
         }
       }
 
+      // Mark competing requests for the REQUESTED product as unavailable
       if (requestedProductId) {
         const { data: competingRequests, error: competingError } = await supabaseAdmin
           .from('swap_requests')
-          .update({ status: 'rejected' })
+          .update({ status: 'unavailable' })
           .eq('requested_product_id', requestedProductId)
           .eq('status', 'pending')
           .neq('id', swap_request_id)
           .select('id, from_user_id');
 
         if (competingError) {
-          console.error('Error resolving competing swap requests:', competingError);
+          console.error('Error resolving competing swap requests (requested):', competingError);
         } else if (competingRequests?.length) {
           await Promise.all(
             competingRequests.map((request) =>
               supabaseAdmin.from('notifications').insert({
                 user_id: request.from_user_id,
-                type: 'swap_rejected',
-                title: 'Swap Request Unavailable',
-                body: 'This product has already been checked out by another user.',
+                type: 'swap_unavailable',
+                title: 'Product Already Swapped',
+                body: 'This product has already been swapped with another user.',
+                route: '/requests',
+                is_read: false,
+              })
+            )
+          );
+        }
+      }
+
+      // Also mark competing requests for the OFFERED product as unavailable
+      if (offeredProductId) {
+        const { data: competingOffered, error: offeredError } = await supabaseAdmin
+          .from('swap_requests')
+          .update({ status: 'unavailable' })
+          .or(`offered_product_id.eq.${offeredProductId},requested_product_id.eq.${offeredProductId}`)
+          .eq('status', 'pending')
+          .neq('id', swap_request_id)
+          .select('id, from_user_id');
+
+        if (offeredError) {
+          console.error('Error resolving competing swap requests (offered):', offeredError);
+        } else if (competingOffered?.length) {
+          await Promise.all(
+            competingOffered.map((request) =>
+              supabaseAdmin.from('notifications').insert({
+                user_id: request.from_user_id,
+                type: 'swap_unavailable',
+                title: 'Product Already Swapped',
+                body: 'This product has already been swapped with another user.',
                 route: '/requests',
                 is_read: false,
               })
@@ -114,7 +152,7 @@ exports.getOrders = async (req, res) => {
       .from('orders')
       .select('*')
       .or(`from_user_id.eq.${user_id},to_user_id.eq.${user_id}`)
-      .in('status', ['pending', 'completed', 'delivered'])
+      .in('status', ['pending', 'pending_verification', 'confirmed', 'shipped', 'delivered', 'completed', 'cancelled'])
       .order('created_at', { ascending: false });
 
     if (error) {

@@ -98,13 +98,30 @@ const Profile = () => {
           city: savedUser.city || "",
           email: savedUser.email || "",
           phone: savedUser.phone || "",
-          website: savedUser.website || ""
+          website: savedUser.website || "",
+          swap_score: 0,
+          total_swaps: 0,
+          total_listings: 0,
         };
 
         setProfileUser(fallbackProfile);
 
+        // Fetch full profile from API to get swap_score, total_swaps, etc.
+        try {
+          const profileRes = await api.getProfile(savedUser.id);
+          if (profileRes?.data) {
+            setProfileUser((prev: any) => ({
+              ...prev,
+              swap_score: profileRes.data.swap_score ?? 0,
+              total_swaps: profileRes.data.total_swaps ?? 0,
+              total_listings: profileRes.data.total_listings ?? 0,
+              is_verified: profileRes.data.is_verified ?? false,
+            }));
+          }
+        } catch { /* ignore — fallback values used */ }
+
         const { data: productData, error: productError } = await api.getProductsByUser(savedUser.id, true);
-        console.log("Profile products response:", { userId: savedUser.id, productData, productError });
+        // console.log("Profile products response:", { userId: savedUser.id, productData, productError });
 
         if (!productError && Array.isArray(productData)) {
           const activeListings = productData.filter((p: any) => (p.status || "active") === "active");
@@ -335,7 +352,32 @@ const Profile = () => {
               {profileUser.city && <p className="pf-city">{profileUser.city}</p>}
 
               <div className="pf-stats">
-               
+                <div className="pf-stat-block">
+                  <div className="pf-stat">
+                    <span className="pf-stat-num">{listings.length}</span>
+                    <span className="pf-stat-lbl">Listings</span>
+                  </div>
+                </div>
+                <div className="pf-stat-sep" />
+                <div className="pf-stat-block">
+                  <div className="pf-stat">
+                    <span className="pf-stat-num">{profileUser.total_swaps ?? 0}</span>
+                    <span className="pf-stat-lbl">Swaps</span>
+                  </div>
+                </div>
+                {(profileUser.swap_score ?? 0) > 0 && (
+                  <>
+                    <div className="pf-stat-sep" />
+                    <div className="pf-stat-block">
+                      <div className="pf-stat pf-stat--score">
+                        <span className="pf-stat-num pf-stat-num--score">
+                          ⭐ {Number(profileUser.swap_score).toFixed(1)}
+                        </span>
+                        <span className="pf-stat-lbl">Swap Score</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="pf-btns">
@@ -664,6 +706,8 @@ const Profile = () => {
         .pf-stats { display: flex; align-items: center; flex-wrap: wrap; }
         .pf-stat-block { display: flex; align-items: center; }
         .pf-stat { display: flex; flex-direction: column; align-items: flex-start; padding: 0 12px 0 0; }
+        .pf-stat-num { font-size: 1rem; font-weight: 700; color: var(--pf-ink); line-height: 1.2; }
+        .pf-stat-num--score { color: #E45821; }
         .pf-stat-val { font-size: 1rem; font-weight: 700; color: var(--pf-ink); line-height: 1.2; }
         .pf-stat-lbl { font-size: 0.65rem; color: var(--pf-muted); font-weight: 500; }
         .pf-stat-sep { width: 1px; height: 24px; background: var(--pf-line); margin-right: 12px; }

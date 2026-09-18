@@ -1,5 +1,5 @@
 import { HomeHero } from "./HomeHero";
-import Categories from "./Categories";
+// import Categories from "./Categories";
 import MobileCategoriesRow from "./MobileCategoriesRow";
 // import TopSwapersRow from "./TopSwapers/TopSwapersRow";
 import ProductGrid from "./Productgrid";
@@ -14,7 +14,7 @@ const Homemain = () => {
 
       <MobileCategoriesRow />
       {/* Desktop categories — hidden ≤800px via its own CSS */}
-      <Categories />
+      {/* <Categories /> */}
       {/* <TopSwapersRow /> */}
       <ProductGrid />
       <Footer />

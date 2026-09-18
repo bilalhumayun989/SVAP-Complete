@@ -82,7 +82,7 @@ const StoriesRow = () => {
       )}
 
       <div className="stories-head">
-        <h2 className="stories-title">Stories</h2>
+        <h2 className="stories-title">New listings</h2>
       </div>
 
       <div className="stories-row" aria-label="Product stories row">
@@ -122,7 +122,7 @@ const StoriesRow = () => {
         .stories-section {
           width: 100%;
           background: var(--bg);
-          padding: 72px 0 4px;
+          padding: 22px 0 4px;
         }
 
         .stories-head {

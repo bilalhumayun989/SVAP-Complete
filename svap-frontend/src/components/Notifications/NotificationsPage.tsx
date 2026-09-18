@@ -17,7 +17,7 @@ interface Notif {
 }
 
 const iconMap = (type: NotifType) => {
-  if (type === "swap_request" || type === "swap_accepted" || type === "swap_rejected")
+  if (type === "swap_request" || type === "swap_accepted" || type === "swap_rejected" || type === "swap_unavailable")
     return <FiRepeat size={16} />;
   if (type === "order_update") return <FiShoppingBag size={16} />;
   return <FiBell size={16} />;
@@ -26,7 +26,7 @@ const iconMap = (type: NotifType) => {
 const colorMap = (type: NotifType) => {
   if (type === "swap_request") return "#8DC63F";
   if (type === "swap_accepted") return "#22c55e";
-  if (type === "swap_rejected") return "#ef4444";
+  if (type === "swap_rejected" || type === "swap_unavailable") return "#ef4444";
   if (type === "order_update") return "#E45821";
   return "#8b5cf6";
 };
@@ -42,7 +42,7 @@ function timeAgo(dateStr: string): string {
   return `${d}d ago`;
 }
 
-type FilterTab = "all" | "unread" | "swaps" | "orders";
+type FilterTab = "all" | "unread" | "swaps" ;
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
@@ -69,7 +69,6 @@ const NotificationsPage = () => {
   const filtered = notifs.filter(n => {
     if (activeTab === "unread") return !n.is_read;
     if (activeTab === "swaps") return n.type.startsWith("swap");
-    if (activeTab === "orders") return n.type === "order_update";
     return true;
   });
 
@@ -106,7 +105,7 @@ const NotificationsPage = () => {
 
       {/* Filter tabs */}
       <div className="np-tabs">
-        {(["all", "unread", "orders", "orders"] as FilterTab[]).map(tab => (
+        {(["all", "unread", "swaps", "orders"] as FilterTab[]).map(tab => (
           <button
             key={tab}
             className={`np-tab ${activeTab === tab ? "np-tab--active" : ""}`}

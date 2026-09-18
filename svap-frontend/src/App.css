@@ -13,7 +13,7 @@
   /* push content right of sidebar — use CSS variable for dynamic width */
   padding-left: var(--sidebar-width, 240px);
   box-sizing: border-box;
-  background: var(--bg-section);
+  background: #0a0a0a;
   transition: padding-left 0.3s ease;
 }
 

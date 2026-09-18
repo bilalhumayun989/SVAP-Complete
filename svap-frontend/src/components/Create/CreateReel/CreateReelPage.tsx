@@ -7,7 +7,6 @@ import { api } from "../../../services/api";
 interface ProductOption {
   id: string;
   title: string;
-  price?: number | string | null;
   image_urls?: string[] | null;
   video_url?: string | null;
 }
@@ -66,7 +65,9 @@ const CreateReelPage = () => {
 
       for (const userId of userIds) {
         try {
-          const response = await api.getProductsByUser(userId);
+          // console.log('[CreateReel] Fetching products for userId:', userId);
+          const response = await api.getProductsByUser(userId, true); // activeOnly = true
+          // console.log('[CreateReel] Response:', response);
           const userProducts = response?.data || [];
           userProducts.forEach((product: ProductOption) => {
             if (product?.id) productsById.set(product.id, product);
@@ -84,7 +85,10 @@ const CreateReelPage = () => {
         return;
       }
 
-      let query = supabase.from("products").select("id,title,price,image_urls,video_url");
+      let query = supabase
+        .from("products")
+        .select("id,title,image_urls,video_url")
+        .eq("status", "active"); // Only active products
       query = userIds.length === 1 ? query.eq("user_id", userIds[0]) : query.in("user_id", userIds);
       const { data, error } = await query.order("created_at", { ascending: false });
 

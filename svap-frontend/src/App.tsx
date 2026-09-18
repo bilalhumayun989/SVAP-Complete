@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import Lenis from 'lenis'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
@@ -6,11 +6,14 @@ import './App.css'
 import { supabase } from './services/supabase'
 import { api } from './services/api'
 import { NotificationProvider, useNotifications } from './context/NotificationContext'
+import StartingAnimation from './components/Main-components/StartingAnimation'
 import Navbar from './components/Main-components/Navbar'
 import Homemain from './components/Home-page/Homemain'
 import ProductDetailPage from './components/Product-detail/ProductDetailPage.tsx'
 import Login from './components/Auth/Login'
 import Signup from './components/Auth/Signup'
+import ForgotPassword from './components/Auth/ForgotPassword'
+import ResetPassword from './components/Auth/ResetPassword'
 import Profile from './components/Profile/Profile'
 import UserProfile from './components/Profile/UserProfile'
 import Requests from './components/Requests/Requests'
@@ -21,6 +24,7 @@ import AllProductGrid from './components/Category/AllProductGrid'
 import OrdersPage from './components/Orders/OrdersPage'
 import ListProductPage from './components/ListProduct/ListProductPage'
 import CheckoutPage from './components/Checkout/CheckoutPage'
+import SwapCheckoutPage from './components/Checkout/SwapCheckoutPage'
 import SearchPage from './components/Search/SearchPage'
 import ReelsPage from './components/Reels/ReelsPage'
 import NotificationsPage from './components/Notifications/NotificationsPage'
@@ -32,6 +36,7 @@ import MobileNav from './components/Main-components/MobileNav.tsx'
 import TopNavbar from './components/Main-components/TopNavbar.tsx'
 import AboutUs from './components/Footer-pages/AboutUs'
 import HelpCenter from './components/Footer-pages/HelpCenter'
+import HelpSupport from './components/Profile/HelpSupport'
 import SafetyTips from './components/Footer-pages/SafetyTips'
 import ReportProblem from './components/Footer-pages/ReportProblem'
 import ContactUs from './components/Footer-pages/ContactUs'
@@ -104,7 +109,7 @@ function ScrollToTop() {
 }
 
 // Pages that should NOT have sidebar offset (full-screen)
-const FULL_SCREEN_ROUTES = ['/reels', '/reel-upload', '/create-reel', '/login', '/signup']
+const FULL_SCREEN_ROUTES = ['/reels', '/reel-upload', '/create-reel', '/login', '/signup', '/forgot-password', '/reset-password']
 
 function AppInner() {
   const lenisInstanceRef = useRef<Lenis | null>(null)
@@ -112,7 +117,11 @@ function AppInner() {
   const navigate = useNavigate()
   const isFullScreen = FULL_SCREEN_ROUTES.some(r => pathname.startsWith(r))
   const isProductRoute = pathname.startsWith('/product/')
+  const isSearchPage = pathname === '/search'
   const isListProductPage = pathname === '/list-product'
+  const isForgotPassword = pathname === '/forgot-password'
+  const isResetPassword = pathname === '/reset-password'
+  const hideTopBar = isListProductPage || isSearchPage || isForgotPassword || isResetPassword
 
   // Check for existing session on app load
   useEffect(() => {
@@ -302,21 +311,27 @@ function AppInner() {
   return (
     <>
       <GlobalToasts />
-      <Navbar />
-      <TopNavbar />
+      {!isFullScreen && <Navbar />}
+      {!hideTopBar && <TopNavbar />}
       <ScrollToTop />
 
       {isFullScreen ? (
-        <Routes>
-          <Route path="/reels"       element={<ReelsPage />} />
-          <Route path="/reel-upload" element={<CreateReelPage />} />
-          <Route path="/create-reel" element={<CreateReelPage />} />
-          <Route path="/login"       element={<Login />} />
-          <Route path="/signup"      element={<Signup />} />
-        </Routes>
+        <>
+          <Routes>
+            <Route path="/reels"       element={<ReelsPage />} />
+            <Route path="/reel-upload" element={<CreateReelPage />} />
+            <Route path="/create-reel" element={<CreateReelPage />} />
+            <Route path="/login"       element={<Login />} />
+            <Route path="/signup"      element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+          </Routes>
+          {/* Bottom nav sirf /reels par show hoti hai — baaki full-screen routes par nahi */}
+          {pathname.startsWith('/reels') && <MobileNav />}
+        </>
       ) : (
         <div className="app-layout">
-            <main className={`app-main${isListProductPage ? ' app-main--no-topbar' : ''}`}>
+            <main className={`app-main${hideTopBar ? ' app-main--no-topbar' : ''}`}>
             <Routes>
               <Route path="/"                   element={<Homemain />} />
               <Route path="/categories"         element={<AllCategoriesPage />} />
@@ -332,10 +347,12 @@ function AppInner() {
               <Route path="/orders"             element={<OrdersPage />} />
               <Route path="/list-product"       element={<ListProductPage />} />
               <Route path="/cart"               element={<CartPage />} />
-              <Route path="/checkout"           element={<CheckoutPage />} />
+              <Route path="/checkout"                element={<CheckoutPage />} />
+              <Route path="/checkout/:swapRequestId" element={<SwapCheckoutPage />} />
               <Route path="/search"             element={<SearchPage />} />
               <Route path="/notifications"      element={<NotificationsPage />} />
               <Route path="/create"             element={<CreatePage />} />
+              <Route path="/help-support"       element={<HelpSupport />} />
               <Route path="/about"              element={<AboutUs />} />
               <Route path="/help-center"        element={<HelpCenter />} />
               <Route path="/safety-tips"        element={<SafetyTips />} />
@@ -346,7 +363,7 @@ function AppInner() {
               <Route path="/cookie-policy"      element={<CookiePolicy />} />
             </Routes>
           </main>
-          {!isProductRoute && <MobileNav />}
+          {!isProductRoute && !isSearchPage && <MobileNav />}
         </div>
       )}
     </>
@@ -354,10 +371,19 @@ function AppInner() {
 }
 
 function App() {
+  const [showAnimation, setShowAnimation] = useState(true);
+  const [animationComplete, setAnimationComplete] = useState(false);
+
+  const handleAnimationComplete = () => {
+    setShowAnimation(false);
+    setAnimationComplete(true);
+  };
+
   return (
     <NotificationProvider>
       <BrowserRouter>
-        <AppInner />
+        {showAnimation && <StartingAnimation onComplete={handleAnimationComplete} />}
+        {animationComplete && <AppInner />}
       </BrowserRouter>
     </NotificationProvider>
   )

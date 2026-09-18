@@ -67,7 +67,7 @@ const CheckoutPage = () => {
         shipping_cost: state.costBreakdown.deliveryFee,
         discount: 0,
         total: state.costBreakdown.totalAmount,
-        tracking_number: `SVAP-${Date.now()}`
+        tracking_number: null
       };
 
       const res = await api.createOrder(orderData);

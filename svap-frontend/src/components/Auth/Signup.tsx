@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FiUser, FiLock, FiEye, FiEyeOff, FiMail, FiPhone } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiMail, FiArrowRight, FiArrowLeft } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
-import { AiFillApple } from "react-icons/ai";
 import { api } from "../../services/api";
 import { supabase } from "../../services/supabase";
 
@@ -29,7 +28,6 @@ const Signup = () => {
   const [error, setError] = useState("");
   const [showLoginRedirect, setShowLoginRedirect] = useState(false);
 
-  // Countdown timer for resend
   useEffect(() => {
     if (resendTimer <= 0) return;
     const t = setTimeout(() => setResendTimer((v) => v - 1), 1000);
@@ -45,7 +43,6 @@ const Signup = () => {
   const isDuplicateEmailError = (message = "") => /already registered|Google se registered/i.test(message);
   const goToLogin = () => navigate('/login');
 
-  // ── STEP 1: Send OTP ───────────────────────────────────────────────────────
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -76,7 +73,6 @@ const Signup = () => {
     }
   };
 
-  // ── OTP input handlers ─────────────────────────────────────────────────────
   const handleOtpChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
     const next = [...otpDigits];
@@ -100,7 +96,6 @@ const Signup = () => {
     }
   };
 
-  // ── STEP 2: Verify OTP + Create Account ───────────────────────────────────
   const handleVerifyAndSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -110,7 +105,6 @@ const Signup = () => {
 
     setLoading(true);
     try {
-      // 1. Verify OTP — backend creates/finds user and returns session
       const otpRes = await api.verifyOtp(form.email, otp);
       if (otpRes.error) throw new Error(otpRes.error);
 
@@ -119,29 +113,21 @@ const Signup = () => {
 
       if (!userId) throw new Error("Verification failed. Please try again.");
 
-      // 2. Update profile with username, phone, password via signup endpoint
-      //    (only if this is a new user — signup handles upsert gracefully)
       await api.signup({
         email: userEmail,
         password: form.password,
         username: form.username,
         phone: form.phone,
-      }).catch(() => {
-        // Ignore if user already exists — profile update will handle it
-      });
+      }).catch(() => {});
 
-      // 3. Also update profile table with username/phone directly
       try {
         await api.updateProfile(userId, {
           username: form.username,
           phone: form.phone,
           full_name: form.username,
         });
-      } catch {
-        // non-fatal
-      }
+      } catch {}
 
-      // 4. Set local session
       if (otpRes.session?.access_token) {
         const { supabase: sb } = await import("../../services/supabase");
         await sb.auth.setSession({
@@ -169,11 +155,10 @@ const Signup = () => {
     }
   };
 
-  // ── Google OAuth ───────────────────────────────────────────────────────────
   const handleGoogleSignup = async () => {
     setGoogleLoading(true);
     setError("");
-    
+
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -186,20 +171,14 @@ const Signup = () => {
           }
         }
       });
-      
-      if (error) {
-        throw new Error(error.message || "Google sign-up failed. Please try again.");
-      }
-      
-      // The auth state change will be handled by the useEffect in App.tsx
-      // Keep loading state until redirect happens
+
+      if (error) throw new Error(error.message || "Google sign-up failed. Please try again.");
     } catch (err: any) {
       setError(err.message || "Google sign-up failed. Please try again.");
       setGoogleLoading(false);
     }
   };
 
-  // ── Resend OTP ─────────────────────────────────────────────────────────────
   const handleResend = async () => {
     if (resendTimer > 0) return;
     setError("");
@@ -223,573 +202,546 @@ const Signup = () => {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-right">
-        <div className="auth-card signup-card">
-
-          {/* ── STEP 1: Registration Form ── */}
-          {step === "form" && (
-            <>
-              <h1 className="auth-title">Create Account</h1>
-              <p className="auth-subtitle">Join 50,000+ Swappers Across Pakistan</p>
-
-              <form onSubmit={handleSendOtp} className="auth-form" noValidate>
-                <div className="auth-field">
-                  <div className="auth-input-wrap">
-                    <span className="auth-input-icon"><FiUser /></span>
-                    <input
-                      type="text"
-                      value={form.username}
-                      onChange={(e) => handleChange("username", e.target.value)}
-                      placeholder="Username"
-                      className="auth-input"
-                    />
-                  </div>
-                </div>
-
-                <div className="auth-field">
-                  <div className="auth-input-wrap">
-                    <span className="auth-input-icon"><FiMail /></span>
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => handleChange("email", e.target.value)}
-                      placeholder="Contactatsvap@gmail.com"
-                      className="auth-input"
-                    />
-                  </div>
-                </div>
-
-                <div className="auth-field">
-                  <div className="auth-input-wrap">
-                    <span className="auth-input-icon"><FiPhone /></span>
-                    <input
-                      type="tel"
-                      value={form.phone}
-                      onChange={(e) => handleChange("phone", e.target.value)}
-                      placeholder="Phone Number e.g. 03001234567"
-                      className="auth-input"
-                    />
-                  </div>
-                </div>
-
-                <div className="auth-field">
-                  <div className="auth-input-wrap">
-                    <span className="auth-input-icon"><FiLock /></span>
-                    <input
-                      type={showPass ? "text" : "password"}
-                      value={form.password}
-                      onChange={(e) => handleChange("password", e.target.value)}
-                      placeholder="Password"
-                      className="auth-input"
-                      autoComplete="new-password"
-                    />
-                    <button type="button" onClick={() => setShowPass(!showPass)} className="auth-eye-btn">
-                      {showPass ? <FiEyeOff /> : <FiEye />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="auth-field">
-                  <div className="auth-input-wrap">
-                    <span className="auth-input-icon"><FiLock /></span>
-                    <input
-                      type={showConfirmPass ? "text" : "password"}
-                      value={form.confirmPassword}
-                      onChange={(e) => handleChange("confirmPassword", e.target.value)}
-                      placeholder="Confirm Password"
-                      className="auth-input"
-                      autoComplete="new-password"
-                    />
-                    <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="auth-eye-btn">
-                      {showConfirmPass ? <FiEyeOff /> : <FiEye />}
-                    </button>
-                  </div>
-                </div>
-
-                {error && <p className="auth-error">{error}</p>}
-
-                {showLoginRedirect && (
-                  <button type="button" className="auth-primary-btn" onClick={goToLogin}>
-                    Login karein
-                  </button>
-                )}
-
-                {!showLoginRedirect && (
-                  <button type="submit" className="auth-primary-btn" disabled={loading}>
-                    {loading ? <span className="auth-spinner" /> : <span>Send Verification Code</span>}
-                  </button>
-                )}
-
-                <div className="auth-divider">
-                  <span className="auth-divider-line" />
-                  <span className="auth-divider-text">Or Continue With</span>
-                  <span className="auth-divider-line" />
-                </div>
-
-                <div className="auth-social-row">
-                  <button
-                    type="button"
-                    className={`auth-social-btn ${googleLoading ? 'loading' : ''}`}
-                    id="signup-google"
-                    onClick={handleGoogleSignup}
-                    disabled={googleLoading || loading}
-                  >
-                    {googleLoading ? (
-                      <>
-                        <span className="auth-spinner-small" />
-                        <span>REDIRECTING...</span>
-                      </>
-                    ) : (
-                      <>
-                        <FcGoogle size={20} />
-                        <span>GOOGLE</span>
-                      </>
-                    )}
-                  </button>
-                <button type="button" className="auth-social-btn" id="login-apple" disabled>
-  <AiFillApple size={20} />
-  <span>APPLE</span>
-</button>
-                </div>
-              </form>
-
-              <p className="auth-switch">
-                Already Have An Account?{" "}
-                <Link to="/login" className="auth-switch-link">Log In</Link>
-              </p>
-            </>
-          )}
-
-          {/* ── STEP 2: OTP Verification ── */}
-          {step === "otp" && (
-            <>
-              <button className="auth-back-btn" onClick={() => { setStep("form"); setError(""); }}>
-                ← Back
+    <div className="dark-auth-page">
+      <div className="dark-auth-card">
+        {step === "form" && (
+          <>
+            <div>
+              <button 
+                type="button" 
+                className="dark-home-back-btn" 
+                onClick={() => navigate('/')} 
+                aria-label="Go to Home"
+              >
+                <FiArrowLeft size={24} />
               </button>
 
-              <div className="auth-otp-icon">
-                <FiMail size={28} />
+              <h1 className="dark-auth-title">Create Account</h1>
+              <p className="dark-auth-subtitle">Join the Svap Community</p>
+            </div>
+
+            <form onSubmit={handleSendOtp} className="dark-auth-form" noValidate>
+              <div className="dark-field">
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  placeholder="EMAIL"
+                  className="dark-input"
+                />
               </div>
-              <h1 className="auth-title">Verify Email</h1>
-              <p className="auth-subtitle">
+
+              <div className="dark-field">
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => handleChange("phone", e.target.value)}
+                  placeholder="PHONE NUMBER"
+                  className="dark-input"
+                />
+              </div>
+
+              <div className="dark-field">
+                <input
+                  type="text"
+                  value={form.username}
+                  onChange={(e) => handleChange("username", e.target.value)}
+                  placeholder="USERNAME"
+                  className="dark-input"
+                />
+                <span className="dark-field-hint">
+                  3–20 characters · letters, numbers and underscores only · no spaces
+                </span>
+              </div>
+
+              <div className="dark-field">
+                <div className="dark-input-wrap">
+                  <input
+                    type={showPass ? "text" : "password"}
+                    value={form.password}
+                    onChange={(e) => handleChange("password", e.target.value)}
+                    placeholder="PASSWORD"
+                    className="dark-input"
+                    autoComplete="new-password"
+                  />
+                  <button type="button" onClick={() => setShowPass(!showPass)} className="dark-eye-btn">
+                    {showPass ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="dark-field">
+                <div className="dark-input-wrap">
+                  <input
+                    type={showConfirmPass ? "text" : "password"}
+                    value={form.confirmPassword}
+                    onChange={(e) => handleChange("confirmPassword", e.target.value)}
+                    placeholder="CONFIRM PASSWORD"
+                    className="dark-input"
+                    autoComplete="new-password"
+                  />
+                  <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="dark-eye-btn">
+                    {showConfirmPass ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {error && <p className="dark-error">{error}</p>}
+
+              {showLoginRedirect ? (
+                <button type="button" className="dark-primary-btn" onClick={goToLogin}>
+                  <span className="btn-icon-wrap"><FiArrowRight /></span>
+                  <span>Login karein</span>
+                </button>
+              ) : (
+                <button type="submit" className="dark-primary-btn" disabled={loading}>
+                  {loading ? (
+                    <span className="dark-spinner" />
+                  ) : (
+                    <>
+                      <span className="btn-icon-wrap"><FiArrowRight /></span>
+                      <span>Create Account</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              <div className="dark-divider">
+                <span className="dark-divider-line" />
+                <span className="dark-divider-text">Or</span>
+                <span className="dark-divider-line" />
+              </div>
+
+              <button
+                type="button"
+                className={`dark-social-btn ${googleLoading ? "loading" : ""}`}
+                onClick={handleGoogleSignup}
+                disabled={googleLoading || loading}
+              >
+                {googleLoading ? (
+                  <>
+                    <span className="dark-spinner-small" />
+                    <span>REDIRECTING...</span>
+                  </>
+                ) : (
+                  <>
+                    <FcGoogle size={20} />
+                    <span>GOOGLE</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            <p className="dark-switch">
+              Already Have An Account?{" "}
+              <Link to="/login" className="dark-switch-link">Log In</Link>
+            </p>
+          </>
+        )}
+
+        {step === "otp" && (
+          <div className="dark-otp-container">
+            <div>
+              <button className="dark-back-btn" onClick={() => { setStep("form"); setError(""); }}>
+                <FiArrowLeft size={18} style={{ marginRight: "6px" }} /> Back
+              </button>
+
+              <div className="dark-otp-icon">
+                <FiMail size={24} />
+              </div>
+              <h1 className="dark-auth-title">Verify Email</h1>
+              <p className="dark-auth-subtitle">
                 We sent a 6-digit code to<br />
                 <strong style={{ color: "#fff" }}>{form.email}</strong>
               </p>
+            </div>
 
-              <form onSubmit={handleVerifyAndSignup} className="auth-form" noValidate>
-                <div className="auth-otp-row" onPaste={handleOtpPaste}>
-                  {otpDigits.map((digit, i) => (
-                    <input
-                      key={i}
-                      ref={(el) => { otpRefs.current[i] = el; }}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(i, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                      className={`auth-otp-box ${digit ? "auth-otp-box--filled" : ""}`}
-                    />
-                  ))}
-                </div>
-
-                {error && <p className="auth-error">{error}</p>}
-
-                <button type="submit" className="auth-primary-btn" disabled={loading}>
-                  {loading ? <span className="auth-spinner" /> : <span>Verify &amp; Create Account</span>}
-                </button>
-              </form>
-
-              <div className="auth-resend">
-                {resendTimer > 0 ? (
-                  <span className="auth-resend-timer">Resend code in {resendTimer}s</span>
-                ) : (
-                  <button className="auth-resend-btn" onClick={handleResend} disabled={loading}>
-                    Resend Code
-                  </button>
-                )}
+            <form onSubmit={handleVerifyAndSignup} className="dark-auth-form" noValidate>
+              <div className="dark-otp-row" onPaste={handleOtpPaste}>
+                {otpDigits.map((digit, i) => (
+                  <input
+                    key={i}
+                    ref={(el) => { otpRefs.current[i] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(i, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                    className={`dark-otp-box ${digit ? "filled" : ""}`}
+                  />
+                ))}
               </div>
-            </>
-          )}
-        </div>
+
+              {error && <p className="dark-error">{error}</p>}
+
+              <button type="submit" className="dark-primary-btn" disabled={loading}>
+                {loading ? (
+                  <span className="dark-spinner" />
+                ) : (
+                  <>
+                    <span className="btn-icon-wrap"><FiArrowRight /></span>
+                    <span>Verify &amp; Create Account</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="dark-resend">
+              {resendTimer > 0 ? (
+                <span className="dark-resend-timer">Resend code in {resendTimer}s</span>
+              ) : (
+                <button className="dark-resend-btn" onClick={handleResend} disabled={loading}>
+                  Resend Code
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <style>{`
-        .auth-page {
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        .dark-auth-page {
           min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: var(--bg);
-          box-sizing: border-box;
-          padding: 40px 20px;
-          position: relative;
-        }
-
-        .auth-right {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 10px 24px;
-          box-sizing: border-box;
-          position: relative;
-          z-index: 1;
-        }
-
-        /* Same gradient background as Login */
-        .auth-page::before {
-          content: '';
-          position: fixed;
-          inset: 0;
-          background: linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%);
-          z-index: 0;
-          pointer-events: none;
-        }
-        html[data-theme='dark'] .auth-page::before {
-          background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
-        }
-
-        .auth-card {
+          min-height: 100dvh;
           width: 100%;
-          max-width: 420px;
-          background: rgba(255,255,255,0.95);
-          border: 1px solid rgba(228,88,33,0.14);
-          border-radius: 20px;
-          padding: 36px 28px;
-          box-sizing: border-box;
-          box-shadow: 0 28px 80px rgba(26,46,10,0.08);
+          background-color: #000000;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 24px 20px;
+          color: #ffffff;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        html[data-theme='dark'] .auth-card {
-          background: rgba(26, 26, 26, 0.95);
-          border: 1px solid rgba(228, 88, 33, 0.15);
-          box-shadow: 0 28px 80px rgba(0,0,0,0.4);
+        .dark-auth-card {
+          width: 100%;
+          max-width: 440px;
+          min-height: calc(100dvh - 48px);
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
         }
 
-        .auth-back-btn {
+        .dark-home-back-btn {
           background: none;
           border: none;
-          color: var(--text-muted);
-          font-size: 0.82rem;
+          color: #ffffff;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          margin-bottom: 16px;
+          transition: opacity 0.2s;
+        }
+
+        .dark-home-back-btn:hover {
+          opacity: 0.8;
+        }
+
+        .dark-auth-title {
+          color: #ffffff;
+          font-size: 2rem;
+          font-weight: 800;
+          margin: 0 0 4px 0;
+          letter-spacing: -0.02em;
+        }
+
+        .dark-auth-subtitle {
+          color: #8e8e93;
+          font-size: 0.92rem;
+          margin: 0 0 20px 0;
+          font-weight: 400;
+        }
+
+        .dark-auth-form {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          flex: 1;
+          justify-content: center;
+        }
+
+        .dark-field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .dark-input-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+          width: 100%;
+        }
+
+        .dark-input {
+          width: 100%;
+          background: #1c1c1e;
+          border: 1px solid transparent;
+          border-radius: 16px;
+          color: #ffffff;
+          font-size: 0.88rem;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          padding: 16px 48px 16px 18px;
+          outline: none;
+          transition: border-color 0.2s, background 0.2s;
+        }
+
+        .dark-input::placeholder {
+          color: #636366;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+        }
+
+        .dark-input:focus {
+          background: #242426;
+          border-color: #3a3a3c;
+        }
+
+        .dark-eye-btn {
+          position: absolute;
+          right: 18px;
+          background: none;
+          border: none;
+          color: #8e8e93;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+        }
+
+        .dark-field-hint {
+          color: #636366;
+          font-size: 0.72rem;
+          line-height: 1.3;
+          padding: 0 4px;
+        }
+
+        .dark-switch {
+          text-align: center;
+          color: #8e8e93;
+          font-size: 0.9rem;
+          margin-top: auto;
+          padding-top: 20px;
+        }
+
+        .dark-switch-link {
+          color: #ffffff;
+          font-weight: 700;
+          text-decoration: none;
+          margin-left: 4px;
+        }
+
+        .dark-switch-link:hover {
+          color: #f26539;
+        }
+
+        .dark-divider {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin: 4px 0;
+        }
+
+        .dark-divider-line {
+          flex: 1;
+          height: 1px;
+          background: #2c2c2e;
+        }
+
+        .dark-divider-text {
+          color: #636366;
+          font-size: 0.85rem;
+        }
+
+        .dark-social-btn {
+          width: 100%;
+          background: #1c1c1e;
+          border: none;
+          border-radius: 16px;
+          color: #ffffff;
+          font-size: 0.85rem;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          padding: 16px 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .dark-social-btn:hover:not(:disabled) {
+          background: #2c2c2e;
+        }
+
+        .dark-social-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .dark-primary-btn {
+          width: 100%;
+          background: #f26539;
+          border: none;
+          border-radius: 30px;
+          color: #ffffff;
+          font-size: 1rem;
+          font-weight: 700;
+          padding: 16px 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          cursor: pointer;
+          margin-top: 6px;
+          transition: transform 0.2s, background 0.2s;
+        }
+
+        .dark-primary-btn:hover:not(:disabled) {
+          background: #e05528;
+          transform: translateY(-1px);
+        }
+
+        .dark-primary-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .btn-icon-wrap {
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.25);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #ffffff;
+          font-size: 1.1rem;
+        }
+
+        .dark-error {
+          color: #ff453a;
+          font-size: 0.8rem;
+          text-align: center;
+          margin: 0;
+          padding: 10px 14px;
+          background: rgba(255, 69, 58, 0.1);
+          border-radius: 10px;
+        }
+
+        /* OTP View Styling */
+        .dark-otp-container {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          min-height: calc(100dvh - 48px);
+          width: 100%;
+        }
+
+        .dark-back-btn {
+          background: none;
+          border: none;
+          color: #8e8e93;
+          font-size: 0.9rem;
           font-weight: 600;
           cursor: pointer;
           padding: 0;
           margin-bottom: 20px;
-          display: block;
-          transition: color 0.2s;
+          align-self: flex-start;
+          display: inline-flex;
+          align-items: center;
         }
-        .auth-back-btn:hover { color: var(--text-dark); }
 
-        .auth-otp-icon {
-          width: 56px;
-          height: 56px;
+        .dark-otp-icon {
+          width: 52px;
+          height: 52px;
           border-radius: 50%;
-          background: rgba(228,88,33,0.12);
-          border: 1px solid rgba(228,88,33,0.3);
+          background: rgba(242, 101, 57, 0.15);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #E45821;
+          color: #f26539;
           margin-bottom: 16px;
         }
 
-        .auth-title {
-          color: var(--text-dark);
-          font-size: 1.7rem;
-          font-weight: 800;
-          margin: 0 0 6px;
-        }
-
-        .auth-subtitle {
-          color: var(--text-muted);
-          font-size: 0.85rem;
-          margin: 0 0 26px;
-          line-height: 1.6;
-        }
-
-        .auth-form {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-        }
-
-        .auth-field {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .auth-input-wrap {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .auth-input-icon {
-          position: absolute;
-          left: 14px;
-          color: rgba(26,46,10,0.35);
-          font-size: 16px;
-          pointer-events: none;
-          display: flex;
-          align-items: center;
-        }
-        html[data-theme='dark'] .auth-input-icon {
-          color: rgba(255,255,255,0.35);
-        }
-
-        .auth-input {
-          width: 100%;
-          background: #f2f8dc;
-          border: 1px solid rgba(141,198,63,0.32);
-          border-radius: 12px;
-          color: var(--text-dark);
-          font-size: 0.9rem;
-          padding: 14px 44px 14px 42px;
-          outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s;
-          box-sizing: border-box;
-        }
-        html[data-theme='dark'] .auth-input {
-          background: #1a1a1a;
-          border: 1px solid rgba(228,88,33,0.25);
-          color: #f5f5f5;
-        }
-        .auth-input::placeholder { color: rgba(26,46,10,0.45); }
-        html[data-theme='dark'] .auth-input::placeholder { color: rgba(255,255,255,0.35); }
-        .auth-input:focus {
-          border-color: #8DC63F;
-          box-shadow: 0 0 0 4px rgba(141,198,63,0.12);
-          background: #fff;
-        }
-        html[data-theme='dark'] .auth-input:focus {
-          background: #0f0f0f;
-          border-color: #E45821;
-          box-shadow: 0 0 0 4px rgba(228,88,33,0.1);
-        }
-
-        .auth-eye-btn {
-          position: absolute;
-          right: 14px;
-          background: none;
-          border: none;
-          color: rgba(26,46,10,0.45);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          padding: 0;
-          transition: color 0.2s;
-        }
-        html[data-theme='dark'] .auth-eye-btn { color: rgba(255,255,255,0.4); }
-        .auth-eye-btn:hover { color: rgba(26,46,10,0.8); }
-        html[data-theme='dark'] .auth-eye-btn:hover { color: rgba(255,255,255,0.8); }
-
-        /* OTP boxes */
-        .auth-otp-row {
+        .dark-otp-row {
           display: flex;
           gap: 10px;
           justify-content: center;
-          margin: 8px 0 4px;
+          margin: 16px 0;
         }
 
-        .auth-otp-box {
+        .dark-otp-box {
           width: 48px;
           height: 56px;
           text-align: center;
-          font-size: 1.4rem;
+          font-size: 1.25rem;
           font-weight: 700;
-          color: var(--text-dark);
-          background: #f2f8dc;
-          border: 1.5px solid rgba(141,198,63,0.32);
-          border-radius: 12px;
+          color: #ffffff;
+          background: #1c1c1e;
+          border: 1px solid transparent;
+          border-radius: 14px;
           outline: none;
-          caret-color: #E45821;
-          transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        html[data-theme='dark'] .auth-otp-box {
-          background: #1a1a1a;
-          border-color: rgba(255,255,255,0.12);
-          color: #fff;
-        }
-        .auth-otp-box:focus {
-          border-color: #E45821;
-          box-shadow: 0 0 0 3px rgba(228,88,33,0.15);
-        }
-        .auth-otp-box--filled {
-          border-color: #E45821;
-          background: rgba(228,88,33,0.06);
-        }
-        html[data-theme='dark'] .auth-otp-box--filled {
-          background: rgba(228,88,33,0.1);
         }
 
-        .auth-error {
-          color: #c04444;
-          font-size: 0.8rem;
-          margin: 0;
+        .dark-otp-box:focus {
+          border-color: #f26539;
+        }
+
+        .dark-otp-box.filled {
+          border-color: #f26539;
+          background: rgba(242, 101, 57, 0.1);
+        }
+
+        .dark-resend {
           text-align: center;
-          padding: 8px 12px;
-          background: rgba(255,107,107,0.1);
-          border-radius: 8px;
-          border: 1px solid rgba(255,107,107,0.22);
+          margin-top: auto;
+          padding-top: 20px;
         }
 
-        .auth-primary-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          width: 100%;
-          padding: 15px 20px;
-          background: #E45821;
-          border: none;
-          border-radius: 12px;
-          color: #fff;
-          font-size: 0.95rem;
-          font-weight: 700;
-          letter-spacing: 0.03em;
-          cursor: pointer;
-          transition: transform 0.2s, box-shadow 0.2s;
-          margin-top: 6px;
-        }
-        .auth-primary-btn:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 12px 30px rgba(228,88,33,0.25);
-        }
-        .auth-primary-btn:disabled { opacity: 0.7; cursor: not-allowed; }
-
-        .auth-spinner {
-          width: 18px;
-          height: 18px;
-          border: 2px solid rgba(255,255,255,0.4);
-          border-top-color: rgba(255,255,255,0.9);
-          border-radius: 50%;
-          animation: spin 0.7s linear infinite;
+        .dark-resend-timer {
+          font-size: 0.85rem;
+          color: #8e8e93;
         }
 
-        .auth-spinner-small {
-          width: 16px;
-          height: 16px;
-          border: 2px solid rgba(26,46,10,0.3);
-          border-top-color: rgba(26,46,10,0.8);
-          border-radius: 50%;
-          animation: spin 0.7s linear infinite;
-        }
-
-        html[data-theme='dark'] .auth-spinner-small {
-          border: 2px solid rgba(255,255,255,0.3);
-          border-top-color: rgba(255,255,255,0.8);
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .auth-resend {
-          text-align: center;
-          margin-top: 18px;
-        }
-        .auth-resend-timer {
-          font-size: 0.82rem;
-          color: var(--text-muted);
-        }
-        .auth-resend-btn {
+        .dark-resend-btn {
           background: none;
           border: none;
-          color: #E45821;
-          font-size: 0.82rem;
-          font-weight: 700;
-          cursor: pointer;
-          padding: 0;
-          transition: opacity 0.2s;
-        }
-        .auth-resend-btn:hover { opacity: 0.8; }
-
-        .auth-switch {
-          margin: 22px 0 0;
-          text-align: center;
+          color: #f26539;
           font-size: 0.85rem;
-          color: var(--text-muted);
-        }
-        .auth-switch-link {
-          color: var(--text-dark);
           font-weight: 700;
-          text-decoration: none;
-          transition: color 0.2s;
-        }
-        .auth-switch-link:hover { color: #E45821; }
-
-        @media (max-width: 900px) {
-          .auth-right { padding: 40px 16px; }
-          .auth-card { padding: 30px 20px; }
-          .auth-otp-box { width: 42px; height: 50px; font-size: 1.2rem; }
-        }
-
-        /* Divider */
-        .auth-divider {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .auth-divider-line {
-          flex: 1;
-          height: 1px;
-          background: rgba(26,46,10,0.15);
-        }
-        html[data-theme='dark'] .auth-divider-line {
-          background: rgba(255,255,255,0.1);
-        }
-        .auth-divider-text {
-          font-size: 0.78rem;
-          color: var(--text-mid);
-          white-space: nowrap;
-        }
-
-        /* Social buttons */
-        .auth-social-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-        .auth-social-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          padding: 14px 16px;
-          background: #ffffff;
-          border: 1px solid rgba(0,0,0,0.18);
-          border-radius: 12px;
-          color: var(--text-dark);
-          font-size: 0.88rem;
-          font-weight: 600;
-          letter-spacing: 0.04em;
           cursor: pointer;
-          transition: background 0.2s, transform 0.2s;
-        }
-        html[data-theme='dark'] .auth-social-btn {
-          background: #1a1a1a;
-          border: 1px solid rgba(255,255,255,0.15);
-          color: #f5f5f5;
-        }
-        .auth-social-btn:hover {
-          background: #f2f8dc;
-          transform: translateY(-1px);
         }
 
-        .auth-social-btn:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-          transform: none !important;
+        .dark-spinner, .dark-spinner-small {
+          width: 18px;
+          height: 18px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-top-color: #ffffff;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
         }
 
-        .auth-social-btn.loading {
-          pointer-events: none;
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
 
-        html[data-theme='dark'] .auth-social-btn:hover {
-          background: #2a2a2a;
-          transform: translateY(-1px);
+        @media (max-width: 480px) {
+          .dark-auth-title { font-size: 1.75rem; }
+          .dark-otp-box { width: 42px; height: 50px; }
         }
       `}</style>
     </div>
