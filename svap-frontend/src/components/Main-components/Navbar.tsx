@@ -61,6 +61,15 @@ const UserIcon = ({ size = 24 }: { size?: number }) => (
   </svg>
 );
 
+// ─── Custom Login Icon (Key with Arrow) ────────────────────────────────────────
+const LoginIcon = ({ size = 24 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" stroke="#313C5C" />
+    <polyline points="10 17 15 12 10 7" stroke="#E45821" strokeWidth="2.5" />
+    <line x1="15" y1="12" x2="3" y2="12" stroke="#E45821" strokeWidth="2.5" />
+  </svg>
+);
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface NavUser { 
   id: string;
@@ -290,7 +299,7 @@ const Navbar = () => {
       ) : (
         <>
           <Link to="/login" onClick={() => setProfileOpen(false)} className="nb-dropdown-item">
-            <UserIcon size={14} /> Login
+            <LoginIcon size={14} /> Login
           </Link>
           <Link to="/signup" onClick={() => setProfileOpen(false)} className="nb-dropdown-item">
             <img src="/ICONS/Profile.png" alt="Signup" style={{ width: 14, height: 14, objectFit: 'contain', filter: 'var(--icon-filter)' }} /> Create Account
@@ -392,7 +401,7 @@ const Navbar = () => {
           {/* Login shortcut if not logged in */}
           {!user && (
             <Link to="/login" className="nb-login-btn" aria-label="Login">
-              <UserIcon size={20} />
+              <LoginIcon size={20} />
               <span className="nb-label">Login</span>
               <span className="nb-tooltip">Login</span>
             </Link>

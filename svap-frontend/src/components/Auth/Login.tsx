@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FiEye, FiEyeOff, FiArrowRight, FiArrowLeft } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiArrowRight, FiArrowLeft, FiSun, FiMoon } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { AiFillApple } from "react-icons/ai";
 import { api } from "../../services/api";
@@ -16,6 +16,9 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  
+  // Theme state
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
@@ -106,12 +109,21 @@ const Login = () => {
   };
 
   return (
-    <div className="svap-auth-page">
+    <div className={`svap-auth-page ${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
       <div className="svap-card">
-        {/* Top Back Nav */}
+        {/* Top Nav (Back Button + Theme Toggle) */}
         <div className="svap-top-nav">
           <button onClick={() => navigate(-1)} className="svap-back-btn" aria-label="Go Back">
             <FiArrowLeft size={22} />
+          </button>
+          
+          <button 
+            onClick={() => setIsDarkMode(!isDarkMode)} 
+            className="svap-theme-btn" 
+            aria-label="Toggle Theme"
+            type="button"
+          >
+            {isDarkMode ? <FiSun size={20} /> : <FiMoon size={20} />}
           </button>
         </div>
 
@@ -264,8 +276,8 @@ const Login = () => {
                 </>
               )}
             </button>
-            <button type="button" className="svap-btn-social" id="login-apple" disabled>
-              <AiFillApple size={18} color="#fff" />
+            <button type="button" className="svap-btn-social svap-btn-apple" id="login-apple" disabled>
+              <AiFillApple size={18} className="svap-apple-icon" />
               <span>APPLE</span>
             </button>
           </div>
@@ -285,18 +297,50 @@ const Login = () => {
           padding: 0;
         }
 
+        /* Color Scheme Variables */
+        .svap-auth-page.dark-mode {
+          --bg-main: #000000;
+          --text-main: #ffffff;
+          --text-muted: rgba(255, 255, 255, 0.5);
+          --text-label: rgba(255, 255, 255, 0.65);
+          --input-bg: #18191c;
+          --input-bg-focus: #1d1e22;
+          --input-border: rgba(255, 255, 255, 0.08);
+          --input-placeholder: rgba(255, 255, 255, 0.25);
+          --divider-line: rgba(255, 87, 34, 0.25);
+          --social-bg: #18191c;
+          --social-bg-hover: #202226;
+          --apple-icon-color: #ffffff;
+        }
+
+        .svap-auth-page.light-mode {
+          --bg-main: #f8f9fa;
+          --text-main: #121212;
+          --text-muted: #6c757d;
+          --text-label: #495057;
+          --input-bg: #ffffff;
+          --input-bg-focus: #ffffff;
+          --input-border: #e2e8f0;
+          --input-placeholder: #a0aec0;
+          --divider-line: #e2e8f0;
+          --social-bg: #ffffff;
+          --social-bg-hover: #f1f5f9;
+          --apple-icon-color: #000000;
+        }
+
         .svap-auth-page {
           min-height: 100vh;
           min-height: 100dvh;
           width: 100%;
-          background-color: #000000;
+          background-color: var(--bg-main);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           padding: 24px 20px;
-          color: #ffffff;
+          color: var(--text-main);
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .svap-card {
@@ -311,24 +355,27 @@ const Login = () => {
         .svap-top-nav {
           width: 100%;
           display: flex;
-          justify-content: flex-start;
+          align-items: center;
+          justify-content: space-between;
           margin-bottom: 8px;
         }
 
-        .svap-back-btn {
+        .svap-back-btn, .svap-theme-btn {
           background: transparent;
           border: none;
-          color: #ffffff;
+          color: var(--text-main);
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 4px;
-          transition: opacity 0.2s;
+          padding: 6px;
+          border-radius: 50%;
+          transition: opacity 0.2s, background-color 0.2s;
         }
 
-        .svap-back-btn:hover {
+        .svap-back-btn:hover, .svap-theme-btn:hover {
           opacity: 0.8;
+          background-color: rgba(128, 128, 128, 0.1);
         }
 
         .svap-brand {
@@ -344,7 +391,7 @@ const Login = () => {
         }
 
         .svap-tagline {
-          color: rgba(255, 255, 255, 0.45);
+          color: var(--text-muted);
           font-size: 0.88rem;
         }
 
@@ -356,14 +403,14 @@ const Login = () => {
         .svap-title {
           font-size: 2rem;
           font-weight: 700;
-          color: #ffffff;
+          color: var(--text-main);
           margin-bottom: 4px;
           letter-spacing: -0.3px;
         }
 
         .svap-subtitle {
           font-size: 0.92rem;
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
         }
 
         .svap-form {
@@ -384,7 +431,7 @@ const Login = () => {
           font-size: 0.75rem;
           font-weight: 600;
           letter-spacing: 0.8px;
-          color: rgba(255, 255, 255, 0.65);
+          color: var(--text-label);
           text-transform: uppercase;
         }
 
@@ -397,23 +444,23 @@ const Login = () => {
 
         .svap-input {
           width: 100%;
-          background: #18191c;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--input-bg);
+          border: 1px solid var(--input-border);
           border-radius: 14px;
-          color: #ffffff;
+          color: var(--text-main);
           font-size: 0.98rem;
           padding: 16px 48px 16px 18px;
           outline: none;
-          transition: border-color 0.2s, background 0.2s;
+          transition: border-color 0.2s, background 0.2s, color 0.2s;
         }
 
         .svap-input::placeholder {
-          color: rgba(255, 255, 255, 0.25);
+          color: var(--input-placeholder);
         }
 
         .svap-input:focus {
           border-color: #E85D35;
-          background: #1d1e22;
+          background: var(--input-bg-focus);
         }
 
         .svap-toggle-pass {
@@ -421,7 +468,7 @@ const Login = () => {
           right: 16px;
           background: none;
           border: none;
-          color: rgba(255, 255, 255, 0.4);
+          color: var(--text-muted);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -430,7 +477,7 @@ const Login = () => {
         }
 
         .svap-toggle-pass:hover {
-          color: #ffffff;
+          color: var(--text-main);
         }
 
         .svap-options-row {
@@ -444,7 +491,7 @@ const Login = () => {
         .svap-otp-toggle {
           background: none;
           border: none;
-          color: rgba(255, 255, 255, 0.6);
+          color: var(--text-muted);
           cursor: pointer;
           padding: 0;
           font-size: 0.85rem;
@@ -452,7 +499,7 @@ const Login = () => {
         }
 
         .svap-otp-toggle:hover {
-          color: #ffffff;
+          color: var(--text-main);
           text-decoration: underline;
         }
 
@@ -513,12 +560,12 @@ const Login = () => {
         .svap-line {
           flex: 1;
           height: 1px;
-          background: rgba(255, 87, 34, 0.25);
+          background: var(--divider-line);
         }
 
         .svap-divider-text {
           font-size: 0.8rem;
-          color: rgba(255, 255, 255, 0.4);
+          color: var(--text-muted);
           white-space: nowrap;
         }
 
@@ -534,19 +581,19 @@ const Login = () => {
           justify-content: center;
           gap: 8px;
           padding: 14px;
-          background: #18191c;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--social-bg);
+          border: 1px solid var(--input-border);
           border-radius: 14px;
-          color: #ffffff;
+          color: var(--text-main);
           font-size: 0.82rem;
           font-weight: 700;
           letter-spacing: 0.6px;
           cursor: pointer;
-          transition: background 0.2s;
+          transition: background 0.2s, border-color 0.2s;
         }
 
         .svap-btn-social:hover:not(:disabled) {
-          background: #202226;
+          background: var(--social-bg-hover);
         }
 
         .svap-btn-social:disabled {
@@ -554,16 +601,20 @@ const Login = () => {
           cursor: not-allowed;
         }
 
+        .svap-apple-icon {
+          color: var(--apple-icon-color);
+        }
+
         .svap-footer-text {
           text-align: center;
           margin-top: auto;
           padding-top: 24px;
           font-size: 0.9rem;
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
         }
 
         .svap-footer-link {
-          color: #ffffff;
+          color: var(--text-main);
           font-weight: 700;
           text-decoration: none;
           margin-left: 4px;
@@ -573,22 +624,21 @@ const Login = () => {
           color: #E85D35;
         }
 
-        .svap-spinner {
-          width: 18px;
-          height: 18px;
+        .svap-spinner, .svap-spinner-sm {
           border: 2px solid rgba(255, 255, 255, 0.3);
           border-top-color: #ffffff;
           border-radius: 50%;
           animation: svapSpin 0.6s linear infinite;
         }
 
+        .svap-spinner {
+          width: 18px;
+          height: 18px;
+        }
+
         .svap-spinner-sm {
           width: 14px;
           height: 14px;
-          border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top-color: #ffffff;
-          border-radius: 50%;
-          animation: svapSpin 0.6s linear infinite;
         }
 
         @keyframes svapSpin {

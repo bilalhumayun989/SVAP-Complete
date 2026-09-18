@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiX,
   FiAlertCircle, FiCheck, FiFilm,
@@ -26,6 +27,7 @@ const CONDITIONS = ["Brand New", "Like New", "Good", "Fair", "For Parts"];
 const MAX_PHOTOS = 6;
 
 const ListProductPage = () => {
+  const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<{ file: File, url: string }[]>([]);
   const [reel, setReel] = useState<{ file: File, url: string } | null>(null);
@@ -83,13 +85,15 @@ const ListProductPage = () => {
 
     setLoading(true);
     try {
-      // --- Temporary Bypass for Auth ---
+      // --- Check if user is logged in ---
       let userStr = localStorage.getItem("sz_user");
       let user = userStr ? JSON.parse(userStr) : null;
 
-      // If no user is logged in, we use a dummy user ID so they can still list a product
+      // If no user is logged in, redirect to login page
       if (!user?.id) {
-        user = { id: 'dummy-user-id-1234', name: 'Guest User' };
+        alert("Please login to list a product");
+        navigate('/login');
+        return;
       }
 
       const productId = generateUUID();
@@ -138,7 +142,7 @@ const ListProductPage = () => {
 
       // Save city to user profile so it shows up on product cards
       const fixedCity = "Karachi";
-      if (user.id && user.id !== 'dummy-user-id-1234') {
+      if (user.id) {
         try {
           await api.updateProfile(user.id, { city: fixedCity });
         } catch (err) {
@@ -630,7 +634,7 @@ const ListProductPage = () => {
         /* ── Mobile styles ── */
         @media (max-width: 768px) {
           .lp-page {
-            background: #0A0A0A;
+            background: var(--bg);
             min-height: 100vh;
           }
           
@@ -644,18 +648,22 @@ const ListProductPage = () => {
           
           .lp-page-header {
             padding: 20px 16px;
-            background: #0A0A0A;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: var(--bg);
+            border-bottom: 1px solid rgba(165,194,111,0.15);
+          }
+          
+          html[data-theme='dark'] .lp-page-header {
+            border-bottom-color: rgba(255,255,255,0.1);
           }
           
           .lp-title {
-            color: #fff;
+            color: var(--text-dark);
             font-size: 1.5rem;
             margin: 0 0 4px;
           }
           
           .lp-sub {
-            color: rgba(255,255,255,0.5);
+            color: var(--text-muted);
             font-size: 0.85rem;
           }
           
@@ -672,15 +680,19 @@ const ListProductPage = () => {
           
           /* Photos section */
           .lp-dropzone {
-            background: #1A1A1A;
+            background: var(--card-bg);
             border: 1.5px dashed rgba(228, 88, 33, 0.3);
             border-radius: 12px;
             padding: 32px 20px;
-            color: rgba(255,255,255,0.6);
+            color: var(--text-muted);
+          }
+          
+          html[data-theme='dark'] .lp-dropzone {
+            background: #1A1A1A;
           }
           
           .lp-dropzone-hint {
-            color: rgba(255,255,255,0.4);
+            color: var(--text-muted);
             font-size: 0.8rem;
           }
           
@@ -692,21 +704,38 @@ const ListProductPage = () => {
           .lp-photo-tile {
             aspect-ratio: 1;
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(165,194,111,0.2);
+          }
+          
+          html[data-theme='dark'] .lp-photo-tile {
+            border-color: rgba(255,255,255,0.1);
           }
           
           /* Form inputs */
           .lp-input, .lp-select, .lp-textarea {
-            background: #1A1A1A;
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #fff;
+            background: var(--card-bg);
+            border: 1px solid rgba(165,194,111,0.2);
+            color: var(--text-dark);
             border-radius: 12px;
             padding: 14px 16px;
             font-size: 0.9rem;
           }
           
+          html[data-theme='dark'] .lp-input,
+          html[data-theme='dark'] .lp-select,
+          html[data-theme='dark'] .lp-textarea {
+            background: #1A1A1A;
+            border-color: rgba(255,255,255,0.1);
+            color: #fff;
+          }
+          
           .lp-input::placeholder,
           .lp-textarea::placeholder {
+            color: var(--text-muted);
+          }
+          
+          html[data-theme='dark'] .lp-input::placeholder,
+          html[data-theme='dark'] .lp-textarea::placeholder {
             color: rgba(255,255,255,0.3);
           }
           
@@ -714,11 +743,17 @@ const ListProductPage = () => {
           .lp-select:focus,
           .lp-textarea:focus {
             border-color: rgba(228, 88, 33, 0.5);
+            background: #fff;
+          }
+          
+          html[data-theme='dark'] .lp-input:focus,
+          html[data-theme='dark'] .lp-select:focus,
+          html[data-theme='dark'] .lp-textarea:focus {
             background: #232323;
           }
           
           .lp-label {
-            color: rgba(255,255,255,0.6);
+            color: var(--text-muted);
             font-size: 0.75rem;
             font-weight: 600;
             margin-bottom: 8px;
@@ -732,13 +767,19 @@ const ListProductPage = () => {
           }
           
           .lp-pill {
-            background: #1A1A1A;
-            border: 1px solid rgba(255,255,255,0.1);
-            color: rgba(255,255,255,0.7);
+            background: var(--card-bg);
+            border: 1px solid rgba(165,194,111,0.2);
+            color: var(--text-mid);
             padding: 10px 18px;
             border-radius: 20px;
             font-size: 0.85rem;
             font-weight: 500;
+          }
+          
+          html[data-theme='dark'] .lp-pill {
+            background: #1A1A1A;
+            border-color: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.7);
           }
           
           .lp-pill--active {
@@ -766,13 +807,22 @@ const ListProductPage = () => {
           
           /* Reel section */
           .lp-reel-dropzone {
-            background: #1A1A1A;
-            border: 1px solid rgba(255,255,255,0.1);
+            background: var(--card-bg);
+            border: 1px solid rgba(165,194,111,0.2);
             border-radius: 12px;
             padding: 16px;
           }
           
+          html[data-theme='dark'] .lp-reel-dropzone {
+            background: #1A1A1A;
+            border-color: rgba(255,255,255,0.1);
+          }
+          
           .lp-reel-dropzone span {
+            color: var(--text-dark);
+          }
+          
+          html[data-theme='dark'] .lp-reel-dropzone span {
             color: #fff;
           }
           

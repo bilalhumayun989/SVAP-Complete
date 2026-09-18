@@ -605,9 +605,9 @@ const Profile = () => {
           --pf-ink-soft: #5B574E;
           --pf-line: #E7E3DA;
           --pf-line-soft: #F1EEE6;
-          --pf-bg: #FBFAF7;
+          --pf-bg: #FFFFFF;
           --pf-surface: #FFFFFF;
-          --pf-muted: #968F80;
+          --pf-muted: #000;
         }
 
         * { box-sizing: border-box; }
@@ -1308,6 +1308,7 @@ const Profile = () => {
             position: sticky;
             top: 20px;
             background: #fbfaf7;
+            
             border-radius: 16px;
             padding: 28px 22px 24px;
             display: flex;
@@ -1348,17 +1349,35 @@ const Profile = () => {
             padding: 40px 32px 0;
           }
           .pf-aside {
-            width: 340px;
-            flex-shrink: 0;
-            position: sticky;
-            top: 24px;
-            background: #fbfaf7;
-            border-radius: 18px;
-            padding: 32px 26px 28px;
-            display: flex;
-            flex-direction: column;
-            min-height: 440px;
-          }
+  width: 300px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 20px;
+  background: #fbfaf7;
+  
+  border-radius: 16px;
+  padding: 28px 22px 24px;
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
+
+  /* Modern Subtle Border & Soft Shadow */
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.03),
+    0 10px 15px -3px rgba(0, 0, 0, 0.05);
+  
+  /* Smooth Hover Transition */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Optional: Slight Lift on Hover */
+.pf-aside:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 12px -2px rgba(0, 0, 0, 0.04),
+    0 16px 24px -4px rgba(0, 0, 0, 0.07);
+}
           .pf-header { flex-direction: column; align-items: flex-start; padding-bottom: 26px; }
           .pf-story-ring { width: 104px; height: 104px; }
           .pf-info { padding-top: 18px; width: 100%; }
@@ -1402,6 +1421,10 @@ const Profile = () => {
         /* ════════════════════════════════════════
            DARK MODE
         ════════════════════════════════════════ */
+        html[data-theme='dark'] {
+          --pf-muted: #999;
+        }
+        
         html[data-theme='dark'] .pf-page {
           background: #0a0a0a;
           color: #f5f5f5;

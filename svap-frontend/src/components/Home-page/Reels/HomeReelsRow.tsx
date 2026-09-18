@@ -88,7 +88,7 @@ const HomeReelsRow = () => {
       <div className="hreels-section">
         <div className="hreels-header">
           <h2 className="hreels-title">Reels</h2>
-          <button className="hreels-viewall" onClick={() => navigate("/reels")}>See All</button>
+          {/* <button className="hreels-viewall" onClick={() => navigate("/reels")}>See All</button> */}
         </div>
         <div style={{ overflow: "visible" }}>
           <div
