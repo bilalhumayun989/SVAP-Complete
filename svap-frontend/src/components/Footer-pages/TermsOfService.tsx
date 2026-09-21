@@ -4,7 +4,7 @@ const TermsOfService = () => {
   return (
     <FooterPageLayout
       title="Terms of Service"
-      subtitle="Last Updated: [2026]"
+      subtitle="Last Updated: [21/09/2026]"
     >
       <p>
         These Terms of Service govern your access to and use of the Svap website, application, and services.
@@ -196,8 +196,9 @@ const TermsOfService = () => {
         For questions regarding these Terms:
       </p>
       <p>
-        Email: [Contactatsvap@gmail.com]
-      </p>
+  <strong>Email:</strong> Contactatsvap@gmail.com
+</p>
+
     </FooterPageLayout>
   );
 };

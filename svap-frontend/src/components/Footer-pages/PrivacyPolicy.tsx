@@ -4,7 +4,7 @@ const PrivacyPolicy = () => {
   return (
     <FooterPageLayout
       title="Privacy Policy"
-      subtitle="Last Updated: [Date]"
+      subtitle="Last Updated: [21/09/2026]"
     >
       <p>
         Svap respects your privacy and is committed to protecting the personal information entrusted to us.
@@ -17,7 +17,7 @@ const PrivacyPolicy = () => {
       <p>
         Depending on how you use Svap, we may collect information including:
       </p>
-      
+
       <h3>Account Information</h3>
       <p>
         Name, email address, phone number, profile information, and other information required to create and manage your account.
@@ -87,12 +87,7 @@ const PrivacyPolicy = () => {
       <p>
         Subject to applicable law, you may have rights regarding your personal information, including the right to access, correct, update, or request deletion of certain information.
       </p>
-      <p>
-        For privacy-related requests, contact:
-      </p>
-      <p>
-        Email: [Contactatsvap@gmail.com]
-      </p>
+
 
       <h2>7. Policy Updates</h2>
       <p>
@@ -102,13 +97,20 @@ const PrivacyPolicy = () => {
         Any updates will be published on this page with the revised date.
       </p>
 
-      <h2>8. Contact Us</h2>
-      <p>
-        For questions regarding this Privacy Policy or our handling of personal information:
-      </p>
-      <p>
-        Email: [Contactatsvap@gmail.com]
-              </p>
+    <h2>8. Contact Us</h2>
+
+<p>
+  If you have any questions, concerns, or requests regarding this Privacy
+  Policy or how Svap handles your personal information, please contact our
+  support team at:
+</p>
+
+<p>
+  <strong>Email:</strong> Contactatsvap@gmail.com
+</p>
+
+
+
     </FooterPageLayout>
   );
 };

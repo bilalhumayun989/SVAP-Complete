@@ -4,7 +4,7 @@ const CookiePolicy = () => {
   return (
     <FooterPageLayout
       title="Cookie Policy"
-      subtitle="Last Updated: [Sep 2026]"
+      subtitle="Last Updated: [21/09/2026]"
     >
       <p>
         Svap uses cookies and similar technologies to provide, maintain, secure, and improve our website and services.
@@ -65,9 +65,10 @@ const CookiePolicy = () => {
       <p>
         For questions regarding our use of cookies or similar technologies:
       </p>
-      <p>
-        Email: [Contactatsvap@gmail.com]
-      </p>
+    <p>
+  <strong>Email:</strong> Contactatsvap@gmail.com
+</p>
+
     </FooterPageLayout>
   );
 };
