@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { FiArrowLeft, FiCheck, FiAlertCircle, FiCopy } from 'react-icons/fi';
+import { FiArrowLeft, FiCheck, FiAlertCircle, FiCopy, FiUpload, FiX } from 'react-icons/fi';
 import { api } from '../../services/api';
+import { supabase } from '../../services/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SwapInfo {
@@ -21,11 +22,10 @@ interface FormData {
   city: string;
   area: string;
   streetAddress: string;
-  transactionRef: string;
   termsAccepted: boolean;
 }
 
-type FormErrors = Partial<Record<keyof FormData, string>>;
+type FormErrors = Partial<Record<keyof FormData | 'paymentScreenshot', string>>;
 
 // ─── Meezan Bank Details (static) ─────────────────────────────────────────────
 const BANK_DETAILS = {
@@ -51,6 +51,10 @@ const SwapCheckoutPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<FormData>({
     fullName: '',
@@ -58,7 +62,6 @@ const SwapCheckoutPage = () => {
     city: '',
     area: '',
     streetAddress: '',
-    transactionRef: '',
     termsAccepted: false,
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -141,10 +144,46 @@ const SwapCheckoutPage = () => {
       e.phone = 'Enter a valid Pakistani mobile number';
     if (!form.city.trim()) e.city = 'City is required';
     if (!form.streetAddress.trim()) e.streetAddress = 'Street address is required';
-    if (!form.transactionRef.trim()) e.transactionRef = 'Transaction reference is required';
+    if (!paymentScreenshot) e.paymentScreenshot = 'Please upload payment screenshot';
     if (!form.termsAccepted) e.termsAccepted = 'Please accept the terms to continue';
     setErrors(e);
     return Object.keys(e).length === 0;
+  };
+
+  // ── Screenshot Upload Handler ──────────────────────────────────────────────
+  const handleScreenshotSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setErrors(prev => ({ ...prev, paymentScreenshot: 'Please select an image file' }));
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, paymentScreenshot: 'Image size must be less than 5MB' }));
+      return;
+    }
+
+    setPaymentScreenshot(file);
+    setErrors(prev => ({ ...prev, paymentScreenshot: undefined }));
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setScreenshotPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveScreenshot = () => {
+    setPaymentScreenshot(null);
+    setScreenshotPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   // ── Submit ─────────────────────────────────────────────────────────────────
@@ -156,7 +195,38 @@ const SwapCheckoutPage = () => {
     if (!userId) { navigate('/login'); return; }
 
     setSubmitting(true);
+    setUploadingScreenshot(true);
+    
     try {
+      // Step 1: Upload payment screenshot to Supabase Storage
+      let screenshotUrl = '';
+      if (paymentScreenshot) {
+        const fileExt = paymentScreenshot.name.split('.').pop();
+        const fileName = `${userId}_${Date.now()}.${fileExt}`;
+        const filePath = `payment-screenshots/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('payment-screenshots')
+          .upload(filePath, paymentScreenshot, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          throw new Error(`Screenshot upload failed: ${uploadError.message}`);
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('payment-screenshots')
+          .getPublicUrl(filePath);
+
+        screenshotUrl = urlData.publicUrl;
+      }
+
+      setUploadingScreenshot(false);
+
+      // Step 2: Create order with screenshot URL
       // Combine area + street into delivery_address
       const fullAddress = form.area.trim()
         ? `${form.area.trim()}, ${form.streetAddress.trim()}`
@@ -182,7 +252,7 @@ const SwapCheckoutPage = () => {
         shipping_cost: BANK_DETAILS.deliveryFee,
         discount: 0,
         total: BANK_DETAILS.deliveryFee,
-        transaction_ref: form.transactionRef.trim(),
+        transaction_ref: screenshotUrl, // Save screenshot URL here
         status: 'pending_verification',
       };
 
@@ -191,9 +261,11 @@ const SwapCheckoutPage = () => {
 
       setSubmitted(true);
     } catch (err: any) {
+      console.error('[SwapCheckoutPage] submit error:', err);
       alert(err.message || 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
+      setUploadingScreenshot(false);
     }
   };
 
@@ -432,7 +504,7 @@ const SwapCheckoutPage = () => {
               </div>
 
               <p className="scp-bank-instruction">
-                Transfer <strong>PKR {BANK_DETAILS.deliveryFee.toLocaleString()}</strong> to the following bank account and paste your transaction reference number below.
+                Transfer <strong>PKR {BANK_DETAILS.deliveryFee.toLocaleString()}</strong> to the following bank account and upload your payment screenshot below.
               </p>
 
               <div className="scp-bank-details">
@@ -469,17 +541,40 @@ const SwapCheckoutPage = () => {
                 </div>
               )}
 
-              {/* Transaction Reference */}
-              <div className={`scp-field scp-field--ref ${errors.transactionRef ? 'scp-field--error' : ''}`}>
-                <label htmlFor="transactionRef">Transaction Reference Number *</label>
+              {/* Payment Screenshot Upload */}
+              <div className={`scp-field scp-field--upload ${errors.paymentScreenshot ? 'scp-field--error' : ''}`}>
+                <label htmlFor="paymentScreenshot">Payment Screenshot Upload *</label>
+                
+                {!screenshotPreview ? (
+                  <div className="scp-upload-box" onClick={() => fileInputRef.current?.click()}>
+                    <FiUpload size={32} />
+                    <p>Click to upload payment screenshot</p>
+                    <span>PNG, JPG, JPEG (Max 5MB)</span>
+                  </div>
+                ) : (
+                  <div className="scp-preview-box">
+                    <img src={screenshotPreview} alt="Payment Screenshot" className="scp-preview-img" />
+                    <button 
+                      type="button" 
+                      className="scp-remove-btn" 
+                      onClick={handleRemoveScreenshot}
+                      aria-label="Remove screenshot"
+                    >
+                      <FiX size={18} />
+                    </button>
+                  </div>
+                )}
+
                 <input
-                  id="transactionRef"
-                  type="text"
-                  value={form.transactionRef}
-                  onChange={e => setField('transactionRef', e.target.value)}
-                  placeholder="e.g. TRN-123456789 or bank receipt number"
+                  ref={fileInputRef}
+                  id="paymentScreenshot"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleScreenshotSelect}
+                  style={{ display: 'none' }}
                 />
-                {errors.transactionRef && <span className="scp-err">{errors.transactionRef}</span>}
+                
+                {errors.paymentScreenshot && <span className="scp-err">{errors.paymentScreenshot}</span>}
               </div>
             </div>
 
@@ -513,10 +608,12 @@ const SwapCheckoutPage = () => {
               <button
                 className="scp-submit-btn"
                 onClick={handleSubmit}
-                disabled={submitting}
+                disabled={submitting || uploadingScreenshot}
               >
-                {submitting ? (
-                  <><div className="scp-btn-spinner" /> Submitting…</>
+                {uploadingScreenshot ? (
+                  <><div className="scp-btn-spinner" /> Uploading Screenshot…</>
+                ) : submitting ? (
+                  <><div className="scp-btn-spinner" /> Submitting Order…</>
                 ) : (
                   <><FiCheck size={18} /> Submit Order</>
                 )}
@@ -848,6 +945,75 @@ const pageStyles = `
     animation: scp-spin 0.7s linear infinite;
   }
   @keyframes scp-spin { to { transform: rotate(360deg); } }
+
+  /* Screenshot Upload Styles */
+  .scp-upload-box {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; padding: 40px 20px;
+    border: 2px dashed rgba(228, 88, 33, 0.3);
+    border-radius: 14px;
+    background: var(--bg-section);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .scp-upload-box:hover {
+    border-color: #E45821;
+    background: rgba(228, 88, 33, 0.05);
+  }
+  .scp-upload-box svg {
+    color: #E45821;
+    opacity: 0.7;
+  }
+  .scp-upload-box p {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0;
+  }
+  .scp-upload-box span {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  html[data-theme='dark'] .scp-upload-box {
+    background: #1a1a1a;
+  }
+
+  .scp-preview-box {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 2px solid rgba(228, 88, 33, 0.3);
+  }
+  .scp-preview-img {
+    width: 100%;
+    height: 300px;
+    object-fit: contain;
+    background: var(--bg-section);
+    display: block;
+  }
+  html[data-theme='dark'] .scp-preview-img {
+    background: #111;
+  }
+  .scp-remove-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .scp-remove-btn:hover {
+    background: #E45821;
+    transform: scale(1.1);
+  }
 
   .scp-submit-note {
     margin: 12px 0 0; font-size: 0.75rem; color: var(--text-muted);
