@@ -31,17 +31,19 @@ const SearchIcon = () => (
   </svg>
 );
 
-// ─── Reels SVG Icon (brand-matching style) ────────────────────────────────────
+// ─── Reels / PlayCircle Icon (brand-matching, dark/light aware) ─────────────────
 const ReelsIcon = ({ size = 24 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className="nb-brand-svg">
-    <rect x="2" y="2" width="20" height="20" rx="4" stroke="#313C5C" strokeWidth="2" />
-    <circle cx="12" cy="12" r="3" stroke="#E45821" strokeWidth="2" />
-    <line x1="2" y1="7" x2="22" y2="7" stroke="#313C5C" strokeWidth="1.5" />
-    <line x1="2" y1="17" x2="22" y2="17" stroke="#313C5C" strokeWidth="1.5" />
-    <line x1="7" y1="2" x2="7" y2="7" stroke="#313C5C" strokeWidth="1.5" />
-    <line x1="17" y1="2" x2="17" y2="7" stroke="#313C5C" strokeWidth="1.5" />
-    <line x1="7" y1="17" x2="7" y2="22" stroke="#313C5C" strokeWidth="1.5" />
-    <line x1="17" y1="17" x2="17" y2="22" stroke="#313C5C" strokeWidth="1.5" />
+    {/* Outer circle - uses nb-brand-stroke class for dark/light */}
+    <circle cx="12" cy="12" r="10" className="nb-playcircle-ring" strokeWidth="2" />
+    {/* Inner play triangle - always brand orange */}
+    <path
+      d="M10 8.5l6 3.5-6 3.5V8.5z"
+      fill="#E45821"
+      stroke="#E45821"
+      strokeWidth="0.5"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
@@ -280,7 +282,7 @@ const Navbar = () => {
             <img src="/ICONS/Listing.png" alt="List" style={{ width: 18, height: 18, objectFit: 'contain', filter: 'var(--icon-filter)' }} /> List a Product
           </Link>
           <Link to="/requests" onClick={() => setProfileOpen(false)} className="nb-dropdown-item">
-            <img src="/ICONS/Return.png" alt="Requests" style={{ width: 18, height: 18, objectFit: 'contain', filter: 'var(--icon-filter)' }} /> 
+            <img src="/request.png" alt="Requests" className="nb-req-icon" style={{ width: 18, height: 18, objectFit: 'contain' }} /> 
             Requests
             {requestCount > 0 && (
               <span className="nb-dropdown-badge">{requestCount}</span>
@@ -849,12 +851,37 @@ const Navbar = () => {
           stroke: #ffffff;
         }
 
-        /* Dropdown PNG icons: orange by default, white on hover */
-        html[data-theme='dark'] .nb-dropdown-item img {
+        /* PlayCircle / Reels icon ring - light mode default */
+        .nb-playcircle-ring {
+          stroke: #313C5C;
+          transition: stroke 0.2s;
+        }
+        /* Dark mode: ring turns white */
+        html[data-theme='dark'] .nb-playcircle-ring {
+          stroke: rgba(255, 255, 255, 0.85);
+        }
+        html[data-theme='dark'] .nb-item:hover .nb-playcircle-ring,
+        html[data-theme='dark'] .nb-item--active .nb-playcircle-ring {
+          stroke: #ffffff;
+        }
+
+        html[data-theme='dark'] .nb-dropdown-item img:not(.nb-req-icon) {
           filter: var(--filter-orange);
           transition: filter 0.2s;
         }
-        html[data-theme='dark'] .nb-dropdown-item:hover img {
+        html[data-theme='dark'] .nb-dropdown-item:hover img:not(.nb-req-icon) {
+          filter: var(--filter-white) !important;
+        }
+
+        /* Local request.png icon (white by default) */
+        .nb-req-icon {
+          filter: invert(1); /* Black in light mode */
+          transition: filter 0.2s;
+        }
+        html[data-theme='dark'] .nb-req-icon {
+          filter: var(--filter-orange); /* Orange in dark mode */
+        }
+        html[data-theme='dark'] .nb-dropdown-item:hover .nb-req-icon {
           filter: var(--filter-white) !important;
         }
 

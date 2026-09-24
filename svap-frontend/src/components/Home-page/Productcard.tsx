@@ -4,20 +4,13 @@ import { useState, useEffect } from "react";
 import { api } from "../../services/api";
 import type { Product } from "./data/product";
 
+// Local Request Image Icon for SVAP Button
 const SvapBtnIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M3 7h18m0 0l-4-4m4 4l-4 4" />
-    <path d="M21 17H3m0 0l4-4M3 17l4 4" />
-  </svg>
+  <img
+    src="/request.png"
+    alt="Svap"
+    className="w-4 h-4 object-contain brightness-0 invert"
+  />
 );
 
 interface ProductCardProps {
