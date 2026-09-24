@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiRepeat, FiShoppingBag, FiBell, FiCheck } from "react-icons/fi";
 import { api } from "../../services/api";
+import { supabase } from "../../services/supabase";
 import { useNotifications } from "../../context/NotificationContext";
 
 type NotifType = "swap_request" | "swap_accepted" | "swap_rejected" | "order_update" | "system" | string;
@@ -42,7 +43,7 @@ function timeAgo(dateStr: string): string {
   return `${d}d ago`;
 }
 
-type FilterTab = "all" | "unread" | "swaps" ;
+type FilterTab = "all" | "unread" | "Swaps" | "orders" | "Q&A";
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
@@ -57,8 +58,40 @@ const NotificationsPage = () => {
 
   const fetchNotifs = useCallback(async () => {
     if (!userId) { setLoading(false); return; }
+    
+    // Fetch normal notifications
     const res = await api.getNotifications(userId);
-    if (res.data) setNotifs(res.data);
+    let allNotifs: Notif[] = res.data ? res.data : [];
+
+    // Fetch support tickets
+    try {
+      const { data: tickets, error } = await supabase
+        .from('support_tickets')
+        .select('*')
+        .eq('user_id', userId);
+        
+      if (!error && tickets) {
+        const ticketNotifs: Notif[] = tickets.map((t: any) => ({
+          id: `ticket-${t.id}`,
+          type: "system",
+          title: `Support Ticket: ${t.subject}`,
+          body: t.status === "replied" && t.admin_reply 
+            ? `Admin replied: ${t.admin_reply}`
+            : `Ticket Status: ${t.status}`,
+          route: "/help-support",
+          is_read: t.status !== "replied",
+          created_at: t.replied_at || t.created_at
+        }));
+        
+        allNotifs = [...allNotifs, ...ticketNotifs].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      }
+    } catch (err) {
+      console.error('Error fetching support tickets:', err);
+    }
+    
+    setNotifs(allNotifs);
     setLoading(false);
   }, [userId]);
 
@@ -68,17 +101,25 @@ const NotificationsPage = () => {
 
   const filtered = notifs.filter(n => {
     if (activeTab === "unread") return !n.is_read;
-    if (activeTab === "swaps") return n.type.startsWith("swap");
+    if (activeTab === "Swaps") return n.type.startsWith("swap");
+    if (activeTab === "orders") return n.type === "order_update";
+    if (activeTab === "Q&A") return n.type === "system";
     return true;
   });
 
   const handleClick = async (n: Notif) => {
     if (!n.is_read) {
-      await api.markNotificationRead(n.id);
+      if (!n.id.startsWith("ticket-")) {
+        await api.markNotificationRead(n.id);
+      }
       setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x));
       refreshCount();
     }
-    navigate("/requests");
+    if (n.route) {
+      navigate(n.route);
+    } else {
+      navigate("/requests");
+    }
   };
 
   const handleMarkAllRead = async () => {
@@ -105,13 +146,13 @@ const NotificationsPage = () => {
 
       {/* Filter tabs */}
       <div className="np-tabs">
-        {(["all", "unread", "swaps", "orders"] as FilterTab[]).map(tab => (
+        {(["all", "unread", "Swaps", "orders", "Q&A"] as FilterTab[]).map(tab => (
           <button
             key={tab}
             className={`np-tab ${activeTab === tab ? "np-tab--active" : ""}`}
             onClick={() => setActiveTab(tab)}
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === "Q&A" ? "Q&A" : tab.charAt(0).toUpperCase() + tab.slice(1)}
             {tab === "unread" && unreadCount > 0 && (
               <span className="np-tab-count">{unreadCount}</span>
             )}

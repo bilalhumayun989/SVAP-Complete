@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, AtSign, LockKeyhole, House, ArrowLeftRight, Truck,
   Megaphone, CircleHelp, Sun, Moon, Monitor, LogOut, Trash2,
-  ChevronRight,
+  ChevronRight, Palette, Info, Shield, FileText,
 } from "lucide-react";
 import { api } from "../../services/api";
 
@@ -275,15 +275,15 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
 
         {/* Header */}
         <div className="sd-header">
+          <button className="sd-close" onClick={onClose} aria-label="Back from settings">
+            <ArrowLeft size={20} />
+          </button>
           <span className="sd-header-title">
             {sub === "username" ? "Change Username"
              : sub === "password" ? "Change Password"
              : sub === "address" ? "Delivery Address"
              : "Settings"}
           </span>
-          <button className="sd-close" onClick={onClose} aria-label="Back from settings">
-            <ArrowLeft size={18} />
-          </button>
         </div>
 
         {/* Content */}
@@ -298,21 +298,21 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               <div className="sd-section-label">Account</div>
 
               <button className="sd-row" onClick={() => { setUSuccess(false); setUError(""); setSub("username"); }}>
-                <span className="sd-row-icon"><AtSign size={16} /></span>
-                <span className="sd-row-text">Change Username</span>
-                <ChevronRight size={15} className="sd-row-arrow" />
+                <span className="sd-row-icon"><AtSign size={18} /></span>
+                <span className="sd-row-text"><span>Change Username</span><small>{saved.username}</small></span>
+                <ChevronRight size={16} className="sd-row-arrow" />
               </button>
 
               <button className="sd-row" onClick={() => { setPSuccess(false); setPError(""); setSub("password"); }}>
-                <span className="sd-row-icon"><LockKeyhole size={16} /></span>
+                <span className="sd-row-icon"><LockKeyhole size={18} /></span>
                 <span className="sd-row-text">Change Password</span>
-                <ChevronRight size={15} className="sd-row-arrow" />
+                <ChevronRight size={16} className="sd-row-arrow" />
               </button>
 
               <button className="sd-row" onClick={() => { setASuccess(false); setAError(""); setSub("address"); }}>
-                <span className="sd-row-icon"><House size={16} /></span>
+                <span className="sd-row-icon"><House size={18} /></span>
                 <span className="sd-row-text">Delivery Address</span>
-                <ChevronRight size={15} className="sd-row-arrow" />
+                <ChevronRight size={16} className="sd-row-arrow" />
               </button>
 
               <div className="sd-divider" />
@@ -320,21 +320,21 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               {/* Notifications section */}
               <div className="sd-section-label">Notifications</div>
               <div className="sd-row sd-row--setting">
-                <span className="sd-row-icon"><ArrowLeftRight size={16} /></span>
-                <span className="sd-row-text"><span>Swap Requests</span><small>New requests and updates</small></span>
+                <span className="sd-row-icon"><ArrowLeftRight size={18} /></span>
+                <span className="sd-row-text"><span>Svap Requests</span><small>New requests and updates</small></span>
                 <button className={`sd-toggle${swapNotifications ? " sd-toggle--active" : ""}`} onClick={() => setSwapNotifications(value => !value)} aria-label="Toggle swap request notifications">
                   <span />
                 </button>
               </div>
               <div className="sd-row sd-row--setting">
-                <span className="sd-row-icon"><Truck size={16} /></span>
+                <span className="sd-row-icon"><Truck size={18} /></span>
                 <span className="sd-row-text"><span>Orders</span><small>Order status updates</small></span>
                 <button className={`sd-toggle${orderNotifications ? " sd-toggle--active" : ""}`} onClick={() => setOrderNotifications(value => !value)} aria-label="Toggle order notifications">
                   <span />
                 </button>
               </div>
               <div className="sd-row sd-row--setting">
-                <span className="sd-row-icon"><Megaphone size={16} /></span>
+                <span className="sd-row-icon"><Megaphone size={18} /></span>
                 <span className="sd-row-text"><span>Promotions</span><small>Deals and announcements</small></span>
                 <button className={`sd-toggle${promotionNotifications ? " sd-toggle--active" : ""}`} onClick={() => setPromotionNotifications(value => !value)} aria-label="Toggle promotion notifications">
                   <span />
@@ -345,46 +345,66 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
 
               {/* Appearance section */}
               <div className="sd-section-label">Appearance</div>
-              <div className="sd-theme-group">
-                {(["light", "dark", "auto"] as Theme[]).map((t) => (
-                  <button
-                    key={t}
-                    className={`sd-theme-btn${theme === t ? " sd-theme-btn--active" : ""}`}
-                    onClick={() => applyTheme(t)}
-                  >
-                    {t === "light" && <Sun size={15} />}
-                    {t === "dark" && <Moon size={15} />}
-                    {t === "auto" && <Monitor size={15} />}
-                    <span>{t.charAt(0).toUpperCase() + t.slice(1)}</span>
-                  </button>
-                ))}
+              <div className="sd-row sd-row--setting">
+                <span className="sd-row-icon"><Palette size={18} /></span>
+                <span className="sd-row-text" style={{ flex: 0.6 }}>Theme</span>
+                <div className="sd-theme-group">
+                  {(["light", "dark", "auto"] as Theme[]).map((t) => (
+                    <button
+                      key={t}
+                      className={`sd-theme-btn${theme === t ? " sd-theme-btn--active" : ""}`}
+                      onClick={() => applyTheme(t)}
+                    >
+                      {t === "light" && <Sun size={12} />}
+                      {t === "dark" && <Moon size={12} />}
+                      {t === "auto" && <Monitor size={12} />}
+                      <span>{t.charAt(0).toUpperCase() + t.slice(1)}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="sd-divider" />
 
               <div className="sd-section-label">About</div>
-              <button className="sd-row" onClick={() => navigate('/help-support')}>
-                <span className="sd-row-icon"><CircleHelp size={16} /></span>
-                <span className="sd-row-text">Help & Support</span>
-                <ChevronRight size={15} className="sd-row-arrow" />
-              </button>
-              <button className="sd-row">
-                <span className="sd-row-icon"><CircleHelp size={16} /></span>
+              <button className="sd-row" onClick={() => { onClose(); navigate('/about'); }}>
+                <span className="sd-row-icon"><Info size={18} /></span>
                 <span className="sd-row-text">About Svap</span>
-                <ChevronRight size={15} className="sd-row-arrow" />
+                <ChevronRight size={16} className="sd-row-arrow" />
               </button>
+              <button className="sd-row" onClick={() => { onClose(); navigate('/privacy-policy'); }}>
+                <span className="sd-row-icon"><Shield size={18} /></span>
+                <span className="sd-row-text">Privacy Policy</span>
+                <ChevronRight size={16} className="sd-row-arrow" />
+              </button>
+              <button className="sd-row" onClick={() => { onClose(); navigate('/terms-of-service'); }}>
+                <span className="sd-row-icon"><FileText size={18} /></span>
+                <span className="sd-row-text">Terms & Conditions</span>
+                <ChevronRight size={16} className="sd-row-arrow" />
+              </button>
+              <button className="sd-row" onClick={() => { onClose(); navigate('/help-support'); }}>
+                <span className="sd-row-icon"><CircleHelp size={18} /></span>
+                <span className="sd-row-text">Help & Support</span>
+                <ChevronRight size={16} className="sd-row-arrow" />
+              </button>
+
+              <div className="sd-divider" />
+              
+              <div className="sd-section-label">Danger Zone</div>
 
               {/* Logout */}
               <button className="sd-row sd-row--logout" onClick={handleLogout}>
-                <span className="sd-row-icon sd-row-icon--logout"><LogOut size={16} /></span>
-                <span className="sd-row-text">Logout</span>
+                <span className="sd-row-icon sd-row-icon--logout"><LogOut size={18} /></span>
+                <span className="sd-row-text">Log Out</span>
+                <ChevronRight size={16} className="sd-row-arrow sd-row-arrow--danger" />
               </button>
 
               {/* Delete account */}
               {!deleteConfirm ? (
                 <button className="sd-row sd-row--danger" onClick={() => setDeleteConfirm(true)}>
-                  <span className="sd-row-icon sd-row-icon--danger"><Trash2 size={16} /></span>
+                  <span className="sd-row-icon sd-row-icon--danger"><Trash2 size={18} /></span>
                   <span className="sd-row-text">Delete Account</span>
+                  <ChevronRight size={16} className="sd-row-arrow sd-row-arrow--danger" />
                 </button>
               ) : (
                 <div className="sd-delete-confirm">
@@ -440,37 +460,34 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
 
         .sd-header {
           display: flex; align-items: center; justify-content: flex-start;
-          padding: 14px 12px 12px;
+          padding: 16px;
           border-bottom: 1px solid rgba(0,0,0,0.07);
         }
         html[data-theme='dark'] .sd-header { border-bottom-color: rgba(255,255,255,0.07); }
 
         .sd-header-title {
-          font-size: 0.95rem; font-weight: 700;
+          font-size: 1.05rem; font-weight: 600;
           color: var(--text-dark, #111);
         }
         html[data-theme='dark'] .sd-header-title { color: #fff; }
 
         .sd-close {
-          width: 32px; height: 32px; border-radius: 50%;
-          border: 1px solid rgba(0,0,0,0.1);
-          background: transparent;
-          display: flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px;
+          background: transparent; border: none;
+          display: flex; align-items: center; justify-content: flex-start;
           cursor: pointer; color: var(--text-dark, #111);
-          transition: background 0.15s;
-          order: -1;
-          margin-right: 10px;
+          margin-right: 12px;
+          transition: opacity 0.15s;
         }
-        .sd-close:hover { background: rgba(0,0,0,0.07); }
-        html[data-theme='dark'] .sd-close { border-color: rgba(255,255,255,0.12); color: #fff; }
-        html[data-theme='dark'] .sd-close:hover { background: rgba(255,255,255,0.08); }
+        .sd-close:hover { opacity: 0.7; }
+        html[data-theme='dark'] .sd-close { color: #fff; }
 
-        .sd-body { padding: 12px 0 32px; }
+        .sd-body { padding: 4px 0 32px; }
 
         .sd-section-label {
-          font-size: 0.65rem; font-weight: 700;
-          text-transform: uppercase; letter-spacing: 0.1em;
-          color: #aaa; padding: 8px 20px 4px;
+          font-size: 0.68rem; font-weight: 700;
+          letter-spacing: 0.05em;
+          color: #777; padding: 18px 20px 4px;
         }
 
         .sd-row {
@@ -485,74 +502,75 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
 
         .sd-row-icon {
           width: 20px; height: 20px; border-radius: 0;
-          background: transparent;
-          border: none;
+          background: transparent; border: none;
           display: flex; align-items: center; justify-content: center;
-          color: var(--text-muted, #888); flex-shrink: 0;
+          color: #666; flex-shrink: 0;
         }
-        .sd-row-icon--logout { color: #6366f1; }
+        html[data-theme='dark'] .sd-row-icon { color: #aaa; }
+        .sd-row-icon--logout { color: #ef4444; }
         .sd-row-icon--danger { color: #ef4444; }
 
         .sd-row-text {
-          flex: 1; font-size: 0.9rem; font-weight: 500;
+          flex: 1; font-size: 0.95rem; font-weight: 500;
           color: var(--text-dark, #111);
         }
         .sd-row-text span,
         .sd-row-text small { display: block; }
         .sd-row-text small {
-          margin-top: 3px; color: #777; font-size: 0.65rem; font-weight: 400;
+          margin-top: 3px; color: #777; font-size: 0.72rem; font-weight: 400;
         }
-        html[data-theme='dark'] .sd-row-text { color: #fff; }
+        html[data-theme='dark'] .sd-row-text { color: #e5e5e5; }
         html[data-theme='dark'] .sd-row-text small { color: #666; }
-        .sd-row--logout .sd-row-text { color: #6366f1; }
+        .sd-row--logout .sd-row-text { color: #ef4444; }
         .sd-row--danger .sd-row-text { color: #ef4444; }
 
         .sd-row--setting { cursor: default; }
         .sd-row--setting:hover { background: transparent; }
         .sd-toggle {
-          width: 34px; height: 20px; padding: 2px;
-          border: 1px solid #aaa; border-radius: 999px;
-          background: #777; cursor: pointer; flex-shrink: 0;
+          width: 38px; height: 22px; padding: 2px;
+          border-radius: 999px; border: none;
+          background: #444; cursor: pointer; flex-shrink: 0;
           display: flex; align-items: center; justify-content: flex-start;
-          transition: background 0.15s, border-color 0.15s;
+          transition: background 0.15s;
         }
         .sd-toggle span {
-          width: 14px; height: 14px; border-radius: 50%; background: #ddd;
+          width: 18px; height: 18px; border-radius: 50%; background: #999;
           transition: transform 0.15s, background 0.15s;
         }
         .sd-toggle--active {
-          background: #9f421f; border-color: #9f421f; justify-content: flex-end;
+          background: rgba(228,88,33,0.3); justify-content: flex-end;
         }
-        .sd-toggle--active span { background: #ed6b3b; }
+        .sd-toggle--active span { background: #E45821; }
 
-        .sd-row-arrow { color: #ccc; flex-shrink: 0; }
-        html[data-theme='dark'] .sd-row-arrow { color: #555; }
+        .sd-row-arrow { color: #aaa; flex-shrink: 0; }
+        html[data-theme='dark'] .sd-row-arrow { color: #444; }
+        .sd-row-arrow--danger { color: #ef4444 !important; opacity: 0.8; }
 
         .sd-divider { height: 1px; background: rgba(0,0,0,0.07); margin: 8px 20px; }
         html[data-theme='dark'] .sd-divider { background: rgba(255,255,255,0.07); }
 
         /* Theme picker */
         .sd-theme-group {
-          display: flex; gap: 10px; padding: 10px 20px;
+          display: flex; gap: 4px; padding: 0; flex: 1; justify-content: flex-end;
+          background: rgba(0,0,0,0.04); border-radius: 999px; padding: 2px;
         }
+        html[data-theme='dark'] .sd-theme-group { background: rgba(255,255,255,0.05); }
         .sd-theme-btn {
-          flex: 1; display: flex; flex-direction: column;
-          align-items: center; gap: 6px;
-          padding: 12px 8px; border-radius: 14px;
-          border: 1.5px solid rgba(0,0,0,0.1);
-          background: rgba(0,0,0,0.03);
+          flex: 1; display: flex; flex-direction: row;
+          align-items: center; justify-content: center; gap: 6px;
+          padding: 6px 10px; border-radius: 999px;
+          border: none; background: transparent;
           cursor: pointer; font-family: inherit;
-          color: #888; font-size: 0.72rem; font-weight: 600;
+          color: #777; font-size: 0.75rem; font-weight: 500;
           transition: all 0.18s;
         }
-        .sd-theme-btn:hover { border-color: #E45821; color: #E45821; }
+        .sd-theme-btn:hover { color: var(--text-dark, #111); }
         .sd-theme-btn--active {
-          border-color: #E45821; background: rgba(228,88,33,0.1);
-          color: #E45821;
+          background: #E45821; color: #fff; font-weight: 600; box-shadow: 0 2px 5px rgba(228,88,33,0.3);
         }
-        html[data-theme='dark'] .sd-theme-btn { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #888; }
-        html[data-theme='dark'] .sd-theme-btn:hover { border-color: #E45821; color: #E45821; }
-        html[data-theme='dark'] .sd-theme-btn--active { border-color: #E45821; background: rgba(228,88,33,0.15); color: #E45821; }
+        html[data-theme='dark'] .sd-theme-btn { color: #999; }
+        html[data-theme='dark'] .sd-theme-btn:hover { color: #fff; }
+        html[data-theme='dark'] .sd-theme-btn--active { background: #E45821; color: #fff; }
 
         /* Delete confirm */
         .sd-delete-confirm { padding: 12px 20px; }

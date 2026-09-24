@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiMapPin, FiGrid, FiCalendar } from "react-icons/fi";
+import { FiArrowLeft, FiMapPin, FiGrid, FiCalendar, FiStar, FiBox, FiRepeat, FiInfo } from "react-icons/fi";
 import { HiCheckBadge } from "react-icons/hi2";
 import { api } from "../../services/api";
 
@@ -12,6 +12,8 @@ interface UserData {
   city?: string;
   avatar_url?: string;
   created_at?: string;
+  swap_score?: number;
+  completed_swaps?: number;
 }
 
 interface Listing {
@@ -153,10 +155,26 @@ const UserProfile = () => {
             )}
           </div>
 
-          <div className="up-stats">
-            <div className="up-stat">
-              <span className="up-stat-val">{listings.length}</span>
-              <span className="up-stat-lbl">Listings</span>
+          <div className="up-stats-card">
+            <div className="up-stat-item">
+              <div className="up-stat-icon" style={{color: '#E45821'}}><FiStar size={14} /></div>
+              <div className="up-stat-val">
+                {Number(user.swap_score ?? 0).toFixed(1)}<span className="up-stat-val-sub">/5</span>
+                <FiInfo size={10} className="up-stat-info-icon" />
+              </div>
+              <div className="up-stat-label">Swap Score</div>
+            </div>
+            <div className="up-stat-divider" />
+            <div className="up-stat-item">
+              <div className="up-stat-icon" style={{color: '#E45821'}}><FiBox size={14} /></div>
+              <div className="up-stat-val">{listings.length}</div>
+              <div className="up-stat-label">Items</div>
+            </div>
+            <div className="up-stat-divider" />
+            <div className="up-stat-item">
+              <div className="up-stat-icon" style={{color: '#22c55e'}}><FiRepeat size={14} /></div>
+              <div className="up-stat-val">{user.completed_swaps ?? 0}</div>
+              <div className="up-stat-label">Completed</div>
             </div>
           </div>
         </div>
@@ -211,10 +229,63 @@ const UserProfile = () => {
         .up-bio { font-size:0.9rem; color:var(--text-mid); margin:0 0 8px; line-height:1.5; }
         .up-meta-row { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
         .up-meta-item { display:flex; align-items:center; gap:5px; font-size:0.82rem; color:var(--text-muted); }
-        .up-stats { display:flex; gap:24px; margin-top:4px; }
-        .up-stat { display:flex; flex-direction:column; align-items:flex-start; gap:2px; }
-        .up-stat-val { font-size:1.2rem; font-weight:700; color:var(--text-dark); }
-        .up-stat-lbl { font-size:0.7rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+        .up-stats-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: var(--card-bg, #fff);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 16px;
+          margin-top: 14px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+        html[data-theme='dark'] .up-stats-card {
+          background: #151515;
+          border-color: #2a2a2a;
+        }
+        .up-stat-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          flex: 1;
+        }
+        .up-stat-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 2px;
+        }
+        .up-stat-val {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: var(--text-dark);
+          display: flex;
+          align-items: center;
+          gap: 2px;
+        }
+        .up-stat-val-sub {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          font-weight: 500;
+        }
+        .up-stat-info-icon {
+          color: var(--text-muted);
+          margin-left: 2px;
+          opacity: 0.7;
+        }
+        .up-stat-label {
+          font-size: 0.68rem;
+          color: var(--text-muted);
+          font-weight: 500;
+        }
+        .up-stat-divider {
+          width: 1px;
+          height: 32px;
+          background: var(--border);
+        }
+        html[data-theme='dark'] .up-stat-divider { background: #2a2a2a; }
         .up-listings-section { max-width:1200px; margin:0 auto; padding:0 32px; }
         .up-listings-title { font-size:1.15rem; font-weight:700; color:var(--text-dark); margin:0 0 18px; display:flex; align-items:center; gap:8px; }
         .up-empty-listings { padding:40px 0; text-align:center; color:var(--text-muted); font-size:0.88rem; }

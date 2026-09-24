@@ -168,11 +168,25 @@ function AppInner() {
   const isRequestsPage = pathname === '/requests'
   const hideTopBar = isListProductPage || isSearchPage || isForgotPassword || isResetPassword || isRequestsPage
 
-  // Check for existing session on app load
+  // Check for existing session on app load and route change
   useEffect(() => {
     const checkExistingSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user && !localStorage.getItem("sz_user")) {
+      
+      const isAuthRoute = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname);
+
+      if (!session) {
+        // No session: clear any dummy/old user data
+        if (localStorage.getItem("sz_user")) {
+          localStorage.removeItem("sz_user");
+          window.dispatchEvent(new Event("sz_auth_change"));
+        }
+        
+        // Redirect to login if not already on an auth route
+        if (!isAuthRoute) {
+          navigate('/login', { replace: true });
+        }
+      } else if (session?.user && !localStorage.getItem("sz_user")) {
         // User has a valid session but no local storage - restore it
         const user = session.user;
         const metadata = user.user_metadata || {};
@@ -217,7 +231,7 @@ function AppInner() {
     };
     
     checkExistingSession();
-  }, []);
+  }, [pathname, navigate]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -322,6 +336,7 @@ function AppInner() {
         } else if (event === 'SIGNED_OUT') {
           localStorage.removeItem("sz_user");
           window.dispatchEvent(new Event("sz_auth_change"));
+          navigate('/login', { replace: true });
         }
       }
     );

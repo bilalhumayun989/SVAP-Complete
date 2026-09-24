@@ -82,27 +82,58 @@ const ListProductPage = () => {
       const productId = generateUUID();
       const imageUrls = [];
 
-      for (const p of photos) {
+      // Upload photos with better error handling and progress
+      for (let i = 0; i < photos.length; i++) {
+        const p = photos[i];
         if (p.file) {
-          const formData = new FormData();
-          formData.append('image', p.file);
-          const uploadResponse = await api.uploadImage(formData);
-          if (uploadResponse.url) {
-            imageUrls.push(uploadResponse.url);
-          } else {
-            imageUrls.push('https://placehold.co/600x400?text=Upload+Failed');
+          try {
+            console.log(`Uploading photo ${i + 1} of ${photos.length}...`);
+            const formData = new FormData();
+            formData.append('image', p.file);
+            const uploadResponse = await api.uploadImage(formData);
+            
+            if (uploadResponse.error) {
+              throw new Error(`Photo ${i + 1} upload failed: ${uploadResponse.error}`);
+            }
+            if (uploadResponse.url) {
+              imageUrls.push(uploadResponse.url);
+              console.log(`Photo ${i + 1} uploaded successfully`);
+            } else {
+              throw new Error(`Photo ${i + 1}: No URL returned from server`);
+            }
+          } catch (uploadErr: any) {
+            console.error(`Photo ${i + 1} upload error:`, uploadErr);
+            alert(`Failed to upload photo ${i + 1}. Please try again.`);
+            throw uploadErr;
           }
         }
       }
 
+      // Upload reel with better error handling
       let reelUrl: string | undefined;
       if (reel) {
-        const reelFormData = new FormData();
-        reelFormData.append('video', reel.file);
-        const reelUpload = await api.uploadVideo(reelFormData);
-        if (!reelUpload.url) throw new Error(reelUpload.error || 'Reel upload failed');
-        reelUrl = reelUpload.url;
+        try {
+          console.log('Uploading reel video...');
+          const reelFormData = new FormData();
+          reelFormData.append('video', reel.file);
+          const reelUpload = await api.uploadVideo(reelFormData);
+          
+          if (reelUpload.error) {
+            throw new Error(`Reel upload failed: ${reelUpload.error}`);
+          }
+          if (!reelUpload.url) {
+            throw new Error('Reel upload: No URL returned from server');
+          }
+          reelUrl = reelUpload.url;
+          console.log('Reel uploaded successfully');
+        } catch (reelErr: any) {
+          console.error('Reel upload error:', reelErr);
+          alert('Failed to upload reel video. Please try again.');
+          throw reelErr;
+        }
       }
+
+      console.log('Creating product...');
 
       const response = await api.createProduct({
         id: productId,

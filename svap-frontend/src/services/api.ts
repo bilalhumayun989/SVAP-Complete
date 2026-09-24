@@ -75,6 +75,11 @@ export const api = {
       method: 'POST',
       body: formData,
     });
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('Upload image failed:', text);
+      return { error: `Upload failed: ${res.statusText}` };
+    }
     return res.json();
   },
   uploadVideo: async (formData: FormData) => {
@@ -82,6 +87,11 @@ export const api = {
       method: 'POST',
       body: formData,
     });
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('Upload video failed:', text);
+      return { error: `Upload failed: ${res.statusText}` };
+    }
     return res.json();
   },
 

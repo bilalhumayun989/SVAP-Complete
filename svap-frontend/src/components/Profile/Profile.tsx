@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   FiGrid, FiBookmark, FiRepeat, FiTag,
   FiCamera, FiEdit2, FiTrash2, FiHeart,
-  FiCheck, FiClock, FiX,
+  FiCheck, FiClock, FiX, FiStar, FiBox
 } from "react-icons/fi";
 import { HiCheckBadge } from "react-icons/hi2";
 import StoryViewer from "./StoryViewer";
@@ -101,6 +101,7 @@ const Profile = () => {
           website: savedUser.website || "",
           swap_score: 0,
           total_swaps: 0,
+          completed_swaps: 0,
           total_listings: 0,
         };
 
@@ -145,6 +146,7 @@ const Profile = () => {
               ...prev,
               swap_score: profileRes.data.swap_score ?? 0,
               total_swaps: profileRes.data.total_swaps ?? 0,
+              completed_swaps: profileRes.data.completed_swaps ?? 0,
               total_listings: profileRes.data.total_listings ?? 0,
               is_verified: profileRes.data.is_verified ?? false,
               avatar: profileRes.data.avatar_url || prev.avatar, // Use DB avatar if available
@@ -383,33 +385,32 @@ const Profile = () => {
               {profileUser.bio && <p className="pf-bio">{profileUser.bio}</p>}
               {profileUser.city && <p className="pf-city">{profileUser.city}</p>}
 
-              <div className="pf-stats">
-                <div className="pf-stat-block">
-                  <div className="pf-stat">
-                    <span className="pf-stat-num">{listings.length}</span>
-                    <span className="pf-stat-lbl">Listings</span>
+              <div className="pf-stats-card">
+                <div className="pf-stat-item">
+                  <div className="pf-stat-icon" style={{color: '#E45821'}}><FiStar size={14} /></div>
+                  <div className="pf-stat-val">
+                    {Number(profileUser.swap_score ?? 0).toFixed(1)}<span className="pf-stat-val-sub">/5</span>
                   </div>
+                  <div className="pf-stat-label">Swap Score</div>
                 </div>
-                <div className="pf-stat-sep" />
-                <div className="pf-stat-block">
-                  <div className="pf-stat">
-                    <span className="pf-stat-num">{profileUser.total_swaps ?? 0}</span>
-                    <span className="pf-stat-lbl">Swaps</span>
-                  </div>
+                <div className="pf-stat-divider" />
+                <div className="pf-stat-item">
+                  <div className="pf-stat-icon" style={{color: '#E45821'}}><FiBox size={14} /></div>
+                  <div className="pf-stat-val">{listings.length}</div>
+                  <div className="pf-stat-label">Items</div>
                 </div>
-                {(profileUser.swap_score ?? 0) > 0 && (
-                  <>
-                    <div className="pf-stat-sep" />
-                    <div className="pf-stat-block">
-                      <div className="pf-stat pf-stat--score">
-                        <span className="pf-stat-num pf-stat-num--score">
-                          ⭐ {Number(profileUser.swap_score).toFixed(1)}
-                        </span>
-                        <span className="pf-stat-lbl">Swap Score</span>
-                      </div>
-                    </div>
-                  </>
-                )}
+                <div className="pf-stat-divider" />
+                <div className="pf-stat-item">
+                  <div className="pf-stat-icon" style={{color: '#22c55e'}}><FiRepeat size={14} /></div>
+                  <div className="pf-stat-val">{profileUser.completed_swaps ?? 0}</div>
+                  <div className="pf-stat-label">Completed</div>
+                </div>
+                <div className="pf-stat-divider" />
+                <div className="pf-stat-item">
+                  <div className="pf-stat-icon" style={{color: '#E45821'}}><FiBookmark size={14} /></div>
+                  <div className="pf-stat-val">{savedItems.length > 0 ? savedItems.length : '-'}</div>
+                  <div className="pf-stat-label">Saved</div>
+                </div>
               </div>
 
               <div className="pf-btns">
@@ -735,14 +736,64 @@ const Profile = () => {
         .pf-bio { font-size: 0.82rem; color: var(--pf-ink-soft); margin: 0 0 4px; line-height: 1.5; }
         .pf-city { font-size: 0.74rem; color: var(--pf-muted); margin: 0 0 12px; }
 
-        .pf-stats { display: flex; align-items: center; flex-wrap: wrap; }
-        .pf-stat-block { display: flex; align-items: center; }
-        .pf-stat { display: flex; flex-direction: column; align-items: flex-start; padding: 0 12px 0 0; }
-        .pf-stat-num { font-size: 1rem; font-weight: 700; color: var(--pf-ink); line-height: 1.2; }
-        .pf-stat-num--score { color: #E45821; }
-        .pf-stat-val { font-size: 1rem; font-weight: 700; color: var(--pf-ink); line-height: 1.2; }
-        .pf-stat-lbl { font-size: 0.65rem; color: var(--pf-muted); font-weight: 500; }
-        .pf-stat-sep { width: 1px; height: 24px; background: var(--pf-line); margin-right: 12px; }
+        .pf-stats-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: var(--pf-surface);
+          border: 1px solid var(--pf-line);
+          border-radius: 12px;
+          padding: 16px;
+          margin: 16px 0;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+        html[data-theme='dark'] .pf-stats-card {
+          background: #151515;
+          border-color: #2a2a2a;
+        }
+        .pf-stat-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          flex: 1;
+        }
+        .pf-stat-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 2px;
+        }
+        .pf-stat-val {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: var(--pf-ink);
+          display: flex;
+          align-items: center;
+          gap: 2px;
+        }
+        html[data-theme='dark'] .pf-stat-val { color: #fff; }
+        .pf-stat-val-sub {
+          font-size: 0.75rem;
+          color: var(--pf-muted);
+          font-weight: 500;
+        }
+        .pf-stat-info-icon {
+          color: var(--pf-muted);
+          margin-left: 2px;
+          opacity: 0.7;
+        }
+        .pf-stat-label {
+          font-size: 0.68rem;
+          color: var(--pf-muted);
+          font-weight: 500;
+        }
+        .pf-stat-divider {
+          width: 1px;
+          height: 32px;
+          background: var(--pf-line);
+        }
+        html[data-theme='dark'] .pf-stat-divider { background: #2a2a2a; }
 
         .pf-btns { display: flex; gap: 8px; flex-wrap: wrap; }
         .pf-btn {
@@ -779,6 +830,12 @@ const Profile = () => {
           .pf-info {
             width: calc(100% - 64px);
             padding-top: 0;
+          }
+          .pf-stats-card {
+            width: calc(100% + 64px);
+            margin-left: -64px;
+            margin-top: 18px;
+            margin-bottom: 0;
           }
           .pf-btns {
             width: calc(100% + 64px);
@@ -1356,8 +1413,7 @@ const Profile = () => {
           .pf-avatar-letter { font-size: 2rem; }
           .pf-name { font-size: 1.22rem; }
           .pf-info { padding-top: 14px; width: 100%; }
-          .pf-stats { padding: 12px 0; margin: 2px 0 16px; border-bottom: 1px solid var(--pf-line-soft); }
-          .pf-stat { padding: 0 10px 0 0; }
+          .pf-stats-card { margin: 16px 0 24px; }
           .pf-btns { flex-direction: column; gap: 9px; }
           .pf-btn { width: 100%; padding: 10px 16px; text-align: center; font-size: 0.78rem; }
           .pf-story-strip { flex-wrap: wrap; border-bottom: none; padding-top: 18px; margin-top: auto; border-top: 1px solid var(--pf-line-soft); gap: 12px; }
@@ -1415,7 +1471,7 @@ const Profile = () => {
           .pf-info { padding-top: 18px; width: 100%; }
           .pf-name { font-size: 1.32rem; }
           .pf-bio { font-size: 0.85rem; }
-          .pf-stats { padding: 16px 0; margin: 4px 0 20px; border-bottom: 1px solid var(--pf-line-soft); }
+          .pf-stats-card { margin: 20px 0 28px; }
           .pf-btns { flex-direction: column; gap: 10px; }
           .pf-btn { width: 100%; padding: 11px 18px; text-align: center; }
           .pf-story-strip { flex-wrap: wrap; border-bottom: none; padding-top: 22px; margin-top: auto; border-top: 1px solid var(--pf-line-soft); }
@@ -1486,7 +1542,7 @@ const Profile = () => {
           color: #999;
         }
 
-        html[data-theme='dark'] .pf-stat-sep {
+        html[data-theme='dark'] .pf-stat-divider {
           background: #2a2a2a;
         }
 
