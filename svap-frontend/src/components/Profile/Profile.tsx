@@ -106,6 +106,37 @@ const Profile = () => {
 
         setProfileUser(fallbackProfile);
 
+        // Fetch avatar URL from Supabase Auth metadata
+        try {
+          const { supabase } = await import("../../services/supabase");
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (user) {
+            const authAvatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+            
+            // If avatar exists in auth metadata but not in profile, update profile
+            if (authAvatarUrl && !savedUser.avatar) {
+              try {
+                await api.updateProfile(savedUser.id, { avatar_url: authAvatarUrl });
+                
+                // Update localStorage
+                const updatedUser = { ...savedUser, avatar: authAvatarUrl };
+                localStorage.setItem("sz_user", JSON.stringify(updatedUser));
+                
+                // Update state immediately
+                setProfileUser((prev: any) => ({
+                  ...prev,
+                  avatar: authAvatarUrl,
+                }));
+              } catch (updateErr) {
+                console.error('[Profile] Failed to update avatar:', updateErr);
+              }
+            }
+          }
+        } catch (authErr) {
+          console.error('[Profile] Failed to fetch auth avatar:', authErr);
+        }
+
         // Fetch full profile from API to get swap_score, total_swaps, etc.
         try {
           const profileRes = await api.getProfile(savedUser.id);
@@ -116,6 +147,7 @@ const Profile = () => {
               total_swaps: profileRes.data.total_swaps ?? 0,
               total_listings: profileRes.data.total_listings ?? 0,
               is_verified: profileRes.data.is_verified ?? false,
+              avatar: profileRes.data.avatar_url || prev.avatar, // Use DB avatar if available
             }));
           }
         } catch { /* ignore — fallback values used */ }

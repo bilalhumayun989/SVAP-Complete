@@ -1,8 +1,27 @@
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { sendOtpEmail } = require('../config/mailer');
+const disposableDomains = require('disposable-email-domains');
 
 // authClient = admin if available (bypasses RLS), else anon
 const authClient = supabaseAdmin || supabase;
+
+// Additional common disposable domains not in the main package
+const additionalDisposableDomains = [
+  'tempmail.com', 'temp-mail.com', 'throwaway.email', 'throwawaymail.com',
+  'trashmail.com', 'fakeinbox.com', 'yopmail.com', 'sharklasers.com',
+  'grr.la', 'guerrillamailblock.com', 'spam4.me', 'emailondeck.com',
+  'tempinbox.com', 'discard.email', 'discardmail.com', 'spambox.us',
+  'tempr.email', 'getairmail.com', 'moakt.com', 'mohmal.com',
+  'mytemp.email', 'tempsky.com', 'mintemail.com', 'momentics.ru'
+];
+
+// Helper function to check if email is disposable
+const isDisposableEmail = (email) => {
+  if (!email || typeof email !== 'string') return false;
+  const domain = email.split('@')[1]?.toLowerCase();
+  if (!domain) return false;
+  return disposableDomains.includes(domain) || additionalDisposableDomains.includes(domain);
+};
 
 const generateUniqueUsername = async (preferredUsername, userId) => {
   const base = (preferredUsername || '')
@@ -72,6 +91,14 @@ exports.sendOtp = async (req, res) => {
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
     const normalizedEmail = String(email).trim().toLowerCase();
+
+    // Check for disposable/temporary email domains
+    if (isDisposableEmail(normalizedEmail)) {
+      return res.status(400).json({ 
+        error: 'Temporary/disposable email addresses allowed nahi hain. Please apna asal email use karein.' 
+      });
+    }
+
     const existingUser = await getExistingAuthUserByEmail(normalizedEmail);
 
     if (existingUser) {
@@ -203,6 +230,35 @@ exports.signup = async (req, res) => {
     const { email, password, username, phone } = req.body;
     if (!email || !password || !username) {
       return res.status(400).json({ error: 'Username, Email, and password are required' });
+    }
+
+    // === BACKEND VALIDATIONS ===
+
+    // 1. Username validation
+    if (username.length < 3 || username.length > 20) {
+      return res.status(400).json({ error: 'Username must be between 3-20 characters' });
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
+    }
+
+    // 2. Phone validation - Pakistani format
+    if (phone) {
+      const phoneDigits = phone.replace(/\D/g, '');
+      if (phoneDigits.length !== 11) {
+        return res.status(400).json({ error: 'Phone number must be exactly 11 digits' });
+      }
+      if (!/^03\d{9}$/.test(phoneDigits)) {
+        return res.status(400).json({ error: 'Invalid Pakistani phone number format. Must start with 03' });
+      }
+    }
+
+    // 3. Password validation
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return res.status(400).json({ error: 'Password must contain at least one special character' });
     }
 
     // Check username taken

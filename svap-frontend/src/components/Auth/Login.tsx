@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { FiEye, FiEyeOff, FiArrowRight, FiArrowLeft } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { AiFillApple } from "react-icons/ai";
@@ -8,6 +8,7 @@ import { supabase } from "../../services/supabase";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
@@ -16,6 +17,20 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // Check for signup success message
+  useEffect(() => {
+    const state = location.state as { message?: string; email?: string } | null;
+    if (state?.message) {
+      setSuccessMessage(state.message);
+      if (state.email) {
+        setEmail(state.email);
+      }
+      // Clear the state
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
@@ -126,6 +141,17 @@ const Login = () => {
           <h1 className="svap-title">Welcome Back</h1>
           <p className="svap-subtitle">Log In To Your Svap Account</p>
         </div>
+
+        {/* Success Message */}
+        {successMessage && (
+          <div className="svap-success-banner">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2"/>
+              <path d="M6 10l3 3 5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <p>{successMessage}</p>
+          </div>
+        )}
 
         {/* Form Container */}
         <form onSubmit={handleLogin} className="svap-form">
@@ -399,6 +425,35 @@ const Login = () => {
         .svap-subtitle {
           font-size: 0.92rem;
           color: var(--text-muted);
+        }
+
+        .svap-success-banner {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 14px 18px;
+          background: rgba(34, 197, 94, 0.1);
+          border: 1px solid rgba(34, 197, 94, 0.3);
+          border-radius: 12px;
+          margin-bottom: 20px;
+          color: #22c55e;
+        }
+        
+        html[data-theme='dark'] .svap-success-banner {
+          background: rgba(34, 197, 94, 0.15);
+          border-color: rgba(34, 197, 94, 0.4);
+        }
+
+        .svap-success-banner svg {
+          flex-shrink: 0;
+        }
+
+        .svap-success-banner p {
+          margin: 0;
+          font-size: 0.88rem;
+          font-weight: 600;
+          line-height: 1.4;
+          color: inherit;
         }
 
         .svap-form {

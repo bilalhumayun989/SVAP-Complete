@@ -1,11 +1,29 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FiEye, FiEyeOff, FiMail, FiArrowRight, FiArrowLeft } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiMail, FiArrowRight, FiArrowLeft, FiCheck, FiX } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { api } from "../../services/api";
 import { supabase } from "../../services/supabase";
+import disposableDomains from "disposable-email-domains";
 
 type Step = "form" | "otp";
+
+// Additional common disposable domains not in the main package
+const additionalDisposableDomains = [
+  'tempmail.com', 'temp-mail.com', 'throwaway.email', 'throwawaymail.com',
+  'trashmail.com', 'fakeinbox.com', 'yopmail.com', 'sharklasers.com',
+  'grr.la', 'guerrillamailblock.com', 'spam4.me', 'emailondeck.com',
+  'tempinbox.com', 'discard.email', 'discardmail.com', 'spambox.us',
+  'tempr.email', 'getairmail.com', 'moakt.com', 'mohmal.com',
+  'mytemp.email', 'tempsky.com', 'mintemail.com', 'momentics.ru'
+];
+
+// Helper to check if email is disposable
+const isDisposableEmail = (email: string): boolean => {
+  const domain = email.split('@')[1]?.toLowerCase();
+  if (!domain) return false;
+  return disposableDomains.includes(domain) || additionalDisposableDomains.includes(domain);
+};
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -28,15 +46,106 @@ const Signup = () => {
   const [error, setError] = useState("");
   const [showLoginRedirect, setShowLoginRedirect] = useState(false);
 
+  // Validation states
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [usernameError, setUsernameError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordValidation, setPasswordValidation] = useState({
+    minLength: false,
+    hasSpecialChar: false,
+  });
+  const usernameCheckTimeout = useRef<number | null>(null);
+
   useEffect(() => {
     if (resendTimer <= 0) return;
     const t = setTimeout(() => setResendTimer((v) => v - 1), 1000);
     return () => clearTimeout(t);
   }, [resendTimer]);
 
+  // Username uniqueness check with debounce
+  useEffect(() => {
+    if (step !== "form" || !form.username.trim()) {
+      setUsernameStatus("idle");
+      setUsernameError("");
+      return;
+    }
+
+    if (usernameCheckTimeout.current) {
+      clearTimeout(usernameCheckTimeout.current);
+    }
+
+    setUsernameStatus("checking");
+    usernameCheckTimeout.current = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("username", form.username.trim())
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setUsernameStatus("taken");
+          setUsernameError("Username already taken");
+        } else {
+          setUsernameStatus("available");
+          setUsernameError("");
+        }
+      } catch (err) {
+        console.error("[Signup] Username check error:", err);
+        setUsernameStatus("idle");
+      }
+    }, 500);
+
+    return () => {
+      if (usernameCheckTimeout.current) {
+        clearTimeout(usernameCheckTimeout.current);
+      }
+    };
+  }, [form.username, step]);
+
+  // Password validation
+  useEffect(() => {
+    setPasswordValidation({
+      minLength: form.password.length >= 6,
+      hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(form.password),
+    });
+  }, [form.password]);
+
   const handleChange = (k: string, v: string) => {
     setError("");
     setShowLoginRedirect(false);
+
+    // Email validation - check for disposable domains
+    if (k === "email") {
+      setForm((f) => ({ ...f, [k]: v }));
+      
+      if (v.includes('@') && isDisposableEmail(v)) {
+        setEmailError("Temporary/disposable email addresses allowed nahi hain. Please apna asal email use karein.");
+      } else {
+        setEmailError("");
+      }
+      return;
+    }
+
+    // Phone number validation - only allow digits
+    if (k === "phone") {
+      const digitsOnly = v.replace(/\D/g, "");
+      setForm((f) => ({ ...f, [k]: digitsOnly }));
+
+      // Real-time phone validation
+      if (digitsOnly.length > 0 && digitsOnly.length !== 11) {
+        setPhoneError("Phone number must be exactly 11 digits");
+      } else if (digitsOnly.length === 11 && !/^03\d{9}$/.test(digitsOnly)) {
+        setPhoneError("Please Enter a Valid Number (Like 03001234567)");
+      } else {
+        setPhoneError("");
+      }
+      return;
+    }
+
     setForm((f) => ({ ...f, [k]: v }));
   };
 
@@ -47,10 +156,27 @@ const Signup = () => {
     e.preventDefault();
     setError("");
 
-    if (!form.username.trim()) return setError("Username is required");
+    // Validate all fields
     if (!form.email.trim()) return setError("Email is required");
+    if (emailError) return setError(emailError);
+    
+    if (isDisposableEmail(form.email)) {
+      return setError("Temporary/disposable email addresses allowed nahi hain. Please apna asal email use karein.");
+    }
+    
+    if (!form.username.trim()) return setError("Username is required");
+    if (usernameStatus === "taken") return setError(usernameError);
+    if (usernameStatus === "checking") return setError("Please wait while we check username availability");
+    if (usernameStatus !== "available") return setError("Please enter a valid username");
+    
     if (!form.phone.trim()) return setError("Phone number is required");
+    if (form.phone.length !== 11) return setError("Phone number must be exactly 11 digits");
+    if (!/^03\d{9}$/.test(form.phone)) return setError("Sahi Pakistani phone number likhein (jaisay 03001234567)");
+    
     if (form.password.length < 6) return setError("Password must be at least 6 characters");
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(form.password)) {
+      return setError("Password kam az kam 6 characters ka ho aur ek special character (!@#$% wagera) shamil karein");
+    }
     if (form.password !== form.confirmPassword) return setError("Passwords do not match");
 
     setLoading(true);
@@ -105,6 +231,7 @@ const Signup = () => {
 
     setLoading(true);
     try {
+      // Step 1: Verify OTP
       const otpRes = await api.verifyOtp(form.email, otp);
       if (otpRes.error) throw new Error(otpRes.error);
 
@@ -113,42 +240,67 @@ const Signup = () => {
 
       if (!userId) throw new Error("Verification failed. Please try again.");
 
-      await api.signup({
-        email: userEmail,
-        password: form.password,
-        username: form.username,
-        phone: form.phone,
-      }).catch(() => {});
-
-      try {
-        await api.updateProfile(userId, {
-          username: form.username,
-          phone: form.phone,
-          full_name: form.username,
-        });
-      } catch {}
-
+      // Step 2: Set session temporarily (needed for updateUser)
       if (otpRes.session?.access_token) {
         const { supabase: sb } = await import("../../services/supabase");
         await sb.auth.setSession({
           access_token: otpRes.session.access_token,
           refresh_token: otpRes.session.refresh_token,
         });
+
+        // Step 3: IMPORTANT - Set user password in Supabase
+        const { error: passwordError } = await sb.auth.updateUser({
+          password: form.password,
+        });
+
+        if (passwordError) {
+          throw new Error(`Failed to set password: ${passwordError.message}`);
+        }
+
+        // Step 3.5: Fetch user avatar URL from Supabase auth metadata
+        const { data: { user } } = await sb.auth.getUser();
+        const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
+
+        // Step 4: Sign out (no auto-login)
+        await sb.auth.signOut();
+
+        // Step 5: Create profile via API (optional - may already exist)
+        await api.signup({
+          email: userEmail,
+          password: form.password,
+          username: form.username,
+          phone: form.phone,
+        }).catch(() => {
+          // Ignore errors - profile might already exist
+        });
+
+        // Step 6: Update profile details with avatar
+        try {
+          await api.updateProfile(userId, {
+            username: form.username,
+            phone: form.phone,
+            full_name: form.username,
+            avatar_url: avatarUrl, // Save avatar URL
+          });
+        } catch (err) {
+          console.error('[Signup] Profile update error:', err);
+          // Ignore profile update errors
+        }
       }
 
-      localStorage.setItem(
-        "sz_user",
-        JSON.stringify({
-          id: userId,
-          name: form.username,
-          username: "@" + form.username.replace(/\s+/g, "").toLowerCase(),
-          email: userEmail,
-          phone: form.phone,
-        })
-      );
-      window.dispatchEvent(new Event("sz_auth_change"));
-      navigate("/");
+      // Step 7: Clear any stored user data
+      localStorage.removeItem("sz_user");
+      
+      // Step 8: Redirect to login page with success message
+      navigate("/login", { 
+        state: { 
+          message: "Account created successfully! Please login with your credentials.",
+          email: userEmail 
+        },
+        replace: true
+      });
     } catch (err: any) {
+      console.error('[Signup] Verification error:', err);
       setError(err.message || "Verification failed");
     } finally {
       setLoading(false);
@@ -222,33 +374,81 @@ const Signup = () => {
 
             <form onSubmit={handleSendOtp} className="dark-auth-form" noValidate>
               <div className="dark-field">
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => handleChange("email", e.target.value)}
-                  placeholder="EMAIL"
-                  className="dark-input"
-                />
+                <div className="dark-input-wrap">
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                    placeholder="EMAIL"
+                    className={`dark-input ${emailError ? "error-border" : ""}`}
+                  />
+                  {form.email.includes('@') && !emailError && (
+                    <span className="validation-icon success">
+                      <FiCheck size={16} />
+                    </span>
+                  )}
+                  {emailError && (
+                    <span className="validation-icon error-icon">
+                      <FiX size={16} />
+                    </span>
+                  )}
+                </div>
+                {emailError && <span className="field-error">{emailError}</span>}
               </div>
 
               <div className="dark-field">
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => handleChange("phone", e.target.value)}
-                  placeholder="PHONE NUMBER"
-                  className="dark-input"
-                />
+                <div className="dark-input-wrap">
+                  <input
+                    type="tel"
+                    value={form.phone}
+                    onChange={(e) => handleChange("phone", e.target.value)}
+                    placeholder="PHONE NUMBER"
+                    className={`dark-input ${phoneError ? "error-border" : ""}`}
+                    maxLength={11}
+                  />
+                  {form.phone.length === 11 && !phoneError && (
+                    <span className="validation-icon success">
+                      <FiCheck size={16} />
+                    </span>
+                  )}
+                  {phoneError && (
+                    <span className="validation-icon error-icon">
+                      <FiX size={16} />
+                    </span>
+                  )}
+                </div>
+                {phoneError && <span className="field-error">{phoneError}</span>}
+                <span className="dark-field-hint">
+                  Pakistani number · 11 digits · Starts From '03' (e.g., 03000000000)
+                </span>
               </div>
 
               <div className="dark-field">
-                <input
-                  type="text"
-                  value={form.username}
-                  onChange={(e) => handleChange("username", e.target.value)}
-                  placeholder="USERNAME"
-                  className="dark-input"
-                />
+                <div className="dark-input-wrap">
+                  <input
+                    type="text"
+                    value={form.username}
+                    onChange={(e) => handleChange("username", e.target.value)}
+                    placeholder="USERNAME"
+                    className={`dark-input ${usernameStatus === "taken" ? "error-border" : ""}`}
+                  />
+                  {usernameStatus === "checking" && (
+                    <span className="validation-icon">
+                      <span className="dark-spinner-small" />
+                    </span>
+                  )}
+                  {usernameStatus === "available" && (
+                    <span className="validation-icon success">
+                      <FiCheck size={16} />
+                    </span>
+                  )}
+                  {usernameStatus === "taken" && (
+                    <span className="validation-icon error-icon">
+                      <FiX size={16} />
+                    </span>
+                  )}
+                </div>
+                {usernameError && <span className="field-error">{usernameError}</span>}
                 <span className="dark-field-hint">
                   3–20 characters · letters, numbers and underscores only · no spaces
                 </span>
@@ -268,6 +468,18 @@ const Signup = () => {
                     {showPass ? <FiEyeOff size={18} /> : <FiEye size={18} />}
                   </button>
                 </div>
+                {form.password && (
+                  <div className="password-checks">
+                    <div className={`password-check ${passwordValidation.minLength ? "valid" : ""}`}>
+                      <FiCheck size={12} />
+                      <span>6+ characters</span>
+                    </div>
+                    <div className={`password-check ${passwordValidation.hasSpecialChar ? "valid" : ""}`}>
+                      <FiCheck size={12} />
+                      <span>Special character (!@#$% etc.)</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="dark-field">
@@ -294,7 +506,18 @@ const Signup = () => {
                   <span>Login karein</span>
                 </button>
               ) : (
-                <button type="submit" className="dark-primary-btn" disabled={loading}>
+                <button 
+                  type="submit" 
+                  className="dark-primary-btn" 
+                  disabled={
+                    loading || 
+                    !!emailError ||
+                    usernameStatus !== "available" || 
+                    !!phoneError || 
+                    !passwordValidation.minLength || 
+                    !passwordValidation.hasSpecialChar
+                  }
+                >
                   {loading ? (
                     <span className="dark-spinner" />
                   ) : (
@@ -422,6 +645,11 @@ const Signup = () => {
           transition: background-color 0.3s ease, color 0.3s ease;
         }
 
+        /* Light mode specific styles */
+        html:not([data-theme='dark']) .dark-auth-page {
+          background-color: #ffffff;
+        }
+
         .dark-auth-card {
           width: 100%;
           max-width: 440px;
@@ -519,10 +747,27 @@ const Signup = () => {
           transition: border-color 0.2s, background 0.2s;
         }
 
+        /* Light mode input styles */
+        html:not([data-theme='dark']) .dark-input {
+          background: #f5f5f5;
+          border: 1px solid #e0e0e0;
+          color: #1a1a1a;
+        }
+
+        html:not([data-theme='dark']) .dark-input:focus {
+          background: #ffffff;
+          border-color: #E45821;
+        }
+
         .dark-input::placeholder {
           color: var(--text-muted);
           font-weight: 700;
           opacity: 0.6;
+        }
+
+        html:not([data-theme='dark']) .dark-input::placeholder {
+          color: #999999;
+          opacity: 0.8;
         }
           letter-spacing: 0.06em;
         }
@@ -545,11 +790,92 @@ const Signup = () => {
           padding: 0;
         }
 
+        html:not([data-theme='dark']) .dark-eye-btn {
+          color: #666666;
+        }
+
         .dark-field-hint {
           color: #636366;
           font-size: 0.72rem;
           line-height: 1.3;
           padding: 0 4px;
+        }
+
+        html:not([data-theme='dark']) .dark-field-hint {
+          color: #888888;
+        }
+
+        .field-error {
+          color: #ff453a;
+          font-size: 0.75rem;
+          padding: 0 4px;
+          display: block;
+        }
+
+        html:not([data-theme='dark']) .field-error {
+          color: #d32f2f;
+        }
+
+        .error-border {
+          border-color: #ff453a !important;
+        }
+
+        html:not([data-theme='dark']) .error-border {
+          border-color: #d32f2f !important;
+        }
+
+        .validation-icon {
+          position: absolute;
+          right: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+        }
+
+        .validation-icon.success {
+          color: #30d158;
+        }
+
+        .validation-icon.error-icon {
+          color: #ff453a;
+        }
+
+        .password-checks {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          padding: 8px 4px 0;
+        }
+
+        .password-check {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.75rem;
+          color: #636366;
+          transition: color 0.2s;
+        }
+
+        html:not([data-theme='dark']) .password-check {
+          color: #888888;
+        }
+
+        .password-check svg {
+          flex-shrink: 0;
+          opacity: 0.4;
+        }
+
+        .password-check.valid {
+          color: #30d158;
+        }
+
+        html:not([data-theme='dark']) .password-check.valid {
+          color: #2e7d32;
+        }
+
+        .password-check.valid svg {
+          opacity: 1;
         }
 
         .dark-switch {
@@ -558,6 +884,10 @@ const Signup = () => {
           font-size: 0.9rem;
           margin-top: auto;
           padding-top: 20px;
+        }
+
+        html:not([data-theme='dark']) .dark-switch {
+          color: #666666;
         }
 
         .dark-switch-link {
@@ -584,9 +914,17 @@ const Signup = () => {
           background: #2c2c2e;
         }
 
+        html:not([data-theme='dark']) .dark-divider-line {
+          background: #e0e0e0;
+        }
+
         .dark-divider-text {
           color: #636366;
           font-size: 0.85rem;
+        }
+
+        html:not([data-theme='dark']) .dark-divider-text {
+          color: #888888;
         }
 
         .dark-social-btn {
@@ -607,8 +945,19 @@ const Signup = () => {
           transition: background 0.2s;
         }
 
+        html:not([data-theme='dark']) .dark-social-btn {
+          background: #ffffff;
+          border: 2px solid #e0e0e0;
+          color: #1a1a1a;
+        }
+
         .dark-social-btn:hover:not(:disabled) {
           background: #2c2c2e;
+        }
+
+        html:not([data-theme='dark']) .dark-social-btn:hover:not(:disabled) {
+          background: #f5f5f5;
+          border-color: #E45821;
         }
 
         .dark-social-btn:disabled {
@@ -666,6 +1015,11 @@ const Signup = () => {
           border-radius: 10px;
         }
 
+        html:not([data-theme='dark']) .dark-error {
+          color: #d32f2f;
+          background: rgba(211, 47, 47, 0.1);
+        }
+
         /* OTP View Styling */
         .dark-otp-container {
           display: flex;
@@ -687,6 +1041,10 @@ const Signup = () => {
           align-self: flex-start;
           display: inline-flex;
           align-items: center;
+        }
+
+        html:not([data-theme='dark']) .dark-back-btn {
+          color: #666666;
         }
 
         .dark-otp-icon {
@@ -721,6 +1079,12 @@ const Signup = () => {
           outline: none;
         }
 
+        html:not([data-theme='dark']) .dark-otp-box {
+          color: #1a1a1a;
+          background: #f5f5f5;
+          border: 1px solid #e0e0e0;
+        }
+
         .dark-otp-box:focus {
           border-color: #f26539;
         }
@@ -728,6 +1092,10 @@ const Signup = () => {
         .dark-otp-box.filled {
           border-color: #f26539;
           background: rgba(242, 101, 57, 0.1);
+        }
+
+        html:not([data-theme='dark']) .dark-otp-box.filled {
+          background: rgba(242, 101, 57, 0.15);
         }
 
         .dark-resend {
@@ -739,6 +1107,10 @@ const Signup = () => {
         .dark-resend-timer {
           font-size: 0.85rem;
           color: #8e8e93;
+        }
+
+        html:not([data-theme='dark']) .dark-resend-timer {
+          color: #888888;
         }
 
         .dark-resend-btn {
