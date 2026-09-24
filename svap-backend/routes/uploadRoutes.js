@@ -3,9 +3,26 @@ const router = express.Router();
 const multer = require('multer');
 const { supabaseAdmin } = require('../config/supabase');
 
-const upload = multer({ storage: multer.memoryStorage() });
+// Separate multer instances with file size limits
+const uploadImage = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB for images
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only image files are allowed'), false);
+  }
+});
 
-router.post('/image', upload.single('image'), async (req, res) => {
+const uploadVideo = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 200 * 1024 * 1024 }, // 200MB for videos
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('video/')) cb(null, true);
+    else cb(new Error('Only video files are allowed'), false);
+  }
+});
+
+router.post('/image', uploadImage.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No image file provided' });
@@ -35,12 +52,15 @@ router.post('/image', upload.single('image'), async (req, res) => {
 
     res.json({ url: publicUrlData.publicUrl });
   } catch (err) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'Image too large. Max size is 10MB.' });
+    }
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-router.post('/video', upload.single('video'), async (req, res) => {
+router.post('/video', uploadVideo.single('video'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No video file provided' });
@@ -69,6 +89,9 @@ router.post('/video', upload.single('video'), async (req, res) => {
 
     res.json({ url: publicUrlData.publicUrl });
   } catch (err) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'Video too large. Max size is 200MB.' });
+    }
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
