@@ -203,7 +203,14 @@ export default function MobileNavbar() {
           return (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => {
+                const protectedRoutes = ['/profile', '/requests', '/list-product'];
+                if (!user && protectedRoutes.includes(item.path)) {
+                  navigate('/login', { state: { returnUrl: item.path } });
+                } else {
+                  navigate(item.path);
+                }
+              }}
               className={`relative flex items-center justify-center py-2 px-3 rounded-full transition-all duration-300 ease-out ${activeItemClass}`}
               aria-label={item.path.replace("/", "") || "Home"}
               aria-current={isActive ? "page" : undefined}

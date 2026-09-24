@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiSend,
@@ -45,6 +45,8 @@ const Requests = () => {
       return null;
     }
   })();
+
+  if (!userId) return null;
 
   const refresh = useCallback(async () => {
     if (!userId) {

@@ -57,6 +57,12 @@ const Profile = () => {
   const navigate = useNavigate();
   const storyFileRef = useRef<HTMLInputElement>(null);
 
+  // Early return to prevent dummy user flash before App.tsx redirects
+  const rawUser = localStorage.getItem("sz_user");
+  if (!rawUser) {
+    return null;
+  }
+
   const [activeTab, setActiveTab] = useState<TabKey>("listings");
   const [stories, setStories] = useState(INIT_STORIES);
   const [storyOpen, setStoryOpen] = useState(false);
@@ -86,7 +92,8 @@ const Profile = () => {
         const savedUser = rawUser ? JSON.parse(rawUser) : null;
 
         if (!savedUser?.id) {
-          console.warn("Profile user id not found in localStorage.");
+          console.warn("Profile user id not found in localStorage. Redirecting to login...");
+          navigate("/login", { replace: true });
           return;
         }
 

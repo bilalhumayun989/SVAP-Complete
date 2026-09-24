@@ -350,6 +350,13 @@ const Navbar = () => {
             <Link
               key={item.route}
               to={item.route}
+              onClick={(e) => {
+                const protectedRoutes = ['/notifications', '/list-product'];
+                if (!user && protectedRoutes.includes(item.route)) {
+                  e.preventDefault();
+                  navigate('/login', { state: { returnUrl: item.route } });
+                }
+              }}
               className={`nb-item ${isActive(item.route) ? "nb-item--active" : ""}`}
               aria-label={item.label}
             >
@@ -382,7 +389,13 @@ const Navbar = () => {
           <div className="nb-profile-wrap">
             <button
               className={`nb-item nb-item--btn ${isActive("/profile") ? "nb-item--active" : ""}`}
-              onClick={() => setProfileOpen((p) => !p)}
+              onClick={() => {
+                if (!user) {
+                  navigate('/login', { state: { returnUrl: '/profile' } });
+                } else {
+                  setProfileOpen((p) => !p);
+                }
+              }}
               aria-label="Profile"
             >
               <span className="nb-icon" style={{ position: 'relative' }}>

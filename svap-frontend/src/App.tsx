@@ -172,8 +172,6 @@ function AppInner() {
   useEffect(() => {
     const checkExistingSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      const isAuthRoute = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname);
 
       if (!session) {
         // No session: clear any dummy/old user data
@@ -182,9 +180,13 @@ function AppInner() {
           window.dispatchEvent(new Event("sz_auth_change"));
         }
         
-        // Redirect to login if not already on an auth route
-        if (!isAuthRoute) {
-          navigate('/login', { replace: true });
+        // Define routes that strictly require authentication
+        const protectedRoutes = ['/profile', '/requests', '/orders', '/list-product', '/checkout', '/cart', '/notifications', '/create', '/edit'];
+        const isProtectedRoute = protectedRoutes.some(r => pathname.startsWith(r));
+
+        // Redirect to login ONLY if they are trying to access a protected route
+        if (isProtectedRoute) {
+          navigate('/login', { replace: true, state: { returnUrl: pathname } });
         }
       } else if (session?.user && !localStorage.getItem("sz_user")) {
         // User has a valid session but no local storage - restore it
