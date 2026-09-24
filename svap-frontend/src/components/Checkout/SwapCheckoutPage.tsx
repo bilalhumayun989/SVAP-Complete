@@ -303,7 +303,7 @@ const SwapCheckoutPage = () => {
         <div className="scp-container">
           <div className="scp-empty">
             <FiAlertCircle size={40} />
-            <p>No swap request found.</p>
+            <p>No svap request found.</p>
             <button className="scp-back-btn" onClick={() => navigate('/requests')}>Go to Requests</button>
           </div>
         </div>
@@ -375,8 +375,8 @@ const SwapCheckoutPage = () => {
           <button className="scp-back" onClick={() => navigate(-1)}>
             <FiArrowLeft size={16} /> Back
           </button>
-          <h1 className="scp-title">Swap Checkout</h1>
-          <p className="scp-subtitle">Complete your delivery details to finalize the swap</p>
+          <h1 className="scp-title">Svap Checkout</h1>
+          <p className="scp-subtitle">Complete your delivery details to finalize the svap</p>
         </div>
 
         <div className="scp-content">
@@ -387,7 +387,7 @@ const SwapCheckoutPage = () => {
             {/* Swap Summary Card */}
             {swapInfo && (
               <div className="scp-swap-summary">
-                <p className="scp-section-label">Your Swap</p>
+                <p className="scp-section-label">Your Svap</p>
                 <div className="scp-swap-row">
                   <div className="scp-swap-item">
                     <img

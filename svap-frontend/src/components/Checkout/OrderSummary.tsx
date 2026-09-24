@@ -76,7 +76,7 @@ export const OrderSummary = ({
 
       {transactionType === 'svap' && givingItem && receivingItem && (
         <div className="swap-route-card">
-          <div className="swap-route-title">Swap Route</div>
+          <div className="swap-route-title">Svap Route</div>
           <div className="swap-route-grid">
             <div className="swap-route-item">
               <span className="swap-route-label">You Give</span>

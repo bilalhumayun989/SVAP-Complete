@@ -127,7 +127,7 @@ const CheckoutPage = () => {
           {/* If came from swap, show "check requests later" note */}
           {(navigationData?.entrySource === 'swap' || navigationData?.entrySource === 'svap') && (
             <div className="checkout-swap-note">
-              ✅ Swap request accepted! Fill in delivery details below, or{' '}
+              ✅ Svap request accepted! Fill in delivery details below, or{' '}
               <button className="checkout-swap-link" onClick={() => navigate('/requests')}>
                 go back to requests
               </button>{' '}

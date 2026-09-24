@@ -331,7 +331,7 @@ const OPTIONS = [
     iconDesktop: <FiBox size={26} />,
     iconBg: "#2E2E33",
     label: "List an Item",
-    desc: "Add a product you want to swap",
+    desc: "Add a product you want to svap",
     route: "/list-product",
   },
 ];

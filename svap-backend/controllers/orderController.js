@@ -70,7 +70,7 @@ exports.createOrder = async (req, res) => {
             user_id: swapRequest.from_user_id,
             type: 'swap_accepted',
             title: 'Swap Checkout Ready',
-            body: 'The receiver has completed checkout. Your swap order is ready to review.',
+            body: 'The receiver has completed checkout. Your svap order is ready to review.',
             route: '/requests',
             is_read: false,
           });

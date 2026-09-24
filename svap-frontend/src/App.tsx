@@ -59,6 +59,7 @@ function GlobalToasts() {
         <div
           key={t.id}
           onClick={() => { dismissToast(t.id); navigate('/order') }}
+          className="global-toast"
           style={{
             background: 'rgba(20,20,20,0.95)',
             border: '1px solid rgba(228,88,33,0.35)',
@@ -73,14 +74,29 @@ function GlobalToasts() {
             animation: 'toast-slide-in 0.3s ease-out',
           }}
         >
-          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(228,88,33,0.2)', border: '1px solid rgba(228,88,33,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '1rem' }}>
+          <div 
+            className="toast-icon"
+            style={{ 
+              width: 36, 
+              height: 36, 
+              borderRadius: '50%', 
+              background: 'rgba(228,88,33,0.2)', 
+              border: '1px solid rgba(228,88,33,0.4)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              flexShrink: 0, 
+              fontSize: '1rem' 
+            }}
+          >
             🔔
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: '0 0 3px', fontSize: '0.82rem', fontWeight: 700, color: '#fff', fontFamily: "'Poppins', sans-serif" }}>New Swap Request</p>
-            <p style={{ margin: 0, fontSize: '0.76rem', color: 'rgba(255,255,255,0.7)', fontFamily: "'Poppins', sans-serif", lineHeight: 1.4 }}>{t.body}</p>
+            <p className="toast-title" style={{ margin: '0 0 3px', fontSize: '0.82rem', fontWeight: 700, color: '#fff', fontFamily: "'Poppins', sans-serif" }}>New Swap Request</p>
+            <p className="toast-body" style={{ margin: 0, fontSize: '0.76rem', color: 'rgba(255,255,255,0.7)', fontFamily: "'Poppins', sans-serif", lineHeight: 1.4 }}>{t.body}</p>
           </div>
           <button
+            className="toast-close"
             onClick={(e) => { e.stopPropagation(); dismissToast(t.id) }}
             style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '1rem', padding: 0, lineHeight: 1, flexShrink: 0 }}
           >✕</button>
@@ -90,6 +106,34 @@ function GlobalToasts() {
         @keyframes toast-slide-in {
           from { opacity: 0; transform: translateX(40px); }
           to   { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Light mode toast styles */
+        html:not([data-theme='dark']) .global-toast {
+          background: rgba(255, 255, 255, 0.98) !important;
+          border: 1px solid rgba(228, 88, 33, 0.25) !important;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(228, 88, 33, 0.15) !important;
+        }
+
+        html:not([data-theme='dark']) .toast-icon {
+          background: rgba(228, 88, 33, 0.1) !important;
+          border: 1px solid rgba(228, 88, 33, 0.3) !important;
+        }
+
+        html:not([data-theme='dark']) .toast-title {
+          color: #1a1a1a !important;
+        }
+
+        html:not([data-theme='dark']) .toast-body {
+          color: rgba(0, 0, 0, 0.65) !important;
+        }
+
+        html:not([data-theme='dark']) .toast-close {
+          color: rgba(0, 0, 0, 0.4) !important;
+        }
+
+        html:not([data-theme='dark']) .toast-close:hover {
+          color: rgba(0, 0, 0, 0.7) !important;
         }
       `}</style>
     </div>

@@ -45,22 +45,29 @@ const ProductGrid = () => {
         ]);
         if (prodRes.error) throw new Error(prodRes.error);
         if (prodRes.data) {
-          setProducts(prodRes.data.map((p: any) => ({
-            id: p.id,
-            user: {
-              name: p.profiles?.username || p.profiles?.full_name || "Unknown",
-              email: p.profiles?.email || "",
-              avatar: p.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${p.profiles?.username || 'U'}&background=random`,
-            },
-            image: p.image_urls?.[0] || "https://placehold.co/600x400?text=No+Image",
-            title: p.title,
-            description: p.description || "",
-            location: p.profiles?.city || "Unknown",
-            views: p.saved_count || 0,
-            condition: p.condition || "",
-            swapFor: p.swap_for || "",
-            swapForImage: p.image_urls?.[1] || "",
-          })));
+          setProducts(prodRes.data.map((p: any) => {
+            // Handle both 'profiles' (plural) and 'profile' (singular) from Supabase
+            const profile = p.profiles || p.profile || {};
+            const username = profile.username || profile.full_name || "Unknown";
+            const avatarUrl = profile.avatar_url || null;
+            
+            return {
+              id: p.id,
+              user: {
+                name: username,
+                email: profile.email || "",
+                avatar: avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`,
+              },
+              image: p.image_urls?.[0] || "https://placehold.co/600x400?text=No+Image",
+              title: p.title,
+              description: p.description || "",
+              location: profile.city || "Unknown",
+              views: p.saved_count || 0,
+              condition: p.condition || "",
+              swapFor: p.swap_for || "",
+              swapForImage: p.image_urls?.[1] || "",
+            };
+          }));
         }
         if (savedRes.data) setSavedIds(new Set(savedRes.data));
       } catch (err: any) {

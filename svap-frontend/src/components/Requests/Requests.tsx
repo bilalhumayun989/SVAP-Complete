@@ -137,7 +137,7 @@ const Requests = () => {
             <p className="req-subtitle">
               {pendingIncomingCount > 0
                 ? `${pendingIncomingCount} incoming request${pendingIncomingCount > 1 ? "s" : ""}`
-                : "Manage your swap requests and checkouts"}
+                : "Manage your svap requests and checkouts"}
             </p>
           </div>
         </div>

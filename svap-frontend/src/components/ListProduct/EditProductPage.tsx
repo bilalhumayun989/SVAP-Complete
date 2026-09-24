@@ -277,7 +277,7 @@ const EditProductPage = () => {
                 <img src="/ICONS/Return.png" alt="Condition" className="lp-section-icon-img lp-section-icon-img--filter" />
                 <div>
                   <span className="lp-section-title">Condition &amp; Pricing</span>
-                  <span className="lp-section-desc">Set your swap or sale terms</span>
+                  <span className="lp-section-desc">Set your svap or sale terms</span>
                 </div>
               </div>
 

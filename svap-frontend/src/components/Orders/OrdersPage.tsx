@@ -226,7 +226,7 @@ const OrdersPage = () => {
           <div className="op-header-top">
             <div>
               <h1 className="op-title">My Orders</h1>
-              <p className="op-sub">Track your swaps &amp; deliveries in real time</p>
+              <p className="op-sub">Track your svaps &amp; deliveries in real time</p>
             </div>
             <button className="op-refresh" onClick={fetchOrders} title="Refresh">
               <FiRefreshCw size={16} />
@@ -398,7 +398,18 @@ const OrdersPage = () => {
                         <FiAlertCircle size={14} />
                         <div>
                           <span className="op-info-label">Transaction Ref</span>
-                          <span className="op-info-val op-info-val--mono">{order.transaction_ref}</span>
+                          {order.transaction_ref.startsWith('http') ? (
+                            <a
+                              href={order.transaction_ref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="op-screenshot-link"
+                            >
+                              View Screenshot →
+                            </a>
+                          ) : (
+                            <span className="op-info-val op-info-val--mono">{order.transaction_ref}</span>
+                          )}
                         </div>
                       </div>
                     )}
@@ -571,6 +582,12 @@ const OrdersPage = () => {
         }
         .op-info-val { font-size:0.85rem; font-weight:700; color:var(--text-dark); }
         .op-info-val--mono { font-family:monospace; font-size:0.8rem; }
+        .op-screenshot-link {
+          font-size:0.85rem; font-weight:700; color:#E45821;
+          text-decoration:none; display:inline-flex; align-items:center; gap:4px;
+          transition:opacity 0.2s;
+        }
+        .op-screenshot-link:hover { opacity:0.8; text-decoration:underline; }
         .op-info-sub { font-size:0.75rem; color:var(--text-mid); word-break:break-word; }
         .op-info-item--total { align-items:flex-end; text-align:right; }
         .op-info-item--total > div { align-items:flex-end; }

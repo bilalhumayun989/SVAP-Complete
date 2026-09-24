@@ -264,7 +264,7 @@ const CartPage = () => {
                 <div className="cp-sum-divider" />
 
                 {!allReady && (
-                  <p className="cp-sum-hint">Set your swap offer for each item to proceed.</p>
+                  <p className="cp-sum-hint">Set your svap offer for each item to proceed.</p>
                 )}
 
                 <button className={`cp-sum-cta${allReady ? " cp-sum-cta--on" : ""}`} disabled={!allReady}
