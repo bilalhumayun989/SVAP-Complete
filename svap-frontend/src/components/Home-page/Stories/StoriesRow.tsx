@@ -65,7 +65,7 @@ const StoriesRow = () => {
     : [];
 
   return (
-    <section className="stories-section">
+    <section className="stories-section ">
       {selectedStory && (
         <div className="story-viewer-portal">
           <StoryViewer

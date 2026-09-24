@@ -1,6 +1,14 @@
 ﻿import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiCheck, FiX, FiSend, FiRepeat, FiCreditCard } from "react-icons/fi";
+import {
+  FiSend,
+  FiRepeat,
+  FiCreditCard,
+  FiClock,
+  FiArrowLeft,
+  FiBell,
+  FiShoppingBag,
+} from "react-icons/fi";
 import {
   getAllRequests,
   updateRequestStatus,
@@ -31,18 +39,29 @@ const Requests = () => {
   const [tick, setTick] = useState(0);
 
   const userId = (() => {
-    try { return JSON.parse(localStorage.getItem("sz_user") || "{}").id; } catch { return null; }
+    try {
+      return JSON.parse(localStorage.getItem("sz_user") || "{}").id;
+    } catch {
+      return null;
+    }
   })();
 
   const refresh = useCallback(async () => {
-    if (!userId) { setLoading(false); return; }
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     const [data, ordersResponse] = await Promise.all([
       getAllRequests(userId),
       api.getOrders(userId),
     ]);
     setRequests(data);
     setCheckoutOrders(
-      Array.isArray(ordersResponse) ? ordersResponse.filter((order: CheckoutOrder) => order.swap_request_id) : []
+      Array.isArray(ordersResponse)
+        ? ordersResponse.filter(
+            (order: CheckoutOrder) => order.swap_request_id
+          )
+        : []
     );
     setLoading(false);
   }, [userId]);
@@ -52,22 +71,18 @@ const Requests = () => {
     const markSwapNotificationsRead = async () => {
       if (!userId) return;
       try {
-        // Get all notifications
         const res = await api.getNotifications(userId);
         if (res.data) {
-          // Find unread swap notifications
           const unreadSwapNotifs = res.data.filter(
-            (n: any) => !n.is_read && n.type?.includes('swap')
+            (n: any) => !n.is_read && n.type?.includes("swap")
           );
-          // Mark each as read
           await Promise.all(
             unreadSwapNotifs.map((n: any) => api.markNotificationRead(n.id))
           );
-          // Refresh count
           refreshCount();
         }
       } catch (err) {
-        console.error('Failed to mark notifications as read:', err);
+        console.error("Failed to mark notifications as read:", err);
       }
     };
     markSwapNotificationsRead();
@@ -80,71 +95,90 @@ const Requests = () => {
   }, [refresh]);
 
   useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 60_000);
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
     return () => clearInterval(id);
   }, []);
 
-  useEffect(() => { refresh(); }, [tick, refresh]);
+  useEffect(() => {
+    refresh();
+  }, [tick, refresh]);
 
   const currentUserCheckoutRequestIds = new Set(
     checkoutOrders
-      .filter(order => order.from_user_id === userId)
-      .map(order => order.swap_request_id)
+      .filter((order) => order.from_user_id === userId)
+      .map((order) => order.swap_request_id)
       .filter((id): id is string => Boolean(id))
   );
   const checkoutRequestIds = new Set(
     checkoutOrders
-      .map(order => order.swap_request_id)
+      .map((order) => order.swap_request_id)
       .filter((id): id is string => Boolean(id))
   );
   const isCheckoutRequest = (request: SwapRequest) =>
-    checkoutRequestIds.has(request.id) || ["accepted", "completed"].includes(request.status);
-  const incoming = requests.filter(r => r.direction === "received" && !isCheckoutRequest(r));
-  const outgoing = requests.filter(r => r.direction === "sent" && !isCheckoutRequest(r));
-  const currentUserCheckoutOrders = checkoutOrders.filter(order => order.from_user_id === userId);
+    checkoutRequestIds.has(request.id) ||
+    ["accepted", "completed"].includes(request.status);
+  const incoming = requests.filter(
+    (r) => r.direction === "received" && !isCheckoutRequest(r)
+  );
+  const outgoing = requests.filter(
+    (r) => r.direction === "sent" && !isCheckoutRequest(r)
+  );
+  const currentUserCheckoutOrders = checkoutOrders.filter(
+    (order) => order.from_user_id === userId
+  );
   const checkoutOrderByRequest = new Map(
-    currentUserCheckoutOrders.map(order => [order.swap_request_id, order])
+    currentUserCheckoutOrders.map((order) => [order.swap_request_id, order])
   );
   const checkout = requests.filter(
-    request => isCheckoutRequest(request) && !currentUserCheckoutRequestIds.has(request.id)
+    (request) =>
+      isCheckoutRequest(request) &&
+      !currentUserCheckoutRequestIds.has(request.id)
   );
-  const active = tab === "incoming" ? incoming : tab === "outgoing" ? outgoing : checkout;
+  const active =
+    tab === "incoming" ? incoming : tab === "outgoing" ? outgoing : checkout;
 
   const handleAction = async (id: string, action: "accepted" | "rejected") => {
     if (action === "rejected") {
       await updateRequestStatus(id, "rejected", userId || undefined);
       refresh();
     } else {
-      // Immediately mark as accepted in DB (notification auto-triggers in backend)
       await updateRequestStatus(id, "accepted", userId || undefined);
       refresh();
-      // Then navigate to swap checkout â€” user can always come back later
       navigate(`/checkout/${id}`);
     }
   };
 
-  const pendingIncomingCount = incoming.filter(r => r.status === "pending").length;
-  const pendingOutgoingCount = outgoing.filter(r => r.status === "pending").length;
+  const pendingIncomingCount = incoming.filter(
+    (r) => r.status === "pending"
+  ).length;
+  const pendingOutgoingCount = outgoing.filter(
+    (r) => r.status === "pending"
+  ).length;
 
   return (
     <div className="req-page">
       <div className="req-bg" />
       <div className="req-container">
-
+        {/* TOP HEADER WITH BACK AND NOTIFICATION */}
         <div className="req-header">
-          <div>
-            <h1 className="req-title">Requests</h1>
-            <p className="req-subtitle">
-              {pendingIncomingCount > 0
-                ? `${pendingIncomingCount} incoming request${pendingIncomingCount > 1 ? "s" : ""}`
-                : "Manage your svap requests and checkouts"}
-            </p>
-          </div>
+          <button className="req-nav-btn" onClick={() => navigate(-1)}>
+            <FiArrowLeft size={18} />
+          </button>
+          <h1 className="req-title">Requests</h1>
+          <button
+            className="req-nav-btn"
+            onClick={() => navigate("/notifications")}
+          >
+            <FiBell size={18} />
+          </button>
         </div>
 
+        {/* TABS */}
         <div className="req-tabs">
           <button
-            className={`req-tab ${tab === "incoming" ? "req-tab--active" : ""}`}
+            className={`req-tab ${
+              tab === "incoming" ? "req-tab--active" : ""
+            }`}
             onClick={() => setTab("incoming")}
           >
             Incoming
@@ -153,7 +187,9 @@ const Requests = () => {
             )}
           </button>
           <button
-            className={`req-tab ${tab === "outgoing" ? "req-tab--active" : ""}`}
+            className={`req-tab ${
+              tab === "outgoing" ? "req-tab--active" : ""
+            }`}
             onClick={() => setTab("outgoing")}
           >
             Outgoing
@@ -164,198 +200,241 @@ const Requests = () => {
             )}
           </button>
           <button
-            className={`req-tab ${tab === "checkout" ? "req-tab--active" : ""}`}
+            className={`req-tab ${
+              tab === "checkout" ? "req-tab--active" : ""
+            }`}
             onClick={() => setTab("checkout")}
           >
             Checkout
-            {checkout.length > 0 && <span className="req-tab-badge req-tab-badge--checkout">{checkout.length}</span>}
+            {checkout.length > 0 && (
+              <span className="req-tab-badge req-tab-badge--checkout">
+                {checkout.length}
+              </span>
+            )}
           </button>
         </div>
 
+        {/* CONTENT AREA */}
         <div className="req-list">
           {loading ? (
-            <div className="req-empty"><p>Loading...</p></div>
+            <div className="req-empty">
+              <p>Loading...</p>
+            </div>
           ) : active.length === 0 ? (
             <div className="req-empty">
               {tab === "incoming" ? (
                 <>
-                  <p>No incoming swap requests</p>
-                  <span>When someone sends you a swap request, it will appear here</span>
+                  <div className="req-empty-circle">
+                    <FiShoppingBag size={28} />
+                  </div>
+                  <p>No incoming swaps</p>
+                  <span>
+                    When someone sends you a swap request, it will appear here
+                  </span>
                 </>
               ) : tab === "outgoing" ? (
                 <>
-                  <FiSend size={36} />
-                  <p>No outgoing swap requests</p>
-                  <span>Browse listings and tap "Send Swap Request"</span>
-                  <button className="req-browse-btn" onClick={() => navigate("/")}>
-                    Browse Listings
-                  </button>
+                  <div className="req-empty-circle">
+                    <FiSend size={28} />
+                  </div>
+                  <p>No outgoing swaps</p>
+                  <span>Browse Items and send svap offers</span>
                 </>
               ) : (
                 <>
-                  <FiCreditCard size={36} />
+                  <div className="req-empty-circle">
+                    <FiCreditCard size={28} />
+                  </div>
                   <p>No checkout records yet</p>
-                  <span>Swap checkouts will appear here after an order is placed</span>
+                  <span>
+                    Swap checkouts will appear here after an order is placed
+                  </span>
                 </>
               )}
             </div>
           ) : (
-            active.map(req => {
-              const isExpired = new Date(req.expires_at).getTime() <= Date.now();
+            active.map((req) => {
+              const isExpired =
+                new Date(req.expires_at).getTime() <= Date.now();
               const timeLeft = getTimeRemaining(req.expires_at);
               const isPending = req.status === "pending" && !isExpired;
-              const isUnavailable = req.status === "unavailable";
+              const targetProfile =
+                req.direction === "received"
+                  ? req.from_profile
+                  : req.to_profile;
+              const displayUserName = getDisplayName(targetProfile);
+              const avatarLetter = displayUserName.charAt(0).toUpperCase();
 
               return (
-                <div
-                  key={req.id}
-                  className={`req-card ${
-                    req.status === 'accepted' ? 'req-card--accepted' :
-                    req.status === 'unavailable' ? 'req-card--unavailable' :
-                    req.status === 'rejected' || (isExpired && req.status === 'pending') ? 'req-card--rejected' :
-                    !isPending ? 'req-card--resolved' : ''
-                  } ${isExpired && req.status === "pending" ? "req-card--expired" : ""}`}
-                >
-                  <div className="req-card-top">
-                    <div className={`req-expires ${isExpired ? "req-expires--red" : ""}`}>
-                      <img src="/ICONS/Time.png" alt="Time" style={{ width: 12, height: 12, objectFit: 'contain', marginRight: 6 }} />
-                      <span>{isExpired ? "Expired" : `Expires in ${timeLeft}`}</span>
-                    </div>
-                    {(req.status !== "pending" || isExpired) && (
-                      <span className={`req-status-badge req-status-badge--${isExpired && req.status === "pending" ? "expired" : req.status === "unavailable" ? "unavailable" : req.status}`}>
-                        {isExpired && req.status === "pending" ? "Expired" : req.status === "unavailable" ? "Already Swapped" : req.status === "accepted" ? "Accepted" : req.status === "completed" ? "Completed" : "Rejected"}
+                <div key={req.id} className="req-card">
+                  {/* USER HEADER */}
+                  <div className="req-user-header">
+                    <div className="req-user-left">
+                      <div className="req-user-avatar">{avatarLetter}</div>
+                      <span className="req-user-handle">
+                        @{displayUserName}
                       </span>
-                    )}
+                    </div>
+                    <button
+                      className="req-visit-store"
+                      onClick={() =>
+                        navigate(`/profile/${targetProfile?.username || ""}`)
+                      }
+                    >
+                      <FiShoppingBag size={13} /> Visit Store &gt;
+                    </button>
                   </div>
 
+                  {/* ITEMS SWAP SECTION */}
                   <div className="req-swap-row">
-                    <button
-                      type="button"
-                      className="req-item req-product-link"
-                      onClick={() => navigate(`/product/${req.offered_product_id}`)}
-                      aria-label={`View ${req.offered?.title || "offered product"}`}
-                    >
-                      <div className="req-item-img-wrap">
+                    {/* LEFT ITEM */}
+                    {(req as any).is_cash_only ? (
+                      <div className="req-item req-cash-box">
+                        <div className="req-cash-icon">💵</div>
+                        <div className="req-item-info">
+                          <span className="req-item-label">Their Offer</span>
+                          <span className="req-cash-amount">
+                            PKR {(req as any).cash_amount || 0}
+                          </span>
+                          <span className="req-cash-sub">Direct cash</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className="req-item"
+                        onClick={() =>
+                          navigate(`/product/${req.offered_product_id}`)
+                        }
+                      >
                         <img
                           src={
-                            req.offered?.image_urls?.[0] || "https://placehold.co/80"
+                            req.offered?.image_urls?.[0] ||
+                            "https://placehold.co/80"
                           }
                           alt=""
                           className="req-item-img"
                         />
+                        <div className="req-item-info">
+                          <span className="req-item-label">
+                            {req.direction === "received"
+                              ? "Their Offer"
+                              : "You Offered"}
+                          </span>
+                          <span className="req-item-name">
+                            {req.offered?.title || "Unknown"}
+                          </span>
+                          <span className="req-item-link">View details</span>
+                        </div>
                       </div>
-                      <div className="req-item-info">
-                        <span className="req-item-label">
-                          {req.direction === "received" ? "Their Offer" : "You Offered"}
-                        </span>
-                        <span className="req-item-name">
-                          {req.offered?.title || "Unknown"}
-                        </span>
-                        {req.direction === "received" && (
-                          <span className="req-item-sub">@{getDisplayName(req.from_profile)}</span>
-                        )}
-                      </div>
-                    </button>
+                    )}
 
+                    {/* SWAP ICON */}
                     <div className="req-swap-arrow">
-                      <FiRepeat size={16} />
+                      <FiRepeat size={14} />
                     </div>
 
-                    <div className="req-item req-item--right">
-                      <div className="req-item-img-wrap">
-                        <img
-                          src={req.requested?.image_urls?.[0] || "https://placehold.co/80"}
-                          alt=""
-                          className="req-item-img"
-                        />
-                      </div>
-                      <div className="req-item-info req-item-info--right">
+                    {/* RIGHT ITEM */}
+                    <div
+                      className="req-item"
+                      onClick={() =>
+                        navigate(`/product/${req.requested_product_id}`)
+                      }
+                    >
+                      <img
+                        src={
+                          req.requested?.image_urls?.[0] ||
+                          "https://placehold.co/80"
+                        }
+                        alt=""
+                        className="req-item-img"
+                      />
+                      <div className="req-item-info">
                         <span className="req-item-label">
-                          {req.direction === "received" ? "Your Item" : "Requested"}
+                          {req.direction === "received"
+                            ? "Your Item"
+                            : "Requested"}
                         </span>
-                        <span className="req-item-name">{req.requested?.title || "Unknown"}</span>
-                        {req.direction === "sent" && (
-                          <span className="req-item-sub">@{getDisplayName(req.to_profile)}</span>
-                        )}
+                        <span className="req-item-name">
+                          {req.requested?.title || "Unknown"}
+                        </span>
+                        <span className="req-item-link">View details</span>
                       </div>
                     </div>
                   </div>
 
+                  {/* CASH TOP-UP SWEETEN DEAL BADGE */}
+                  {(req as any).top_up_amount > 0 && (
+                    <div className="req-sweeten-box">
+                      <span className="req-sweeten-icon">🌐</span>
+                      <span>
+                        They're adding PKR {(req as any).top_up_amount} cash to
+                        sweeten the deal
+                      </span>
+                    </div>
+                  )}
+
+                  {/* TIMER BOX WITH PROGRESS BAR */}
+                  <div
+                    className={`req-timer-box ${
+                      isExpired ? "req-timer-box--expired" : ""
+                    }`}
+                  >
+                    <div className="req-timer-content">
+                      <div className="req-timer-left">
+                        <FiClock size={14} />
+                        <span>
+                          {tab === "checkout"
+                            ? "Complete checkout before time runs out"
+                            : "Accept before time runs out"}
+                        </span>
+                      </div>
+                      <span className="req-timer-time">
+                        {isExpired ? "00:00:00" : timeLeft}
+                      </span>
+                    </div>
+                    <div className="req-progress-bar">
+                      <div
+                        className="req-progress-fill"
+                        style={{ width: isExpired ? "0%" : "35%" }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* ACTION BUTTONS */}
                   {tab === "incoming" && isPending && (
                     <div className="req-actions">
                       <button
                         className="req-btn req-btn--reject"
                         onClick={() => handleAction(req.id, "rejected")}
                       >
-                        <FiX size={14} />
-                        <span>REJECT</span>
+                        REJECT
                       </button>
                       <button
                         className="req-btn req-btn--accept"
                         onClick={() => handleAction(req.id, "accepted")}
                       >
-                        <FiCheck size={14} />
-                        <span>ACCEPT &amp; CHECKOUT</span>
+                        ACCEPT & CHECKOUT
                       </button>
-                    </div>
-                  )}
-
-                  {tab === "incoming" && req.status === "accepted" && !currentUserCheckoutRequestIds.has(req.id) && (
-                    <div className="req-actions">
-                      <button
-                        className="req-btn req-btn--checkout"
-                        onClick={() => navigate(`/checkout/${req.id}`)}
-                      >
-                        <FiCheck size={14} />
-                        <span>CONTINUE TO CHECKOUT</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {tab === "incoming" && isUnavailable && (
-                    <div className="req-unavailable-msg">
-                      <FiX size={14} />
-                      <span>This product has already been swapped with another user</span>
                     </div>
                   )}
 
                   {tab === "outgoing" && isPending && (
                     <div className="req-pending-label">
-                      <img src="/ICONS/Time.png" alt="Time" style={{ width: 12, height: 12, objectFit: 'contain', marginRight: 6 }} /> Waiting for responseâ€¦
-                    </div>
-                  )}
-
-                  {tab === "outgoing" && isUnavailable && (
-                    <div className="req-unavailable-msg">
-                      <FiX size={14} />
-                      <span>This product has already been swapped with another user</span>
-                    </div>
-                  )}
-
-                  {tab === "outgoing" && req.status === "accepted" && !currentUserCheckoutRequestIds.has(req.id) && (
-                    <div className="req-actions">
-                      <button
-                        className="req-btn req-btn--checkout"
-                        onClick={() => navigate(`/checkout/${req.id}`)}
-                      >
-                        <FiCheck size={14} />
-                        <span>CONTINUE TO CHECKOUT</span>
-                      </button>
+                      <FiClock size={14} /> Waiting for user response…
                     </div>
                   )}
 
                   {tab === "checkout" && (
-                    <div className="req-actions">
-                      <button
-                        className="req-btn req-btn--checkout"
-                        onClick={() => checkoutOrderByRequest.has(req.id)
+                    <button
+                      className="req-btn req-btn--order-placed"
+                      onClick={() =>
+                        checkoutOrderByRequest.has(req.id)
                           ? navigate("/orders")
-                          : navigate(`/checkout/${req.id}`)}
-                      >
-                        {checkoutOrderByRequest.has(req.id) ? <FiCreditCard size={14} /> : <FiCheck size={14} />}
-                        <span>{checkoutOrderByRequest.has(req.id) ? "VIEW ORDER STATUS" : "CONTINUE TO CHECKOUT"}</span>
-                      </button>
-                    </div>
+                          : navigate(`/checkout/${req.id}`)
+                      }
+                    >
+                      ⏳ Order placed · Waiting for other user
+                    </button>
                   )}
                 </div>
               );
@@ -365,95 +444,350 @@ const Requests = () => {
       </div>
 
       <style>{`
-        .req-page { min-height:100vh; padding:28px 20px 80px; position:relative; background:#fff; box-sizing:border-box; font-family:'Poppins',sans-serif; }
-        html[data-theme='dark'] .req-page { background:#0a0a0a; }
-        .req-bg { position:fixed; inset:0; background:#fff; z-index:0; pointer-events:none; }
-        html[data-theme='dark'] .req-bg { background:#0a0a0a; }
-        .req-container { position:relative; z-index:1; max-width:780px; margin:0 auto; }
-        .req-header { display:flex; align-items:center; gap:16px; margin-bottom:28px; }
-        .req-header-icon { width:48px; height:48px; border-radius:14px; background:rgba(228,88,33,0.1); border:1px solid rgba(228,88,33,0.2); color:#E45821; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-        .req-title { font-size:clamp(1.4rem,2.5vw,1.9rem); font-weight:800; color:var(--text-dark); margin:0 0 2px; letter-spacing:-0.02em; }
-        .req-subtitle { font-size:0.83rem; color:var(--text-muted); margin:0; }
-        .req-tabs { display:flex; gap:18px; margin-bottom:20px; border-bottom:1px solid rgba(165,194,111,0.2); padding-bottom:0; }
-        .req-tab { display:flex; align-items:center; gap:7px; padding:10px 18px 12px; font-size:0.85rem; font-weight:600; color:var(--text-muted); background:none; border:none; border-bottom:2.5px solid transparent; cursor:pointer; transition:color 0.18s,border-color 0.18s; font-family:inherit; position:relative; top:1px; }
-        .req-tab:hover { color:var(--text-dark); }
-        .req-tab--active { color:#E45821; border-bottom-color:#E45821; font-weight:700; }
-        .req-tab-badge { background:#E45821; color:#fff; font-size:0.62rem; font-weight:800; padding:2px 7px; border-radius:999px; min-width:18px; text-align:center; }
-        .req-tab-badge--blue { background:#313C5C; }
-        .req-list { display:flex; flex-direction:column; gap:14px; }
-        .req-card { background:var(--card-bg); border:1px solid rgba(165,194,111,0.28); border-radius:20px; padding:22px; transition:transform 0.2s,box-shadow 0.2s,opacity 0.3s; box-shadow:0 12px 36px rgba(94,126,52,0.07); }
-        .req-card:hover { transform:translateY(-2px); box-shadow:0 18px 48px rgba(94,126,52,0.10); }
-        .req-card--resolved { opacity:0.75; }
-        .req-card--accepted { opacity:1; }
-        .req-card--rejected { opacity:0.55; }
-        .req-card--unavailable { opacity:0.6; border-color:rgba(248,113,113,0.28); }
-        .req-card--expired { border-color:rgba(248,113,113,0.22); opacity:0.55; }
-        html[data-theme='dark'] .req-card { background:#1a1a1a; border-color:#2a2a2a; }
-        .req-card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-        .req-expires { display:flex; align-items:center; gap:5px; font-size:0.75rem; color:var(--text-muted); }
-        .req-expires--red { color:#f87171; }
-        .req-status-badge { font-size:0.7rem; font-weight:700; letter-spacing:0.06em; padding:3px 12px; border-radius:999px; }
-        .req-status-badge--accepted,.req-status-badge--completed { background:rgba(174,220,90,0.15); color:var(--svap-lime); border:1px solid rgba(174,220,90,0.35); }
-        .req-status-badge--rejected { background:rgba(248,113,113,0.12); color:#c04444; border:1px solid rgba(248,113,113,0.25); }
-        .req-status-badge--unavailable { background:rgba(248,113,113,0.15); color:#dc2626; border:1px solid rgba(248,113,113,0.3); }
-        .req-status-badge--expired { background:rgba(100,100,100,0.1); color:var(--text-muted); border:1px solid rgba(100,100,100,0.2); }
-        .req-swap-row { display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
-        .req-item { flex:1; display:flex; align-items:center; gap:12px; min-width:0; }
-        .req-product-link { border:0; padding:0; background:transparent; color:inherit; text-align:left; font:inherit; cursor:pointer; }
-        .req-product-link:hover .req-item-name { color:#E45821; }
-        .req-item--right { flex-direction:row-reverse; }
-        .req-item-img-wrap { width:64px; height:64px; border-radius:14px; overflow:hidden; background:var(--bg-section); border:1px solid rgba(165,194,111,0.26); flex-shrink:0; }
-        .req-item-img { width:100%; height:100%; object-fit:cover; }
-        .req-item-info { flex:1; min-width:0; }
-        .req-item-info--right { text-align:right; }
-        .req-item-label { display:block; font-size:0.65rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted); margin-bottom:3px; }
-        .req-item-name { display:block; font-size:0.88rem; font-weight:700; color:var(--text-dark); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .req-item-sub { display:block; font-size:0.72rem; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .req-swap-arrow { display:flex; align-items:center; justify-content:center; width:34px; height:34px; background:var(--bg-section); border:1px solid rgba(165,194,111,0.28); border-radius:50%; color:#E45821; flex-shrink:0; }
-        .req-actions { display:grid; grid-template-columns:1fr 1.8fr; gap:12px; }
-        .req-btn { display:flex; align-items:center; justify-content:center; gap:7px; padding:11px 16px; border-radius:12px; font-size:0.76rem; font-weight:700; letter-spacing:0.05em; cursor:pointer; transition:background 0.2s,color 0.2s; font-family:inherit; }
-        .req-btn--reject { border:1px solid rgba(192,71,71,0.22); color:#fff; background:#E45821; }
-        .req-btn--reject:hover { background:#c94d1c; }
-        .req-btn--accept { background:var(--btn-cart); border:1px solid rgba(0,0,0,0.2); color:#fff; }
-        .req-btn--accept:hover { filter:brightness(0.95); }
-        .req-btn--checkout { background:#313C5C; border:1px solid rgba(49,60,92,0.3); color:#fff; grid-column:1/-1; }
-        .req-btn--checkout:hover { background:#252e48; }
-        .req-pending-label { display:flex; align-items:center; gap:6px; font-size:0.76rem; color:var(--text-muted); font-style:italic; }
-        .req-unavailable-msg { display:flex; align-items:center; gap:8px; padding:12px 16px; background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.22); border-radius:10px; color:#dc2626; font-size:0.78rem; font-weight:600; }
-        html[data-theme='dark'] .req-unavailable-msg { background:rgba(248,113,113,0.12); border-color:rgba(248,113,113,0.25); color:#f87171; }
-        .req-empty { text-align:center; padding:52px 24px; color:var(--text-muted); background:#fff; border-radius:20px; border:1px solid rgba(165,194,111,0.2); display:flex; flex-direction:column; align-items:center; gap:10px; }
-        .req-empty p { font-size:1rem; font-weight:700; color:var(--text-dark); margin:0; }
-        .req-empty span { font-size:0.84rem; max-width:320px; }
-        .req-browse-btn { margin-top:10px; padding:10px 24px; background:#E45821; color:#fff; border:none; border-radius:10px; font-size:0.84rem; font-weight:700; cursor:pointer; transition:background 0.2s; font-family:inherit; }
-        .req-browse-btn:hover { background:#c94d1c; }
-        html[data-theme='dark'] .req-item-img-wrap { border-color:#2a2a2a; background:#111; }
-        html[data-theme='dark'] .req-item-name { color:#fff; }
-        html[data-theme='dark'] .req-item-sub { color:#666; }
-        html[data-theme='dark'] .req-swap-arrow { background:#111; border-color:#2a2a2a; }
-        html[data-theme='dark'] .req-empty { background:#111; border-color:#222; }
-        @media (max-width:600px) {
-          .req-page { margin-top:-64px; padding:28px 20px 80px; }
-          .req-container { width:100%; }
-          .req-header { gap:10px; margin-bottom:18px; }
-          .req-header-icon { width:38px; height:38px; border-radius:11px; }
-          .req-header-icon svg { width:18px; height:18px; }
-          .req-title { font-size:1.2rem; }
-          .req-subtitle { font-size:0.7rem; }
-          .req-card { padding:14px 10px; border-radius:14px; }
-          .req-item-img-wrap { width:52px; height:52px; }
-          .req-item-name { font-size:0.78rem; }
-          .req-item-label { font-size:0.55rem; }
-          .req-item-sub { font-size:0.64rem; }
-          .req-swap-row { gap:7px; margin-bottom:12px; }
-          .req-swap-arrow { width:28px; height:28px; }
-          .req-swap-arrow svg { width:14px; height:14px; }
-          .req-actions { grid-template-columns:1fr; }
-          .req-tabs { gap:8px; }
-          .req-tab { flex:1; justify-content:center; padding:7px 3px 9px; font-size:0.7rem; gap:4px; }
-          .req-tab svg { width:13px; height:13px; }
-          .req-empty { padding:36px 14px; border-radius:14px; }
-          .req-empty p { font-size:0.82rem; }
-          .req-empty span { font-size:0.7rem; }
+        .req-page {
+          min-height: 100vh;
+          padding: 12px 16px 80px;
+          margin: 0;
+          background: #0f0f0f;
+          color: #fff;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          box-sizing: border-box;
+        }
+        .req-bg {
+          position: fixed;
+          inset: 0;
+          background: #0f0f0f;
+          z-index: 0;
+        }
+        .req-container {
+          position: relative;
+          z-index: 1;
+          max-width: 520px;
+          margin: 0 auto;
+          padding-top: 0;
+        }
+
+        /* HEADER (TOP POSITIONED) */
+        .req-header {
+          position: sticky;
+          top: 0;
+          z-index: 10;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-top: 0px;
+          padding-bottom: 12px;
+          margin-bottom: 14px;
+          background: #0f0f0f;
+        }
+        .req-title {
+          font-size: 1.3rem;
+          font-weight: 800;
+          margin: 0;
+          color: #fff;
+          letter-spacing: -0.01em;
+        }
+        .req-nav-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          background: #181818;
+          border: 1px solid #282828;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+
+        /* TABS */
+        .req-tabs {
+          position: sticky;
+          top: 60px;
+          z-index: 9;
+          display: flex;
+          align-items: center;
+          border-bottom: 1px solid #222;
+          margin-bottom: 16px;
+          background: #0f0f0f;
+          padding-bottom: 4px;
+        }
+        .req-tab {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 8px 0 10px;
+          background: transparent;
+          border: none;
+          border-bottom: 2px solid transparent;
+          color: #888;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+        .req-tab--active {
+          color: #e45821;
+          border-bottom-color: #e45821;
+        }
+        .req-tab-badge {
+          background: #e45821;
+          color: #fff;
+          font-size: 0.65rem;
+          padding: 2px 6px;
+          border-radius: 10px;
+          font-weight: 700;
+        }
+
+        /* LIST & CARDS */
+        .req-list {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+        .req-card {
+          background: #161616;
+          border: 1px solid #242424;
+          border-radius: 18px;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+
+        /* USER HEADER INSIDE CARD */
+        .req-user-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .req-user-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .req-user-avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #d34316;
+          color: #fff;
+          font-weight: 700;
+          font-size: 0.85rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .req-user-handle {
+          font-size: 0.9rem;
+          font-weight: 700;
+          color: #fff;
+        }
+        .req-visit-store {
+          background: transparent;
+          border: none;
+          color: #d34316;
+          font-size: 0.75rem;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          cursor: pointer;
+        }
+
+        /* SWAP ITEMS ROW */
+        .req-swap-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .req-item {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+          cursor: pointer;
+        }
+        .req-item-img {
+          width: 52px;
+          height: 52px;
+          border-radius: 10px;
+          object-fit: cover;
+          background: #222;
+        }
+        .req-item-info {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+        .req-item-label {
+          font-size: 0.7rem;
+          color: #777;
+        }
+        .req-item-name {
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: #fff;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .req-item-link {
+          font-size: 0.7rem;
+          color: #d34316;
+          margin-top: 2px;
+        }
+        .req-swap-arrow {
+          color: #d34316;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        /* CASH OFFER BOX */
+        .req-cash-box {
+          background: rgba(34, 197, 94, 0.08);
+          border: 1px solid rgba(34, 197, 94, 0.2);
+          border-radius: 12px;
+          padding: 8px 10px;
+        }
+        .req-cash-amount {
+          color: #22c55e;
+          font-weight: 700;
+          font-size: 0.85rem;
+        }
+        .req-cash-sub {
+          font-size: 0.68rem;
+          color: #777;
+        }
+
+        /* SWEETEN DEAL BOX */
+        .req-sweeten-box {
+          background: rgba(34, 197, 94, 0.06);
+          border: 1px solid rgba(34, 197, 94, 0.25);
+          border-radius: 12px;
+          padding: 10px 12px;
+          font-size: 0.75rem;
+          color: #22c55e;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        /* TIMER & PROGRESS */
+        .req-timer-box {
+          background: rgba(34, 197, 94, 0.05);
+          border: 1px solid rgba(34, 197, 94, 0.3);
+          border-radius: 12px;
+          padding: 10px 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .req-timer-box--expired {
+          background: rgba(239, 68, 68, 0.05);
+          border-color: rgba(239, 68, 68, 0.3);
+        }
+        .req-timer-content {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 0.75rem;
+          color: #22c55e;
+        }
+        .req-timer-left {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .req-timer-time {
+          font-weight: 700;
+        }
+        .req-progress-bar {
+          height: 4px;
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 4px;
+          overflow: hidden;
+        }
+        .req-progress-fill {
+          height: 100%;
+          background: #22c55e;
+          border-radius: 4px;
+        }
+
+        /* ACTION BUTTONS */
+        .req-actions {
+          display: grid;
+          grid-template-columns: 1fr 1.8fr;
+          gap: 10px;
+        }
+        .req-btn {
+          padding: 12px;
+          border-radius: 20px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          border: none;
+          cursor: pointer;
+          text-align: center;
+        }
+        .req-btn--reject {
+          background: #e45821;
+          color: #fff;
+        }
+        .req-btn--accept {
+          background: #2b354d;
+          color: #fff;
+        }
+        .req-btn--order-placed {
+          width: 100%;
+          background: rgba(34, 197, 94, 0.08);
+          border: 1px solid rgba(34, 197, 94, 0.25);
+          color: #22c55e;
+          border-radius: 20px;
+        }
+
+        /* EMPTY STATE */
+        .req-empty {
+          text-align: center;
+          padding: 60px 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+        }
+        .req-empty-circle {
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          background: #1a1a1a;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #444;
+          margin-bottom: 8px;
+        }
+        .req-empty p {
+          font-size: 1.05rem;
+          font-weight: 700;
+          margin: 0;
+          color: #fff;
+        }
+        .req-empty span {
+          font-size: 0.8rem;
+          color: #666;
+        }
+
+        @media (max-width: 600px) {
+          .req-page {
+            padding: 10px 12px 80px;
+          }
+          .req-header {
+            padding-top: 0px;
+            margin-top: 0;
+            margin-bottom: 10px;
+          }
         }
       `}</style>
     </div>
@@ -461,4 +795,3 @@ const Requests = () => {
 };
 
 export default Requests;
-

@@ -1,50 +1,35 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  FiX,
-  FiAlertCircle, FiCheck, FiFilm,
+  FiX, FiAlertCircle, FiCheck, FiCamera,
 } from "react-icons/fi";
 import { api } from "../../services/api";
 import { generateUUID } from "../../utils/uuid";
 
-const CATEGORIES = ["Electronics", "Gaming", "Fashion", "Sports", "Books", "Home", "Vehicles", "Toys", "Phones", "Clothing", "Furniture", "Jewelry", "Other"];
-const SUB_CATEGORIES: Record<string, string[]> = {
-  Electronics: ["Mobile Phones", "Laptops", "Tablets", "Audio", "Cameras", "Smartwatches", "TVs"],
-  Gaming: ["Consoles", "Games", "Controllers", "PC Gaming", "Accessories"],
-  Fashion: ["Men's", "Women's", "Shoes", "Bags", "Accessories", "Watches"],
-  Sports: ["Cricket", "Football", "Fitness", "Cycling", "Boxing", "Tennis"],
-  Books: ["Fiction", "Non-Fiction", "Academic", "Comics", "Religion"],
-  Home: ["Furniture", "Kitchen", "Decor", "Appliances", "Garden"],
-  Vehicles: ["Cars", "Bikes", "Scooters", "Parts & Accessories"],
-  Toys: ["Action Figures", "Board Games", "Remote Control", "Educational", "Dolls"],
-  Phones: ["Smartphones", "Feature Phones", "Accessories", "Spare Parts"],
-  Clothing: ["Men's", "Women's", "Kids", "Traditional", "Sportswear"],
-  Furniture: ["Sofa & Chairs", "Beds & Mattresses", "Tables", "Wardrobes", "Office"],
-  Jewelry: ["Gold", "Silver", "Artificial", "Watches", "Rings & Bracelets"],
-};
-const CONDITIONS = ["Brand New", "Like New", "Good", "Fair", "For Parts"];
-// const CITIES = ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Quetta", "Hyderabad", "Sialkot", "Other"];
-const MAX_PHOTOS = 6;
+const CATEGORIES = [
+  "Clothing", "Shoes", "Accessories", "Toys",
+  "Textiles", "Decor", "Books", "Sports", "Other"
+];
+
+const CONDITIONS = ["Mint", "Like New", "Good", "Fair"];
+
+const MAX_PHOTOS = 5;
 
 const ListProductPage = () => {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
+  const reelRef = useRef<HTMLInputElement>(null);
+
   const [photos, setPhotos] = useState<{ file: File, url: string }[]>([]);
   const [reel, setReel] = useState<{ file: File, url: string } | null>(null);
   const [title, setTitle] = useState("");
-  const [loading, setLoading] = useState(false);
   const [category, setCategory] = useState("");
-  const [subCategory, setSubCategory] = useState("");
-  const [brand, setBrand] = useState("");
-  const [model, setModel] = useState("");
   const [description, setDescription] = useState("");
   const [condition, setCondition] = useState("");
-  const [price, setPrice] = useState("");
   const [swapFor, setSwapFor] = useState("");
-  // const [city, setCity] = useState("");
-  const [area, setArea] = useState("");
-  // const [submitted, setSubmitted] = useState(false);
-  // Remove: const [submitted, setSubmitted] = useState(false);
+  const [estimatedValue, setEstimatedValue] = useState("");
+
+  const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -54,6 +39,7 @@ const ListProductPage = () => {
       setPhotos((prev) => [...prev, { file, url: URL.createObjectURL(file) }]);
     });
     e.target.value = "";
+    setErrors((prev) => ({ ...prev, photos: "" }));
   };
 
   const handleReelSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,14 +53,13 @@ const ListProductPage = () => {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!title.trim()) e.title = "Title is required";
-    if (!category) e.category = "Category is required";
-    if (!description.trim()) e.description = "Description is required";
-    if (!condition) e.condition = "Condition is required";
-    // City is fixed to Karachi, no validation needed
     if (!photos.length) e.photos = "Add at least one photo";
-    if (window.matchMedia("(max-width: 768px)").matches && !reel) e.reel = "Add a reel video";
-    if (!swapFor.trim()) e.swapFor = "Please enter what you want to swap for";
+    if (!reel) e.reel = "Add a reel video";
+    if (!category) e.category = "Select a category";
+    if (!title.trim()) e.title = "Enter item title";
+    if (!description.trim()) e.description = "Enter description";
+    if (!condition) e.condition = "Select condition";
+    if (!swapFor.trim()) e.swapFor = "Enter what you want to swap for";
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -85,11 +70,9 @@ const ListProductPage = () => {
 
     setLoading(true);
     try {
-      // --- Check if user is logged in ---
       let userStr = localStorage.getItem("sz_user");
       let user = userStr ? JSON.parse(userStr) : null;
 
-      // If no user is logged in, redirect to login page
       if (!user?.id) {
         alert("Please login to list a product");
         navigate('/login');
@@ -103,13 +86,10 @@ const ListProductPage = () => {
         if (p.file) {
           const formData = new FormData();
           formData.append('image', p.file);
-
           const uploadResponse = await api.uploadImage(formData);
-
           if (uploadResponse.url) {
             imageUrls.push(uploadResponse.url);
           } else {
-            console.error("Image upload failed", uploadResponse);
             imageUrls.push('https://placehold.co/600x400?text=Upload+Failed');
           }
         }
@@ -140,21 +120,23 @@ const ListProductPage = () => {
 
       if (response?.error) throw new Error(response.error);
 
-      // Save city to user profile so it shows up on product cards
       const fixedCity = "Karachi";
       if (user.id) {
         try {
           await api.updateProfile(user.id, { city: fixedCity });
         } catch (err) {
-          // Ignore profile update errors
+          // Ignore
         }
       }
 
       setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-      resetForm(); // agar form clear karna ho, warna yeh line hata do
-    }
-    catch (err: any) {
+      setTimeout(() => {
+        setShowToast(false);
+        navigate('/');
+      }, 2000);
+
+      resetForm();
+    } catch (err: any) {
       console.error(err);
       alert(err.message || "Error listing product.");
     } finally {
@@ -163,16 +145,19 @@ const ListProductPage = () => {
   };
 
   const resetForm = () => {
-    setPhotos([]); setReel(null); setTitle(""); setCategory("");
-    setSubCategory(""); setBrand(""); setModel(""); setDescription("");
-    setCondition(""); setPrice(""); setSwapFor(""); setArea(""); // city is fixed
+    setPhotos([]);
+    setReel(null);
+    setTitle("");
+    setCategory("");
+    setDescription("");
+    setCondition("");
+    setSwapFor("");
+    setEstimatedValue("");
     setErrors({});
   };
 
   return (
     <div className="lp-page">
-      <div className="lp-bg" />
-
       {showToast && (
         <div className="lp-toast">
           <FiCheck size={16} />
@@ -180,860 +165,1105 @@ const ListProductPage = () => {
         </div>
       )}
 
-      <div className="lp-wrap">
-
-        {/* Page header */}
-        <div className="lp-page-header">
-          <div>
-            <h1 className="lp-title">List an Item</h1>
-            <p className="lp-sub">Fill in the details below to publish your listing on SVAP</p>
-          </div>
+      <div className="lp-container">
+        {/* Header */}
+        <div className="lp-header">
+          <button className="lp-close" onClick={() => navigate(-1)}>
+            <FiX size={24} />
+          </button>
+          <h1 className="lp-title">List an item</h1>
         </div>
 
-        {/* Single-column stacked layout: Photos on top, then the rest of the form */}
-        <div className="lp-layout">
+        <form className="lp-form" onSubmit={handleSubmit} noValidate>
+          {/* Takes about a minute text */}
+          <p className="lp-hint">Takes about a minute. Fill out the details below.</p>
 
-          {/* Photos panel — now at the top */}
+          {/* Photos Section */}
           <div className="lp-section">
-            <button
-              type="button"
-              className={`lp-dropzone${errors.photos ? " lp-dropzone--err" : ""}`}
+            <div className="lp-field-header">
+              <span className="lp-label">Photos <span className="lp-req">Required</span></span>
+            </div>
+
+            {/* Tips box */}
+            <div className="lp-tips-box">
+              <div className="lp-tips-header">
+                <FiCamera size={14} />
+                <span>Tips for great photos</span>
+              </div>
+              <ul className="lp-tips-list">
+                <li>Use natural light avoid dark rooms or harsh flash</li>
+                <li>Shoot against a plain background for a clean look</li>
+                <li>Include multiple angles: front, back, sides & any defects</li>
+                <li>Keep the item in frame no cropping or blurry shots</li>
+              </ul>
+            </div>
+
+            {/* Photo upload area */}
+            <div
+              className={`lp-photo-upload ${errors.photos ? 'error' : ''}`}
               onClick={() => fileRef.current?.click()}
             >
-              <span className="lp-dropzone-icon">
-                <img src="/ICONS/Camera.png" alt="Camera" width={28} height={28} style={{ objectFit: 'contain' }} />
-              </span>
-              <span className="lp-dropzone-title">Add Photos</span>
-              <span className="lp-dropzone-sub">Tap To Upload · Max {MAX_PHOTOS} Photos · JPG, PNG</span>
-            </button>
-
-            {/* Photo tiles: uploaded thumbnails + remaining empty add-slots */}
-            <div className="lp-photo-tiles">
-              {photos.map((p, i) => (
-                <div key={i} className="lp-photo-tile lp-photo-tile--filled">
-                  <img src={p.url} alt="" className="lp-photo-img" />
-                  {i === 0 && <span className="lp-photo-tile-cover">Cover</span>}
-                  <button type="button" className="lp-photo-remove"
-                    onClick={() => setPhotos((prev) => prev.filter((_, j) => j !== i))} aria-label="Remove photo">
-                    <FiX size={11} />
-                  </button>
-                </div>
-              ))}
+              <FiCamera size={32} />
+              <div className="lp-photo-upload-text">
+                <span>Add photos</span>
+                <small>Up to {MAX_PHOTOS} · clear, well-lit</small>
+              </div>
             </div>
 
-            <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handlePhotoAdd} />
-            {errors.photos && <p className="lp-err"><FiAlertCircle size={11} />{errors.photos}</p>}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={handlePhotoAdd}
+            />
+
+            {photos.length > 0 && (
+              <div className="lp-photo-grid">
+                {photos.map((p, i) => (
+                  <div key={i} className="lp-photo-item">
+                    <img src={p.url} alt="" />
+                    <button
+                      type="button"
+                      className="lp-photo-remove"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPhotos((prev) => prev.filter((_, j) => j !== i));
+                      }}
+                    >
+                      <FiX size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {errors.photos && (
+              <p className="lp-error">
+                <FiAlertCircle size={12} />
+                {errors.photos}
+              </p>
+            )}
           </div>
 
-          <div className={`lp-reel-upload${errors.reel ? " lp-reel-upload--err" : ""}`}>
-            <div className="lp-reel-heading">
-              <span className="lp-label">REEL VIDEO <span className="lp-req">REQUIRED</span></span>
+          {/* Reel Video Section */}
+          <div className="lp-section">
+            <div className="lp-field-header">
+              <span className="lp-label">Reel Video <span className="lp-req">Required</span></span>
             </div>
+
             {reel ? (
-              <div className="lp-reel-preview-wrap">
-                <video src={reel.url} className="lp-reel-preview" controls playsInline />
-                <button type="button" className="lp-reel-remove" onClick={() => setReel(null)} aria-label="Remove reel">
+              <div className="lp-reel-preview">
+                <video src={reel.url} controls playsInline />
+                <button
+                  type="button"
+                  className="lp-reel-remove"
+                  onClick={() => setReel(null)}
+                >
                   <FiX size={14} />
                 </button>
               </div>
             ) : (
-              <button type="button" className="lp-reel-dropzone" onClick={() => document.getElementById("lp-reel-input")?.click()}>
-                <FiFilm size={18} />
-                <span>Add a short reel</span>
-                <small>Up to 60 seconds</small>
-              </button>
+              <div
+                className={`lp-reel-upload ${errors.reel ? 'error' : ''}`}
+                onClick={() => reelRef.current?.click()}
+              >
+                <FiCamera size={24} />
+                <div>
+                  <span>Add a short reel</span>
+                  <small>Up to 60 seconds</small>
+                </div>
+              </div>
             )}
-            <input id="lp-reel-input" type="file" accept="video/*" hidden onChange={handleReelSelect} />
-            {errors.reel && <p className="lp-err"><FiAlertCircle size={11} />{errors.reel}</p>}
+
+            <input
+              ref={reelRef}
+              type="file"
+              accept="video/*"
+              hidden
+              onChange={handleReelSelect}
+            />
+
+            {errors.reel && (
+              <p className="lp-error">
+                <FiAlertCircle size={12} />
+                {errors.reel}
+              </p>
+            )}
           </div>
 
-          {/* Form — below photos */}
-          <form className="lp-form" onSubmit={handleSubmit} noValidate>
-
-            {/* ── Item Details ── */}
-            <div className="lp-section">
-              <div className="lp-section-head">
-                <img src="/ICONS/Listing.png" alt="Details" className="lp-section-icon-img lp-section-icon-img--filter" />
-                <div>
-                  <span className="lp-section-title">Item Details</span>
-                  <span className="lp-section-desc">Title, category &amp; description</span>
-                </div>
-              </div>
-
-              <div className="lp-field">
-                <label className="lp-label">ITEM TITLE <span className="lp-req">*</span></label>
-                <input className={`lp-input${errors.title ? " lp-input--err" : ""}`}
-                  placeholder="e.g. iPhone 15 Pro Max 256GB Black"
-                  value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} />
-                <span className="lp-char-count">{title.length}/80</span>
-                {errors.title && <p className="lp-err"><FiAlertCircle size={11} />{errors.title}</p>}
-              </div>
-
-              <div className="lp-row">
-                <div className="lp-field">
-                  <label className="lp-label">CATEGORY <span className="lp-req">*</span></label>
-                  <select className={`lp-select${errors.category ? " lp-input--err" : ""}`}
-                    value={category} onChange={(e) => { setCategory(e.target.value); setSubCategory(""); }}>
-                    <option value="">Select...</option>
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  {errors.category && <p className="lp-err"><FiAlertCircle size={11} />{errors.category}</p>}
-                </div>
-                <div className="lp-field">
-                  <label className="lp-label">SUB-CATEGORY</label>
-                  {category === "Other" ? (
-                    <input
-                      className="lp-input"
-                      placeholder="Type your sub-category..."
-                      value={subCategory}
-                      onChange={(e) => setSubCategory(e.target.value)}
-                      maxLength={50}
-                    />
-                  ) : (
-                    <select className="lp-select" value={subCategory}
-                      onChange={(e) => setSubCategory(e.target.value)} disabled={!category}>
-                      <option value="">Select...</option>
-                      {(SUB_CATEGORIES[category] || []).map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  )}
-                </div>
-              </div>
-
-              <div className="lp-row">
-                <div className="lp-field">
-                  <label className="lp-label">BRAND</label>
-                  <input className="lp-input" placeholder="e.g. Apple"
-                    value={brand} onChange={(e) => setBrand(e.target.value)} />
-                </div>
-                <div className="lp-field">
-                  <label className="lp-label">MODEL / SKU</label>
-                  <input className="lp-input" placeholder="e.g. MQ9G3LL/A"
-                    value={model} onChange={(e) => setModel(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="lp-field">
-                <label className="lp-label">DESCRIPTION <span className="lp-req">*</span></label>
-                <textarea className={`lp-textarea${errors.description ? " lp-input--err" : ""}`}
-                  placeholder="Describe your item — condition details, accessories included, reason for listing, any defects..."
-                  value={description} onChange={(e) => setDescription(e.target.value)}
-                  maxLength={500} rows={4} />
-                <span className="lp-char-count">{description.length}/500</span>
-                {errors.description && <p className="lp-err"><FiAlertCircle size={11} />{errors.description}</p>}
-              </div>
+          {/* Category */}
+          <div className="lp-section">
+            <div className="lp-field-header">
+              <span className="lp-label">Category</span>
             </div>
-
-            {/* ── Condition & Pricing ── */}
-            <div className="lp-section">
-              <div className="lp-section-head">
-                <img src="/ICONS/Return.png" alt="Condition" className="lp-section-icon-img lp-section-icon-img--filter" />
-                <div>
-                  <span className="lp-section-title">Condition &amp; Pricing</span>
-                  <span className="lp-section-desc">Set your svap or sale terms</span>
-                </div>
-              </div>
-
-              <div className="lp-field">
-                <label className="lp-label">CONDITION <span className="lp-req">*</span></label>
-                <div className=" lp-pills">
-                  {CONDITIONS.map((c) => (
-                    <button key={c} type="button"
-                      className={`lp-pill${condition === c ? " lp-pill--active" : ""}`}
-                      onClick={() => setCondition(c)}>{c}</button>
-                  ))}
-                </div>
-                {errors.condition && <p className="lp-err"><FiAlertCircle size={11} />{errors.condition}</p>}
-              </div>
-
-              <div className="lp-row">
-                <div className="lp-field">
-                  <label className="lp-label">ASKING PRICE (optional)</label>
-                  <div className="lp-prefix-wrap">
-                    <span className="lp-prefix">Rs</span>
-                    <input className="lp-input lp-input--pre" placeholder="e.g. 45,000"
-                      value={price} onChange={(e) => setPrice(e.target.value)} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="lp-field">
-                <label className="lp-label">THING WANT TO SVAP WITH IT? <span className="lp-req">*</span></label>
-                <input
-                  className={`lp-input${errors.swapFor ? " lp-input--err" : ""}`}
-                  placeholder="e.g. MacBook Air M2, iPhone 15, PS5..."
-                  value={swapFor}
-                  onChange={(e) => setSwapFor(e.target.value)}
-                  maxLength={120}
-                />
-                <span className="lp-char-count">{swapFor.length}/120</span>
-                {errors.swapFor && <p className="lp-err"><FiAlertCircle size={11} />{errors.swapFor}</p>}
-              </div>
+            <div className="lp-categories">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  className={`lp-category-btn ${category === cat ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Category clicked:', cat);
+                    setCategory(cat);
+                    setErrors((prev) => ({ ...prev, category: "" }));
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Category touched:', cat);
+                    setCategory(cat);
+                    setErrors((prev) => ({ ...prev, category: "" }));
+                  }}
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
+            {errors.category && (
+              <p className="lp-error">
+                <FiAlertCircle size={12} />
+                {errors.category}
+              </p>
+            )}
+          </div>
 
-            {/* ── Location ── */}
-            <div className="lp-section">
-              <div className="lp-section-head">
-                <img src="/ICONS/Location.png" alt="Location" className="lp-section-icon-img lp-section-icon-img--filter" />
-                <div>
-                  <span className="lp-section-title">Location</span>
-                  <span className="lp-section-desc">Where the svap will happen</span>
-                </div>
-              </div>
-              
-              <div className="lp-row">
-                {/* City field - Fixed to Karachi only */}
-                <div className="lp-field">
-                  <label className="lp-label">CITY <span className="lp-req">*</span></label>
-                  <select className="lp-select" value="Karachi" disabled>
-                    <option value="Karachi">Karachi</option>
-                  </select>
-                </div>
-                
-                <div className="lp-field">
-                  <label className="lp-label">AREA / LOCALITY</label>
-                  <input className="lp-input" placeholder="e.g. DHA Phase 5, Gulshan, etc."
-                    value={area} onChange={(e) => setArea(e.target.value)} />
-                </div>
-              </div>
+          {/* What is it? */}
+          <div className="lp-section">
+            <div className="lp-field-header">
+              <span className="lp-label">What is it?</span>
             </div>
+            <div className="lp-input-wrap">
+              <FiCamera size={16} className="lp-input-icon" />
+              <input
+                type="text"
+                className={`lp-input ${errors.title ? 'error' : ''}`}
+                placeholder="e.g. Solid oak side stool"
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setErrors((prev) => ({ ...prev, title: "" }));
+                }}
+                maxLength={80}
+              />
+            </div>
+            <p className="lp-field-hint">A clear, short title gets more swap offers.</p>
+            {errors.title && (
+              <p className="lp-error">
+                <FiAlertCircle size={12} />
+                {errors.title}
+              </p>
+            )}
+          </div>
 
-            {/* Submit */}
-            <button type="submit" className="lp-submit-btn" disabled={loading}>
-              {loading ? "Publishing..." : <><FiCheck size={16} /> Publish Listing</>}
-            </button>
+          {/* City */}
+          <div className="lp-section">
+            <div className="lp-field-header">
+              <span className="lp-label">City</span>
+            </div>
+            <div className="lp-city-wrap">
+              <span className="lp-city-icon">🏙️</span>
+              <select className="lp-select" value="Karachi" disabled>
+                <option value="Karachi">Karachi</option>
+              </select>
+              <span className="lp-dropdown-icon">▼</span>
+            </div>
+            <p className="lp-field-hint">More cities coming soon</p>
+          </div>
 
-          </form>
-        </div>
+          {/* Condition */}
+          <div className="lp-section">
+            <div className="lp-field-header">
+              <span className="lp-label">Condition</span>
+            </div>
+            <div className="lp-conditions">
+              {CONDITIONS.map((cond) => (
+                <button
+                  key={cond}
+                  type="button"
+                  className={`lp-condition-btn ${condition === cond ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Condition clicked:', cond);
+                    setCondition(cond);
+                    setErrors((prev) => ({ ...prev, condition: "" }));
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Condition touched:', cond);
+                    setCondition(cond);
+                    setErrors((prev) => ({ ...prev, condition: "" }));
+                  }}
+                >
+                  {cond}
+                </button>
+              ))}
+            </div>
+            {errors.condition && (
+              <p className="lp-error">
+                <FiAlertCircle size={12} />
+                {errors.condition}
+              </p>
+            )}
+          </div>
+
+          {/* Description */}
+          <div className="lp-section">
+            <div className="lp-field-header">
+              <span className="lp-label">Description</span>
+            </div>
+            <textarea
+              className={`lp-textarea ${errors.description ? 'error' : ''}`}
+              placeholder="Condition, dimensions, anything to know..."
+              value={description}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setErrors((prev) => ({ ...prev, description: "" }));
+              }}
+              maxLength={300}
+              rows={4}
+            />
+            <div className="lp-char-count">{description.length}/300</div>
+            {errors.description && (
+              <p className="lp-error">
+                <FiAlertCircle size={12} />
+                {errors.description}
+              </p>
+            )}
+          </div>
+
+          {/* What would you swap for? */}
+          <div className="lp-section">
+            <div className="lp-field-header">
+              <span className="lp-label">What would you swap for?</span>
+            </div>
+            <div className="lp-input-wrap">
+              <FiCamera size={16} className="lp-input-icon" />
+              <input
+                type="text"
+                className={`lp-input ${errors.swapFor ? 'error' : ''}`}
+                placeholder="e.g. Vintage lamp, linen throw, books..."
+                value={swapFor}
+                onChange={(e) => {
+                  setSwapFor(e.target.value);
+                  setErrors((prev) => ({ ...prev, swapFor: "" }));
+                }}
+                maxLength={100}
+              />
+            </div>
+            <p className="lp-field-hint">Helps others know what you're looking to swap for.</p>
+            {errors.swapFor && (
+              <p className="lp-error">
+                <FiAlertCircle size={12} />
+                {errors.swapFor}
+              </p>
+            )}
+          </div>
+
+          {/* Estimated value */}
+          <div className="lp-section">
+            <div className="lp-field-header">
+              <span className="lp-label">Estimated value (PKR)</span>
+            </div>
+            <div className="lp-input-wrap">
+              <span className="lp-input-icon" style={{ fontSize: '0.875rem' }}>₨</span>
+              <input
+                type="text"
+                className="lp-input"
+                placeholder="e.g. 5000"
+                value={estimatedValue}
+                onChange={(e) => setEstimatedValue(e.target.value.replace(/\D/g, ""))}
+              />
+            </div>
+            <p className="lp-field-hint">Optional — helps match you with similar value items</p>
+          </div>
+
+          {/* Submit Button */}
+          <button type="submit" className="lp-submit" disabled={loading}>
+            {loading ? "Publishing..." : "List My Item"}
+          </button>
+        </form>
       </div>
 
       <style>{`
-        /* ── Base ── */
         .lp-page {
           min-height: 100vh;
-          background: #ffffff;
-          padding: 24px 24px 72px;
-          box-sizing: border-box;
-          font-family: 'Poppins','Helvetica Neue',Arial,sans-serif;
-          position: relative;
+          background: var(--bg);
+          padding: 0;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
           color: var(--text-dark);
-          overflow: hidden;
         }
 
         html[data-theme='dark'] .lp-page {
-          background: #0a0a0a;
-          color: #f5f5f5;
-        }
-        .lp-bg {
-          position: fixed;
-          inset: 0;
-          background: #ffffff;
-          z-index: 0;
-          pointer-events: none;
+          background: #000000;
+          color: #ffffff;
         }
 
-        html[data-theme='dark'] .lp-bg {
-          background: #0a0a0a;
-        }
-
-        .lp-wrap {
-          position: relative; z-index: 1;
-          width: 100%;
-          max-width: 780px;
+        .lp-container {
+          max-width: 100%;
           margin: 0 auto;
+          padding-bottom: 100px;
         }
 
-        /* ── Page header ── */
-        .lp-page-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 32px; }
-        .lp-back {
-          display: inline-flex; align-items: center; gap: 6px;
-          color: var(--text-muted); font-size: 0.82rem; font-weight: 600;
-          background: none; border: none; cursor: pointer; padding: 0;
-          margin-bottom: 14px; transition: color 0.18s;
+        /* Desktop container */
+        @media (min-width: 768px) {
+          .lp-container {
+            max-width: 600px;
+            padding-bottom: 60px;
+          }
         }
-        .lp-back:hover { color: var(--text-dark); }
+
+        /* Header */
+        .lp-header {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 14px;
+          background: var(--bg);
+          border-bottom: 1px solid var(--border);
+          backdrop-filter: blur(10px);
+        }
+
+        html[data-theme='dark'] .lp-header {
+          background: rgba(0, 0, 0, 0.95);
+          border-bottom-color: #1a1a1a;
+        }
+
+        /* Desktop alignment */
+        @media (min-width: 768px) {
+          .lp-header {
+            justify-content: center;
+            padding: 16px 20px;
+          }
+        }
+
+        .lp-close {
+          background: none;
+          border: 1.5px solid var(--border);
+          border-radius: 50%;
+          color: var(--text-dark);
+          cursor: pointer;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          transition: all 0.2s;
+        }
+
+        html[data-theme='dark'] .lp-close {
+          color: #ffffff;
+          border-color: #2a2a2a;
+        }
+
+        .lp-close:hover {
+          border-color: #E45821;
+          background: rgba(228, 88, 33, 0.1);
+        }
+
+        /* Hide close button on desktop */
+        @media (min-width: 768px) {
+          .lp-close {
+            display: none;
+          }
+        }
+
         .lp-title {
-          font-size: clamp(1.9rem, 2.8vw, 2.8rem); font-weight: 800;
-          color: var(--text-dark); letter-spacing: -0.02em; margin: 0 0 5px; line-height: 1.1;
+          font-size: 1.0625rem;
+          font-weight: 600;
+          margin: 0;
+          color: var(--text-dark);
         }
-        .lp-sub { font-size: 0.9rem; color: var(--text-muted); margin: 0; }
 
-        /* ── Single-column stacked layout ── */
-        .lp-layout {
+        html[data-theme='dark'] .lp-title {
+          color: #ffffff;
+        }
+
+        /* Desktop title styling */
+        @media (min-width: 768px) {
+          .lp-title {
+            font-size: 1.375rem;
+            font-weight: 700;
+          }
+        }
+
+        /* Toast */
+        .lp-toast {
+          position: fixed;
+          top: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #10b981;
+          color: #fff;
+          padding: 10px 16px;
+          border-radius: 8px;
+          font-size: 0.8125rem;
+          font-weight: 500;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Form */
+        .lp-form {
+          padding: 14px;
+          pointer-events: auto;
+        }
+
+        /* Desktop form padding */
+        @media (min-width: 768px) {
+          .lp-form {
+            padding: 24px 32px;
+          }
+        }
+
+        .lp-hint {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          margin: 0 0 16px;
+          line-height: 1.4;
+        }
+
+        html[data-theme='dark'] .lp-hint {
+          color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Section */
+        .lp-section {
+          margin-bottom: 20px;
+          pointer-events: auto;
+        }
+
+        .lp-field-header {
+          margin-bottom: 8px;
+        }
+
+        .lp-label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: var(--text-dark);
+          display: block;
+        }
+
+        html[data-theme='dark'] .lp-label {
+          color: #ffffff;
+        }
+
+        .lp-req {
+          color: #ef4444;
+          margin-left: 4px;
+        }
+
+        /* Tips Box */
+        .lp-tips-box {
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 10px;
+          margin-bottom: 10px;
+        }
+
+        html[data-theme='dark'] .lp-tips-box {
+          background: #1a1a1a;
+          border-color: #2a2a2a;
+        }
+
+        .lp-tips-header {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          color: #E45821;
+          font-size: 0.75rem;
+          font-weight: 600;
+          margin-bottom: 6px;
+        }
+
+        .lp-tips-list {
+          margin: 0;
+          padding-left: 16px;
+          font-size: 0.6875rem;
+          color: var(--text-muted);
+          line-height: 1.4;
+          list-style-type: disc;
+          list-style-position: outside;
+        }
+
+        html[data-theme='dark'] .lp-tips-list {
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        .lp-tips-list li {
+          margin-bottom: 3px;
+          display: list-item;
+        }
+
+        .lp-tips-list li::marker {
+          color: #E45821;
+        }
+
+        /* Photo Upload */
+        .lp-photo-upload {
+          background: var(--card-bg);
+          border: 2px dashed var(--border);
+          border-radius: 8px;
+          padding: 28px 16px;
           display: flex;
           flex-direction: column;
-          gap: 20px;
-        }
-
-        /* ── Section card ── */
-        .lp-section {
-          background: rgba(255,255,255,0.92);
-          backdrop-filter: blur(18px);
-          -webkit-backdrop-filter: blur(18px);
-          border: 1px solid rgba(165,194,111,0.26);
-          box-shadow: 0 18px 40px rgba(26,46,10,0.06);
-          border-radius: 18px;
-          padding: 22px;
-          display: flex; flex-direction: column; gap: 16px;
-        }
-
-        html[data-theme='dark'] .lp-section {
-          background: rgba(26, 26, 26, 0.5);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
-        }
-        .lp-section-head {
-          display: flex; align-items: flex-start; gap: 10px;
-          padding-bottom: 12px;
-          border-bottom: 1px solid rgba(228,88,33,0.12);
-        }
-        .lp-section-icon { color: #E45821; margin-top: 2px; flex-shrink: 0; }
-        .lp-section-icon-img {
-          width: 18px; height: 18px; object-fit: contain; flex-shrink: 0; margin-top: 1px;
-        }
-        .lp-section-icon-img--filter {
-          filter: none;
-        }
-        html[data-theme='dark'] .lp-section-icon-img--filter {
-          filter: brightness(0) invert(1);
-        }
-        .lp-section-title { display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-dark); }
-        .lp-section-desc  { display: block; font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
-
-        .lp-dropzone {
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          align-items: center;
           gap: 8px;
-          width: 100%;
-          padding: 36px 20px;
-          background: linear-gradient(135deg, rgba(228,88,33,0.04), rgba(49,60,92,0.03));
-          border: 2px dashed rgba(228,88,33,0.40);
-          border-radius: 16px;
           cursor: pointer;
-          font-family: inherit;
-          transition: border-color 0.2s, background 0.2s;
+          transition: all 0.2s;
         }
-        .lp-dropzone:hover {
-          border-color: rgba(228,88,33,0.72);
-          background: linear-gradient(135deg, rgba(228,88,33,0.08), rgba(49,60,92,0.05));
-        }
-        .lp-dropzone--err { border-color: rgba(248,113,113,0.55); }
-        .lp-dropzone-icon {
-          width: 58px; height: 58px; border-radius: 50%;
-          background: rgba(228,88,33,0.10);
-          border: 2px solid rgba(228,88,33,0.25);
-          display: flex; align-items: center; justify-content: center;
-          margin-bottom: 4px;
-          overflow: hidden;
-        }
-        .lp-dropzone-title { font-size: 1rem; font-weight: 800; color: var(--text-dark); }
-        .lp-dropzone-sub { font-size: 0.72rem; color: var(--text-muted); text-align: center; }
 
-        /* ── Photo tiles ── */
-        .lp-photo-tiles {
+        html[data-theme='dark'] .lp-photo-upload {
+          background: #1a1a1a;
+          border-color: #2a2a2a;
+        }
+
+        .lp-photo-upload:hover {
+          border-color: #E45821;
+        }
+
+        .lp-photo-upload.error {
+          border-color: #ef4444;
+        }
+
+        .lp-photo-upload svg {
+          color: var(--text-muted);
+        }
+
+        html[data-theme='dark'] .lp-photo-upload svg {
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        .lp-photo-upload-text {
+          text-align: center;
+        }
+
+        .lp-photo-upload-text span {
+          display: block;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: var(--text-dark);
+          margin-bottom: 2px;
+        }
+
+        html[data-theme='dark'] .lp-photo-upload-text span {
+          color: #ffffff;
+        }
+
+        .lp-photo-upload-text small {
+          display: block;
+          font-size: 0.625rem;
+          color: var(--text-muted);
+        }
+
+        html[data-theme='dark'] .lp-photo-upload-text small {
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Photo Grid */
+        .lp-photo-grid {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 10px;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 8px;
+          margin-top: 10px;
         }
 
-
-        .lp-toast {
-  position: fixed;
-  top: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #1a2e0a;
-  color: #fff;
-  padding: 12px 20px;
-  border-radius: 10px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-  animation: lp-toast-in 0.25s ease-out;
-}
-
-@keyframes lp-toast-in {
-  from { opacity: 0; transform: translate(-50%, -12px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
-}
-        .lp-photo-tile {
+        .lp-photo-item {
           position: relative;
           aspect-ratio: 1;
-          border-radius: 14px;
+          border-radius: 8px;
           overflow: hidden;
-          border: none;
-          padding: 0;
+          border: 1px solid var(--border);
         }
-        .lp-photo-tile--add {
-          background: #ff6a1a;
-          color: #fff;
-          font-size: 1.5rem;
-          font-weight: 300;
-          line-height: 1;
-          display: flex; align-items: center; justify-content: center;
-          cursor: pointer;
-          transition: background 0.2s, transform 0.15s;
-        }
-        .lp-photo-tile--add:hover { background: #ea5b0f; transform: translateY(-1px); }
-        .lp-photo-tile--filled { border: 1px solid rgba(165,194,111,0.24); }
-        .lp-photo-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .lp-photo-tile-cover {
-          position: absolute; top: 6px; left: 6px;
-          background: rgba(26,46,10,0.78); color: #fff;
-          font-size: 0.56rem; font-weight: 700; letter-spacing: 0.05em;
-          padding: 2px 7px; border-radius: 5px; text-transform: uppercase;
-        }
-        .lp-photo-remove {
-          position: absolute; top: 5px; right: 5px; width: 20px; height: 20px;
-          border-radius: 50%; background: rgba(0,0,0,0.55); border: none;
-          color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
-          transition: background 0.18s;
-        }
-        .lp-photo-remove:hover { background: rgba(248,113,113,0.9); }
 
-        .lp-reel-upload {
-          display: none;
-          flex-direction: column;
-          gap: 8px;
+        html[data-theme='dark'] .lp-photo-item {
+          border-color: #2a2a2a;
         }
-        .lp-reel-heading { display: flex; flex-direction: column; gap: 3px; }
-        .lp-reel-hint { color: var(--text-muted); font-size: 0.7rem; }
-        .lp-reel-dropzone {
-          min-height: 64px;
-          display: grid;
-          grid-template-columns: 24px 1fr;
-          grid-template-rows: auto auto;
+
+        .lp-photo-item img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .lp-photo-remove {
+          position: absolute;
+          top: 5px;
+          right: 5px;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: rgba(0, 0, 0, 0.6);
+          border: none;
+          color: #fff;
+          display: flex;
           align-items: center;
-          column-gap: 8px;
-          padding: 12px 14px;
-          border: 1px solid rgba(165,194,111,0.2);
-          border-radius: 10px;
-          background: #f8fbf2;
+          justify-content: center;
+          cursor: pointer;
+        }
+
+        /* Reel Upload */
+        .lp-reel-upload {
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 12px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          cursor: pointer;
+        }
+
+        html[data-theme='dark'] .lp-reel-upload {
+          background: #1a1a1a;
+          border-color: #2a2a2a;
+        }
+
+        .lp-reel-upload.error {
+          border-color: #ef4444;
+        }
+
+        .lp-reel-upload svg {
           color: #E45821;
-          text-align: left;
+          flex-shrink: 0;
+        }
+
+        .lp-reel-upload div {
+          flex: 1;
+        }
+
+        .lp-reel-upload span {
+          display: block;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: var(--text-dark);
+          margin-bottom: 2px;
+        }
+
+        html[data-theme='dark'] .lp-reel-upload span {
+          color: #ffffff;
+        }
+
+        .lp-reel-upload small {
+          display: block;
+          font-size: 0.625rem;
+          color: var(--text-muted);
+        }
+
+        html[data-theme='dark'] .lp-reel-upload small {
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Reel Preview */
+        .lp-reel-preview {
+          position: relative;
+        }
+
+        .lp-reel-preview video {
+          width: 100%;
+          border-radius: 8px;
+          background: #000;
+          max-height: 220px;
+        }
+
+        .lp-reel-remove {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          width: 26px;
+          height: 26px;
+          border-radius: 50%;
+          background: rgba(0, 0, 0, 0.7);
+          border: none;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+
+        /* Categories */
+        .lp-categories {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          position: relative;
+          z-index: 1;
+        }
+
+        .lp-category-btn {
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 8px 14px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          color: var(--text-mid);
           cursor: pointer;
           font-family: inherit;
-        }
-        html[data-theme='dark'] .lp-reel-dropzone { background: #1a1a1a; border-color: rgba(255,255,255,0.12); }
-        .lp-reel-dropzone span { color: var(--text-dark); font-size: 0.78rem; font-weight: 600; }
-        .lp-reel-dropzone small { grid-column: 2; color: var(--text-muted); font-size: 0.65rem; }
-        .lp-reel-preview-wrap { position: relative; }
-        .lp-reel-preview { width: 100%; max-height: 220px; display: block; border-radius: 10px; background: #000; }
-        .lp-reel-remove {
-          position: absolute; top: 8px; right: 8px; width: 28px; height: 28px;
-          border: none; border-radius: 50%; background: rgba(0,0,0,0.65); color: #fff;
-          display: flex; align-items: center; justify-content: center; cursor: pointer;
-        }
-        .lp-reel-upload--err .lp-reel-dropzone { border-color: rgba(248,113,113,0.55); }
-        @media (max-width: 768px) {
-          .lp-reel-upload { display: flex; }
+          transition: all 0.2s;
+          -webkit-tap-highlight-color: transparent;
+          user-select: none;
+          pointer-events: auto;
+          position: relative;
+          z-index: 2;
+          touch-action: manipulation;
         }
 
-        /* ── Mobile styles ── */
-        @media (max-width: 768px) {
-          .lp-page {
-            background: var(--bg);
-            min-height: 100vh;
-          }
-          
-          .lp-bg { display: none; }
-          
-          .lp-wrap {
-            max-width: 100%;
-            padding: 0;
-            margin: 0;
-          }
-          
-          .lp-page-header {
-            padding: 20px 16px;
-            background: var(--bg);
-            border-bottom: 1px solid rgba(165,194,111,0.15);
-          }
-          
-          html[data-theme='dark'] .lp-page-header {
-            border-bottom-color: rgba(255,255,255,0.1);
-          }
-          
-          .lp-title {
-            color: var(--text-dark);
-            font-size: 1.5rem;
-            margin: 0 0 4px;
-          }
-          
-          .lp-sub {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-          }
-          
-          .lp-layout {
-            padding: 20px 16px;
-          }
-          
-          .lp-section {
-            background: transparent;
-            border: none;
-            box-shadow: none;
-            padding: 0;
-          }
-          
-          /* Photos section */
-          .lp-dropzone {
-            background: var(--card-bg);
-            border: 1.5px dashed rgba(228, 88, 33, 0.3);
-            border-radius: 12px;
-            padding: 32px 20px;
-            color: var(--text-muted);
-          }
-          
-          html[data-theme='dark'] .lp-dropzone {
-            background: #1A1A1A;
-          }
-          
-          .lp-dropzone-hint {
-            color: var(--text-muted);
-            font-size: 0.8rem;
-          }
-          
-          .lp-photo-tiles {
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-          }
-          
-          .lp-photo-tile {
-            aspect-ratio: 1;
-            border-radius: 12px;
-            border: 1px solid rgba(165,194,111,0.2);
-          }
-          
-          html[data-theme='dark'] .lp-photo-tile {
-            border-color: rgba(255,255,255,0.1);
-          }
-          
-          /* Form inputs */
-          .lp-input, .lp-select, .lp-textarea {
-            background: var(--card-bg);
-            border: 1px solid rgba(165,194,111,0.2);
-            color: var(--text-dark);
-            border-radius: 12px;
-            padding: 14px 16px;
-            font-size: 0.9rem;
-          }
-          
-          html[data-theme='dark'] .lp-input,
-          html[data-theme='dark'] .lp-select,
-          html[data-theme='dark'] .lp-textarea {
-            background: #1A1A1A;
-            border-color: rgba(255,255,255,0.1);
-            color: #fff;
-          }
-          
-          .lp-input::placeholder,
-          .lp-textarea::placeholder {
-            color: var(--text-muted);
-          }
-          
-          html[data-theme='dark'] .lp-input::placeholder,
-          html[data-theme='dark'] .lp-textarea::placeholder {
-            color: rgba(255,255,255,0.3);
-          }
-          
-          .lp-input:focus,
-          .lp-select:focus,
-          .lp-textarea:focus {
-            border-color: rgba(228, 88, 33, 0.5);
-            background: #fff;
-          }
-          
-          html[data-theme='dark'] .lp-input:focus,
-          html[data-theme='dark'] .lp-select:focus,
-          html[data-theme='dark'] .lp-textarea:focus {
-            background: #232323;
-          }
-          
-          .lp-label {
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-          }
-          
-          /* Category pills */
-          .lp-pills {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-          }
-          
-          .lp-pill {
-            background: var(--card-bg);
-            border: 1px solid rgba(165,194,111,0.2);
-            color: var(--text-mid);
-            padding: 10px 18px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-          }
-          
-          html[data-theme='dark'] .lp-pill {
-            background: #1A1A1A;
-            border-color: rgba(255,255,255,0.1);
-            color: rgba(255,255,255,0.7);
-          }
-          
-          .lp-pill--active {
-            background: #E45821;
-            border-color: #E45821;
-            color: #fff;
-          }
-          
-          /* Submit button */
-          .lp-submit {
-            background: #E45821;
-            color: #fff;
-            border: none;
-            border-radius: 12px;
-            padding: 16px;
-            font-size: 1rem;
-            font-weight: 600;
-            margin-top: 20px;
-            margin-bottom: 80px;
-          }
-          
-          .lp-submit:disabled {
-            opacity: 0.5;
-          }
-          
-          /* Reel section */
-          .lp-reel-dropzone {
-            background: var(--card-bg);
-            border: 1px solid rgba(165,194,111,0.2);
-            border-radius: 12px;
-            padding: 16px;
-          }
-          
-          html[data-theme='dark'] .lp-reel-dropzone {
-            background: #1A1A1A;
-            border-color: rgba(255,255,255,0.1);
-          }
-          
-          .lp-reel-dropzone span {
-            color: var(--text-dark);
-          }
-          
-          html[data-theme='dark'] .lp-reel-dropzone span {
-            color: #fff;
-          }
-          
-          .lp-reel-dropzone small {
-            color: rgba(255,255,255,0.4);
-          }
-        }
-
-        /* ── Form ── */
-        .lp-form { display:flex; flex-direction:column; gap:20px; }
-        .lp-field { display:flex; flex-direction:column; gap:5px; }
-        .lp-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-        .lp-label {
-          font-size:0.67rem; font-weight:700; letter-spacing:0.09em;
-          color:var(--text-muted); text-transform:uppercase;
-        }
-        .lp-req { color:#f87171; }
-
-        .lp-input, .lp-select, .lp-textarea {
-          background:#f8fbf2;
-          border:1px solid rgba(165,194,111,0.20);
-          border-radius:10px; padding:11px 14px;
-          color:var(--text-dark); font-size:0.87rem; font-family:inherit;
-          outline:none; width:100%; box-sizing:border-box;
-          transition:border-color 0.2s, background 0.2s;
-        }
-
-        html[data-theme='dark'] .lp-input,
-        html[data-theme='dark'] .lp-select,
-        html[data-theme='dark'] .lp-textarea {
+        html[data-theme='dark'] .lp-category-btn {
           background: #1a1a1a;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          color: #fff;
+          border-color: #2a2a2a;
+          color: rgba(255, 255, 255, 0.7);
         }
 
-        html[data-theme='dark'] .lp-input::placeholder,
-        html[data-theme='dark'] .lp-textarea::placeholder {
+        .lp-category-btn:active {
+          transform: scale(0.97);
+        }
+
+        .lp-category-btn.active {
+          background: #E45821 !important;
+          border-color: #E45821 !important;
+          color: #ffffff !important;
+          font-weight: 600;
+        }
+
+        html[data-theme='dark'] .lp-category-btn.active {
+          background: #E45821 !important;
+          border-color: #E45821 !important;
+          color: #ffffff !important;
+          box-shadow: 0 2px 12px rgba(228, 88, 33, 0.5);
+        }
+
+        /* Input Wrap */
+        .lp-input-wrap {
+          position: relative;
+        }
+
+        .lp-input-icon {
+          position: absolute;
+          left: 11px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--text-muted);
+          pointer-events: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        html[data-theme='dark'] .lp-input-icon {
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Input */
+        .lp-input {
+          width: 100%;
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 11px 11px 11px 38px;
+          font-size: 0.75rem;
+          font-family: inherit;
+          color: var(--text-dark);
+          outline: none;
+          transition: all 0.2s;
+        }
+
+        html[data-theme='dark'] .lp-input {
+          background: #1a1a1a;
+          border-color: #2a2a2a;
+          color: #ffffff;
+        }
+
+        .lp-input::placeholder {
+          color: var(--text-muted);
+        }
+
+        html[data-theme='dark'] .lp-input::placeholder {
           color: rgba(255, 255, 255, 0.3);
         }
 
-        html[data-theme='dark'] .lp-input:focus,
-        html[data-theme='dark'] .lp-select:focus,
-        html[data-theme='dark'] .lp-textarea:focus {
-          border-color: rgba(228, 88, 33, 0.5);
-          background: #232323;
+        .lp-input:focus {
+          border-color: #E45821;
         }
-        .lp-input::placeholder, .lp-textarea::placeholder { color:rgba(61,92,26,0.40); }
-        .lp-input:focus, .lp-select:focus, .lp-textarea:focus {
-          border-color:rgba(141,198,63,0.65); background:#fff;
+
+        .lp-input.error {
+          border-color: #ef4444;
         }
-        .lp-input--err { border-color:rgba(248,113,113,0.45) !important; background:#fff7f7; }
 
-        .lp-select {
-          appearance: none;
-          -webkit-appearance: none;
-          -moz-appearance: none;
-
-          background: #f8fbf2;
-          backdrop-filter: blur(18px);
-          -webkit-backdrop-filter: blur(18px);
-
-          color: var(--text-dark);
-
-          border: 1px solid rgba(165,194,111,0.20);
-          border-radius: 14px;
-
-          cursor: pointer;
-
+        /* City Wrap */
+        .lp-city-wrap {
           position: relative;
-          z-index: 100;
+          display: flex;
+          align-items: center;
         }
 
-        .lp-select option {
-          background: #ffffff;
+        .lp-city-icon {
+          position: absolute;
+          left: 11px;
+          font-size: 0.9375rem;
+          pointer-events: none;
+        }
+
+        .lp-dropdown-icon {
+          position: absolute;
+          right: 11px;
+          font-size: 0.5rem;
+          color: var(--text-muted);
+          pointer-events: none;
+        }
+
+        html[data-theme='dark'] .lp-dropdown-icon {
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Select */
+        .lp-select {
+          width: 100%;
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 11px 38px;
+          font-size: 0.75rem;
+          font-family: inherit;
           color: var(--text-dark);
-          padding: 12px;
+          appearance: none;
+          cursor: not-allowed;
+          outline: none;
         }
 
         html[data-theme='dark'] .lp-select {
           background: #1a1a1a;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          color: #fff;
-        }
-
-        html[data-theme='dark'] .lp-select option {
-          background: #1a1a1a;
-          color: #fff;
+          border-color: #2a2a2a;
+          color: #ffffff;
         }
 
         .lp-select:disabled {
-          cursor: not-allowed;
-          opacity: 0.72;
-          background: #f3f5ee;
-          color: rgba(61,92,26,0.45);
+          opacity: 0.7;
         }
 
-        html[data-theme='dark'] .lp-select:disabled {
-          background: #151515;
-          color: rgba(255,255,255,0.35);
-        }
-        .lp-textarea { resize:vertical; min-height:110px; }
-
-        .lp-prefix-wrap { position:relative; display:flex; }
-        .lp-prefix {
-          position:absolute; left:13px; top:50%; transform:translateY(-50%);
-          font-size:0.8rem; font-weight:600; color:rgba(61,92,26,0.55); pointer-events:none;
+        /* Conditions */
+        .lp-conditions {
+          display: flex;
+          gap: 6px;
+          position: relative;
+          z-index: 1;
         }
 
-        html[data-theme='dark'] .lp-prefix {
-          color: rgba(255,255,255,0.45);
+        .lp-condition-btn {
+          flex: 1;
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 9px 6px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          color: var(--text-mid);
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+          -webkit-tap-highlight-color: transparent;
+          user-select: none;
+          pointer-events: auto;
+          position: relative;
+          z-index: 2;
+          touch-action: manipulation;
         }
-        .lp-input--pre { padding-left:34px; }
 
-        .lp-char-count { font-size:0.67rem; color:rgba(61,92,26,0.42); text-align:right; margin-top:-3px; }
+        html[data-theme='dark'] .lp-condition-btn {
+          background: #1a1a1a;
+          border-color: #2a2a2a;
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        .lp-condition-btn:active {
+          transform: scale(0.97);
+        }
+
+        .lp-condition-btn.active {
+          background: #E45821 !important;
+          border-color: #E45821 !important;
+          color: #ffffff !important;
+          font-weight: 600;
+          box-shadow: 0 2px 8px rgba(228, 88, 33, 0.3);
+        }
+
+        html[data-theme='dark'] .lp-condition-btn.active {
+          background: #E45821 !important;
+          border-color: #E45821 !important;
+          color: #ffffff !important;
+          box-shadow: 0 2px 12px rgba(228, 88, 33, 0.5);
+        }
+
+        /* Textarea */
+        .lp-textarea {
+          width: 100%;
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 11px;
+          font-size: 0.75rem;
+          font-family: inherit;
+          color: var(--text-dark);
+          resize: vertical;
+          min-height: 80px;
+          outline: none;
+          transition: all 0.2s;
+        }
+
+        html[data-theme='dark'] .lp-textarea {
+          background: #1a1a1a;
+          border-color: #2a2a2a;
+          color: #ffffff;
+        }
+
+        .lp-textarea::placeholder {
+          color: var(--text-muted);
+        }
+
+        html[data-theme='dark'] .lp-textarea::placeholder {
+          color: rgba(255, 255, 255, 0.3);
+        }
+
+        .lp-textarea:focus {
+          border-color: #E45821;
+        }
+
+        .lp-textarea.error {
+          border-color: #ef4444;
+        }
+
+        /* Field Hint */
+        .lp-field-hint {
+          font-size: 0.625rem;
+          color: var(--text-muted);
+          margin-top: 4px;
+          line-height: 1.3;
+        }
+
+        html[data-theme='dark'] .lp-field-hint {
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Char Count */
+        .lp-char-count {
+          font-size: 0.625rem;
+          color: var(--text-muted);
+          text-align: right;
+          margin-top: 3px;
+          display: block;
+        }
 
         html[data-theme='dark'] .lp-char-count {
-          color: rgba(255,255,255,0.35);
-        }
-        .lp-err {
-          display:flex; align-items:center; gap:5px;
-          font-size:0.71rem; color:#f87171; margin:0;
+          color: rgba(255, 255, 255, 0.4);
         }
 
-        /* Pills */
-        .lp-pills { display:flex; flex-wrap:wrap; gap:7px; }
-        .lp-pill {
-          padding:6px 15px; border-radius:999px;
-          font-size:0.79rem; font-weight:600; cursor:pointer;
-          background:#f6faef;
-          border:1px solid rgba(165,194,111,0.18);
-          color:var(--text-muted);
-          transition:all 0.2s;
-        }
-        .lp-pill:hover { background:#ffffff; color:var(--text-dark); }
-        .lp-pill--active {
-          background:rgba(174,220,90,0.22);
-          border-color:rgba(141,198,63,0.42);
-          color:var(--text-dark);
+        /* Error */
+        .lp-error {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 0.625rem;
+          color: #ef4444;
+          margin-top: 4px;
         }
 
-        html[data-theme='dark'] .lp-pill {
-          background: #1a1a1a;
-          border: 1px solid rgba(255,255,255,0.12);
-          color: rgba(255,255,255,0.6);
-        }
-        html[data-theme='dark'] .lp-pill:hover {
-          background: #232323;
-          color: #fff;
-        }
-        html[data-theme='dark'] .lp-pill--active {
-          background: rgba(228,88,33,0.22);
-          border-color: rgba(228,88,33,0.45);
-          color: #fff;
-        }
-
-        /* ── Submit button ── */
-        .lp-submit-btn {
-          display:flex; align-items:center; justify-content:center; gap:10px;
-          width:100%; padding:16px 24px;
-          background: linear-gradient(135deg, #E45821, #f07040);
+        /* Submit */
+        .lp-submit {
+          width: 100%;
+          background: #E45821;
           border: none;
-          border-radius:14px;
-          color:#fff;
-          font-size:0.96rem; font-weight:800; letter-spacing:0.03em;
-          cursor:pointer;
-          transition:transform 0.2s, box-shadow 0.2s;
-          margin-top:8px;
-          box-shadow: 0 4px 20px rgba(228,88,33,0.35);
-        }
-        .lp-submit-btn:hover {
-          transform:translateY(-2px);
-          box-shadow: 0 8px 28px rgba(228,88,33,0.50);
+          border-radius: 81px;
+          padding: 13px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #fff;
+          cursor: pointer;
+          font-family: inherit;
+          margin-top: 14px;
+          transition: all 0.2s;
         }
 
-        /* ── Success ── */
-        .lp-success {
-          position:relative; z-index:1;
-          display:flex; flex-direction:column; align-items:center;
-          justify-content:center; min-height:60vh; gap:14px; text-align:center;
-          padding:40px 20px;
+        .lp-submit:hover:not(:disabled) {
+          background: #d14d1c;
         }
-        .lp-success-icon {
-          width:80px; height:80px; border-radius:50%;
-          background:rgba(174,220,90,0.18); border:1px solid rgba(141,198,63,0.24);
-          display:flex; align-items:center; justify-content:center;
-          color:var(--text-dark); margin-bottom:8px;
+
+        .lp-submit:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
-        .lp-success-title { font-size:1.7rem; font-weight:800; color:var(--text-dark); margin:0; }
-        .lp-success-desc { font-size:0.9rem; color:var(--text-muted); margin:0; max-width:360px; }
-        .lp-success-desc strong { color:var(--text-dark); }
-        .lp-success-btns { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:8px; }
-        .lp-success-btn { padding:11px 22px; border-radius:10px; font-size:0.87rem; font-weight:700; cursor:pointer; transition:background 0.2s; }
-        .lp-success-btn--white { background:var(--svap-lime); border:1px solid rgba(141,198,63,0.3); color:#000; }
-        .lp-success-btn--white:hover { background:var(--btn-swap); }
-        .lp-success-btn--ghost { background:rgba(255,255,255,0.82); border:1px solid rgba(165,194,111,0.20); color:var(--text-mid); }
-        .lp-success-btn--ghost:hover { background:#fff; color:var(--text-dark); }
 
-        /* ── Responsive ── */
-        @media (max-width: 480px) {
-          .lp-page { padding: 24px 6px 72px; }
-          .lp-page-header { gap: 14px; margin-bottom: 18px; align-items: flex-start; }
-          .lp-page-header > div { min-width: 0; flex: 1; }
-          .lp-back { width: 20px; height: 24px; margin: 1px 0 0; flex: 0 0 20px; }
-          .lp-back-label { display: none; }
-          .lp-section { padding: 14px 12px; border-radius: 14px; gap: 12px; }
-          .lp-row { grid-template-columns: 1fr; gap: 10px; }
-          .lp-title { font-size: 1.45rem; line-height: 1.15; }
-          .lp-sub { font-size: 0.72rem; }
-          .lp-dropzone { padding: 22px 12px; border-radius: 12px; }
-          .lp-section-head { padding-bottom: 9px; }
+        /* Desktop Styles */
+        @media (min-width: 769px) {
+          .lp-container {
+            max-width: 600px;
+            padding-top: 40px;
+          }
 
+          .lp-header {
+            background: transparent;
+            border-bottom: none;
+            padding: 0 0 20px;
+          }
+
+          .lp-close {
+            position: absolute;
+            top: 40px;
+            right: 40px;
+          }
+
+          .lp-title {
+            font-size: 2rem;
+          }
+
+          .lp-photo-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+
+          .lp-form {
+            padding: 20px;
+          }
+
+          .lp-section {
+            margin-bottom: 28px;
+          }
+
+          .lp-label {
+            font-size: 0.875rem;
+          }
+
+          .lp-input {
+            font-size: 0.875rem;
+            padding: 14px 14px 14px 44px;
+          }
+
+          .lp-textarea {
+            font-size: 0.875rem;
+            padding: 14px;
+          }
+
+          .lp-category-btn {
+            font-size: 0.875rem;
+            padding: 10px 18px;
+          }
+
+          .lp-condition-btn {
+            font-size: 0.875rem;
+            padding: 12px;
+          }
         }
       `}</style>
     </div>

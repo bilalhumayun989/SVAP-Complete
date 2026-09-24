@@ -165,7 +165,8 @@ function AppInner() {
   const isListProductPage = pathname === '/list-product'
   const isForgotPassword = pathname === '/forgot-password'
   const isResetPassword = pathname === '/reset-password'
-  const hideTopBar = isListProductPage || isSearchPage || isForgotPassword || isResetPassword
+  const isRequestsPage = pathname === '/requests'
+  const hideTopBar = isListProductPage || isSearchPage || isForgotPassword || isResetPassword || isRequestsPage
 
   // Check for existing session on app load
   useEffect(() => {
