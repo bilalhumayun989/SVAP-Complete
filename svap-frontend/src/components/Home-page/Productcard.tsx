@@ -10,7 +10,7 @@ const SvapBtnIcon = () => (
     height="16"
     viewBox="0 0 24 24"
     fill="none"
-    stroke="#fff"
+    stroke="currentColor"
     strokeWidth="2.5"
     strokeLinecap="round"
     strokeLinejoin="round"
@@ -70,67 +70,26 @@ const ProductCard = ({ product, initialSaved = false }: ProductCardProps) => {
   return (
     <div
       style={{
-        background: "var(--card-bg, #1a1a1a)",
-        border: "1.5px solid var(--border, #2a2a2a)",
-        borderRadius: 16,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        boxShadow: "0 4px 18px rgba(0,0,0,0.2)",
-        transition: "transform 0.2s, box-shadow 0.2s",
+        background: "var(--card-bg)",
+        borderColor: "var(--border-light)",
       }}
-      className="product-card"
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
-        (e.currentTarget as HTMLDivElement).style.boxShadow =
-          "0 8px 28px rgba(0,0,0,0.3)";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.transform = "";
-        (e.currentTarget as HTMLDivElement).style.boxShadow =
-          "0 4px 18px rgba(0,0,0,0.2)";
-      }}
+      className="product-card flex flex-col overflow-hidden rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 shadow-md hover:shadow-xl"
     >
-      {/* USER HEADER (Top views badge removed) */}
+      {/* USER HEADER */}
       <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          padding: "12px 14px",
-          cursor: "pointer",
-        }}
+        className="flex items-center px-3.5 py-3 cursor-pointer"
         onClick={go}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            minWidth: 0,
-          }}
-        >
+        <div className="flex items-center gap-2.5 min-w-0">
           <img
             src={product.user.avatar}
             alt={product.user.name}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              objectFit: "cover",
-              border: "1.5px solid var(--border)",
-              flexShrink: 0,
-            }}
+            style={{ borderColor: "var(--border-light)" }}
+            className="w-8 h-8 rounded-full object-cover border flex-shrink-0"
           />
           <p
-            style={{
-              margin: 0,
-              color: "#fff",
-              fontWeight: 600,
-              fontSize: "0.85rem",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
+            style={{ color: "var(--text-dark)" }}
+            className="m-0 font-semibold text-xs sm:text-sm truncate"
           >
             @{product.user.name}
           </p>
@@ -139,34 +98,15 @@ const ProductCard = ({ product, initialSaved = false }: ProductCardProps) => {
 
       {/* IMAGE CONTAINER */}
       <div
-        style={{ cursor: "pointer", position: "relative" }}
+        className="cursor-pointer relative"
         onClick={go}
       >
-        <div
-          className="pc-image-container"
-          style={{
-            overflow: "hidden",
-            aspectRatio: "4/3",
-            position: "relative",
-          }}
-        >
+        <div className="pc-image-container overflow-hidden aspect-[4/3] relative">
           {/* CONDITION BADGE */}
           {product.condition && (
             <div
-              style={{
-                position: "absolute",
-                top: 10,
-                left: 10,
-                zIndex: 3,
-                background: "#d9532f",
-                color: "#ffffff",
-                fontSize: "0.68rem",
-                fontWeight: 700,
-                padding: "3px 10px",
-                borderRadius: "20px",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
-                textTransform: "lowercase",
-              }}
+              style={{ background: "var(--btn-swap)", color: "var(--text-on-orange)" }}
+              className="absolute top-2.5 left-2.5 z-10 text-[0.68rem] font-bold px-2.5 py-0.5 rounded-full shadow-md lowercase"
             >
               {product.condition}
             </div>
@@ -175,118 +115,58 @@ const ProductCard = ({ product, initialSaved = false }: ProductCardProps) => {
           <img
             src={product.image}
             alt={product.title}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              transition: "transform 0.4s",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.transform = "scale(1.05)")
-            }
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "")}
+            className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
           />
         </div>
       </div>
 
-      {/* BOTTOM CONTENT AREA (With dark background) */}
+      {/* BOTTOM CONTENT AREA */}
       <div
-        style={{
-          background: "var(--card-bg, #1a1a1a)",
-          padding: "12px 14px 14px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-        }}
+        style={{ background: "var(--card-bg)" }}
+        className="p-3.5 pt-3 flex flex-col gap-2.5"
       >
-        <div style={{ cursor: "pointer" }} onClick={go}>
+        <div className="cursor-pointer" onClick={go}>
           <h3
-            style={{
-              margin: "0 0 6px",
-              color: "#fff",
-              fontSize: "0.95rem",
-              fontWeight: 700,
-              lineHeight: 1.3,
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 1,
-              WebkitBoxOrient: "vertical",
-            }}
+            style={{ color: "var(--text-dark)" }}
+            className="m-0 mb-1.5 font-bold text-sm line-clamp-1 leading-snug"
           >
             {product.title}
           </h3>
 
           <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              color: "#a0a0a0",
-              fontSize: "0.75rem",
-              flexWrap: "wrap",
-            }}
+            style={{ color: "var(--text-muted)" }}
+            className="flex items-center gap-3 text-xs flex-wrap font-medium"
           >
             {product.location && (
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <div className="flex items-center gap-1">
                 <img
                   src="/ICONS/Location.png"
                   alt="Loc"
-                  style={{
-                    width: 12,
-                    height: 12,
-                    objectFit: "contain",
-                    filter: "brightness(0) invert(0.7)",
-                  }}
+                  className="w-3 h-3 object-contain pc-loc-icon"
                 />
                 <span>{product.location}</span>
               </div>
             )}
 
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ color: "#22c55e" }}>⚡</span>
+            <div className="flex items-center gap-1">
+              <span className="text-emerald-500">⚡</span>
               <span>Value: up to you</span>
             </div>
           </div>
         </div>
 
         {/* ACTIONS BUTTONS */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginTop: 4,
-          }}
-        >
+        <div className="flex items-center gap-2.5 mt-1">
           <button
             onClick={(e) => {
               e.stopPropagation();
               go();
             }}
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              flex: 1,
-              padding: "10px 14px",
-              background: "#b84525",
-              border: "none",
-              borderRadius: "24px",
-              color: "#fff",
-              fontSize: "0.85rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              transition: "all 0.2s ease",
+              background: "var(--btn-swap)",
+              color: "var(--text-on-orange)",
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-1px)";
-              e.currentTarget.style.opacity = "0.95";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "";
-              e.currentTarget.style.opacity = "1";
-            }}
+            className="flex items-center justify-center gap-2 flex-1 py-2.5 px-3.5 rounded-full text-xs font-bold transition-transform active:scale-95 hover:opacity-95 cursor-pointer border-0"
           >
             <SvapBtnIcon /> SVAP
           </button>
@@ -296,27 +176,17 @@ const ProductCard = ({ product, initialSaved = false }: ProductCardProps) => {
             disabled={saving}
             title={saved ? "Remove from saved" : "Save listing"}
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: "12px",
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: saving ? "wait" : "pointer",
-              color: saved ? "#b84525" : "#fff",
-              transition: "all 0.2s ease",
-              flexShrink: 0,
+              borderColor: "var(--border-light)",
+              color: saved ? "var(--btn-swap)" : "var(--text-dark)",
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-            }}
+            className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all flex-shrink-0 ${
+              saving ? "cursor-wait" : "cursor-pointer"
+            }`}
           >
-            <FiBookmark size={18} fill={saved ? "#b84525" : "none"} />
+            <FiBookmark
+              size={18}
+              fill={saved ? "var(--btn-swap)" : "none"}
+            />
           </button>
         </div>
       </div>

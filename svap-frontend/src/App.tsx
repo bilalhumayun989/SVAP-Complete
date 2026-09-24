@@ -231,7 +231,8 @@ function AppInner() {
     };
     
     checkExistingSession();
-  }, [pathname, navigate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount — not on every route change
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(

@@ -92,27 +92,22 @@ const Login = () => {
         return;
       }
 
-      const response = await api.login({ email, password });
-      if (response.error) throw new Error(response.error);
+      // Use Supabase directly so a real persistent session is created
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-      const { data, profile } = response;
+      if (authError) throw new Error(authError.message);
 
-      if (data?.user) {
-        localStorage.setItem("sz_user", JSON.stringify({
-          id: data.user.id,
-          name: profile?.full_name || profile?.username || data.user.email?.split('@')[0] || "User",
-          username: profile?.username ? `@${profile.username.replace(/\s+/g, "").toLowerCase()}` : `@${(data.user.email?.split('@')[0] || 'user').replace(/\s+/g, "").toLowerCase()}`,
-          city: profile?.city || "Pakistan",
-          email: data.user.email,
-          avatar: profile?.avatar_url || null,
-          phone: profile?.phone || null,
-          bio: profile?.bio || "",
-        }));
-        window.dispatchEvent(new Event("sz_auth_change"));
-        navigate("/");
-      } else {
+      if (!authData?.user) {
         throw new Error("Login succeeded but no user returned.");
       }
+      // onAuthStateChange (SIGNED_IN) in App.tsx handles:
+      // 1. Profile fetch/create
+      // 2. localStorage sz_user set
+      // 3. navigate("/")
+      // So we do nothing here — it will fire automatically.
     } catch (err: any) {
       setError(err.message || "Login failed. Please check your credentials.");
     } finally {

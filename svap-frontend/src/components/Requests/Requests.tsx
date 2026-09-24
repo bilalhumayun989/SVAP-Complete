@@ -448,16 +448,18 @@ const Requests = () => {
           min-height: 100vh;
           padding: 12px 16px 80px;
           margin: 0;
-          background: #0f0f0f;
-          color: #fff;
+          background: var(--page-bg);
+          color: var(--text-dark);
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           box-sizing: border-box;
+          transition: background 0.3s ease, color 0.3s ease;
         }
         .req-bg {
           position: fixed;
           inset: 0;
-          background: #0f0f0f;
+          background: var(--page-bg);
           z-index: 0;
+          transition: background 0.3s ease;
         }
         .req-container {
           position: relative;
@@ -478,26 +480,28 @@ const Requests = () => {
           padding-top: 0px;
           padding-bottom: 12px;
           margin-bottom: 14px;
-          background: #0f0f0f;
+          background: var(--page-bg);
+          transition: background 0.3s ease;
         }
         .req-title {
           font-size: 1.3rem;
           font-weight: 800;
           margin: 0;
-          color: #fff;
+          color: var(--text-dark);
           letter-spacing: -0.01em;
         }
         .req-nav-btn {
           width: 36px;
           height: 36px;
           border-radius: 10px;
-          background: #181818;
-          border: 1px solid #282828;
-          color: #fff;
+          background: var(--card-bg);
+          border: 1px solid var(--border-light);
+          color: var(--text-dark);
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
+          transition: background 0.2s, border-color 0.2s;
         }
 
         /* TABS */
@@ -507,10 +511,11 @@ const Requests = () => {
           z-index: 9;
           display: flex;
           align-items: center;
-          border-bottom: 1px solid #222;
+          border-bottom: 1px solid var(--border-light);
           margin-bottom: 16px;
-          background: #0f0f0f;
+          background: var(--page-bg);
           padding-bottom: 4px;
+          transition: background 0.3s ease;
         }
         .req-tab {
           flex: 1;
@@ -522,18 +527,19 @@ const Requests = () => {
           background: transparent;
           border: none;
           border-bottom: 2px solid transparent;
-          color: #888;
+          color: var(--text-muted);
           font-size: 0.9rem;
           font-weight: 600;
           cursor: pointer;
+          transition: color 0.2s, border-color 0.2s;
         }
         .req-tab--active {
-          color: #e45821;
-          border-bottom-color: #e45821;
+          color: var(--btn-swap);
+          border-bottom-color: var(--btn-swap);
         }
         .req-tab-badge {
-          background: #e45821;
-          color: #fff;
+          background: var(--btn-swap);
+          color: var(--text-on-orange);
           font-size: 0.65rem;
           padding: 2px 6px;
           border-radius: 10px;
@@ -547,13 +553,15 @@ const Requests = () => {
           gap: 14px;
         }
         .req-card {
-          background: #161616;
-          border: 1px solid #242424;
+          background: var(--card-bg);
+          border: 1px solid var(--border-light);
           border-radius: 18px;
           padding: 16px;
           display: flex;
           flex-direction: column;
           gap: 14px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+          transition: background 0.3s ease, border-color 0.3s ease;
         }
 
         /* USER HEADER INSIDE CARD */
@@ -571,8 +579,8 @@ const Requests = () => {
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: #d34316;
-          color: #fff;
+          background: var(--btn-swap);
+          color: var(--text-on-orange);
           font-weight: 700;
           font-size: 0.85rem;
           display: flex;
@@ -582,12 +590,12 @@ const Requests = () => {
         .req-user-handle {
           font-size: 0.9rem;
           font-weight: 700;
-          color: #fff;
+          color: var(--text-dark);
         }
         .req-visit-store {
           background: transparent;
           border: none;
-          color: #d34316;
+          color: var(--btn-swap);
           font-size: 0.75rem;
           font-weight: 600;
           display: flex;
@@ -615,7 +623,8 @@ const Requests = () => {
           height: 52px;
           border-radius: 10px;
           object-fit: cover;
-          background: #222;
+          background: var(--page-bg);
+          border: 1px solid var(--border-light);
         }
         .req-item-info {
           display: flex;
@@ -624,23 +633,23 @@ const Requests = () => {
         }
         .req-item-label {
           font-size: 0.7rem;
-          color: #777;
+          color: var(--text-muted);
         }
         .req-item-name {
           font-size: 0.82rem;
           font-weight: 700;
-          color: #fff;
+          color: var(--text-dark);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
         .req-item-link {
           font-size: 0.7rem;
-          color: #d34316;
+          color: var(--btn-swap);
           margin-top: 2px;
         }
         .req-swap-arrow {
-          color: #d34316;
+          color: var(--btn-swap);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -660,7 +669,7 @@ const Requests = () => {
         }
         .req-cash-sub {
           font-size: 0.68rem;
-          color: #777;
+          color: var(--text-muted);
         }
 
         /* SWEETEN DEAL BOX */
@@ -707,7 +716,7 @@ const Requests = () => {
         }
         .req-progress-bar {
           height: 4px;
-          background: rgba(255, 255, 255, 0.08);
+          background: var(--border-light);
           border-radius: 4px;
           overflow: hidden;
         }
@@ -733,12 +742,12 @@ const Requests = () => {
           text-align: center;
         }
         .req-btn--reject {
-          background: #e45821;
-          color: #fff;
+          background: var(--btn-swap);
+          color: var(--text-on-orange);
         }
         .req-btn--accept {
-          background: #2b354d;
-          color: #fff;
+          background: var(--text-dark);
+          color: var(--page-bg);
         }
         .req-btn--order-placed {
           width: 100%;
@@ -746,6 +755,14 @@ const Requests = () => {
           border: 1px solid rgba(34, 197, 94, 0.25);
           color: #22c55e;
           border-radius: 20px;
+        }
+        .req-pending-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.8rem;
+          color: var(--text-muted);
+          font-weight: 500;
         }
 
         /* EMPTY STATE */
@@ -761,22 +778,23 @@ const Requests = () => {
           width: 72px;
           height: 72px;
           border-radius: 50%;
-          background: #1a1a1a;
+          background: var(--card-bg);
+          border: 1px solid var(--border-light);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #444;
+          color: var(--text-muted);
           margin-bottom: 8px;
         }
         .req-empty p {
           font-size: 1.05rem;
           font-weight: 700;
           margin: 0;
-          color: #fff;
+          color: var(--text-dark);
         }
         .req-empty span {
           font-size: 0.8rem;
-          color: #666;
+          color: var(--text-muted);
         }
 
         @media (max-width: 600px) {
