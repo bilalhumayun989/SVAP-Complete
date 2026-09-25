@@ -61,11 +61,11 @@ const ProductDetailPage = () => {
     const fetchProduct = async () => {
       setLoading(true);
       if (!id) return;
-      
+
       try {
         const res = await api.getProductById(id);
         const data = res.data;
-        
+
         if (data) {
           const mappedProduct: DetailProduct = {
             id: data.id,
@@ -93,7 +93,7 @@ const ProductDetailPage = () => {
             const relatedRes = await api.getProducts();
             const allProds = relatedRes.data || [];
             const relatedData = allProds.filter((p: any) => p.category === data.category && p.id !== id).slice(0, 6);
-              
+
             if (relatedData) {
               setRelated(relatedData.map((p: any) => ({
                 id: p.id,
@@ -114,7 +114,7 @@ const ProductDetailPage = () => {
       }
       setLoading(false);
     };
-    
+
     fetchProduct();
   }, [id]);
 
@@ -214,7 +214,7 @@ const ProductDetailPage = () => {
           <div className="pdp-left">
             <div className="pdp-skel pdp-skel-img" />
             <div className="pdp-thumbs" style={{ marginTop: 10 }}>
-              {[1,2,3].map(i => <div key={i} className="pdp-skel pdp-skel-thumb" />)}
+              {[1, 2, 3].map(i => <div key={i} className="pdp-skel pdp-skel-thumb" />)}
             </div>
           </div>
           {/* Right — content skeleton */}
@@ -372,7 +372,7 @@ const ProductDetailPage = () => {
                   onClick={async () => {
                     if (requested) { navigate('/requests'); return; }
                     if (!canSendSwap) return;
-                    
+
                     const rawUser = localStorage.getItem('sz_user');
                     const me = rawUser ? JSON.parse(rawUser) : null;
                     if (!me?.id) {
@@ -390,8 +390,20 @@ const ProductDetailPage = () => {
                     setShowSwapModal(true);
                   }}
                 >
-                  {requested ? <><FiCheck /> View Request</> : <><SvapBtnIcon /> Send Svap Request</>}
-                </button>
+                  {requested ? (
+                    <>
+                      <FiCheck /> View Request
+                    </>
+                  ) : (
+                    <>
+                      <img
+                        src="/request.png"
+                        alt="Send Svap Request"
+                        className="w-6 h-6 object-contain brightness-0 invert"
+                      />
+                      Send Svap Request
+                    </>
+                  )}                </button>
               </div>
             </>
           )}
@@ -495,7 +507,7 @@ const ProductDetailPage = () => {
                 className={`pdp-offer-tab ${offerMode === 'cash_only' ? 'pdp-offer-tab--active' : ''}`}
                 onClick={() => { setOfferMode('cash_only'); setSelectedProductId(null); }}
               >
-                 Cash Only
+                Cash Only
               </button>
             </div>
 
