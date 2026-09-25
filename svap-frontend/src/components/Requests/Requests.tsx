@@ -488,9 +488,7 @@ const Requests = () => {
 
         /* HEADER (TOP POSITIONED) */
         .req-header {
-          position: sticky;
-          top: 0;
-          z-index: 10;
+          position: static;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -523,9 +521,7 @@ const Requests = () => {
 
         /* TABS */
         .req-tabs {
-          position: sticky;
-          top: 60px;
-          z-index: 9;
+          position: static;
           display: flex;
           align-items: center;
           border-bottom: 1px solid var(--border-light);
@@ -844,6 +840,9 @@ html:not([data-theme="dark"]) .req-btn--accept {
             padding-top: 0px;
             margin-top: 0;
             margin-bottom: 10px;
+          }
+          .req-tabs {
+            margin-bottom: 14px;
           }
         }
       `}</style>

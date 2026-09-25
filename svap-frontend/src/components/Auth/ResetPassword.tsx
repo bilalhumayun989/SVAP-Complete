@@ -74,7 +74,8 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col justify-between px-5 pt-6 pb-8 max-w-md mx-auto">
+    <div className="min-h-screen w-full bg-[#0A0A0A] text-white">
+      <div className="min-h-screen w-full max-w-md mx-auto flex flex-col justify-between px-5 pt-6 pb-8">
       {/* TOP BAR */}
       <div>
         <button
@@ -208,6 +209,7 @@ export default function ResetPassword() {
         >
           Back to Login
         </button>
+      </div>
       </div>
     </div>
   );

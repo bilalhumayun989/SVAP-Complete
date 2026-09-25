@@ -102,6 +102,7 @@ const TOP_NAV = [
   { icon: <SearchIcon />, label: "Search", route: "/search" },
   { icon: <ReelsIcon size={24} />, label: "Reels", route: "/reels" },
   { icon: <BellIcon size={24} />, label: "Notifications", route: "/notifications" },
+  { icon: <BrandIcon src="/request.png" alt="Requests" size={24} className="nb-req-icon" />, label: "Requests", route: "/requests" },
   { icon: <BrandIcon src="/ICONS/Category.png" alt="Create" size={24} className="nb-nav-img" />, label: "Create", route: "/list-product" },
 ];
 
@@ -281,13 +282,6 @@ const Navbar = () => {
           <Link to="/list-product" onClick={() => setProfileOpen(false)} className="nb-dropdown-item">
             <img src="/ICONS/Listing.png" alt="List" style={{ width: 18, height: 18, objectFit: 'contain', filter: 'var(--icon-filter)' }} /> List a Product
           </Link>
-          <Link to="/requests" onClick={() => setProfileOpen(false)} className="nb-dropdown-item">
-            <img src="/request.png" alt="Requests" className="nb-req-icon" style={{ width: 18, height: 18, objectFit: 'contain' }} /> 
-            Requests
-            {requestCount > 0 && (
-              <span className="nb-dropdown-badge">{requestCount}</span>
-            )}
-          </Link>
           <div className="nb-dropdown-divider" />
           <button className="nb-dropdown-item" onClick={toggleDarkMode}>
             {isDarkMode ? <FiSun size={14} /> : <FiMoon size={14} />}
@@ -351,7 +345,7 @@ const Navbar = () => {
               key={item.route}
               to={item.route}
               onClick={(e) => {
-                const protectedRoutes = ['/notifications', '/list-product'];
+                const protectedRoutes = ['/notifications', '/requests', '/list-product'];
                 if (!user && protectedRoutes.includes(item.route)) {
                   e.preventDefault();
                   navigate('/login', { state: { returnUrl: item.route } });
@@ -365,6 +359,9 @@ const Navbar = () => {
                 {item.label === 'Notifications' && unreadCount > 0 && (
                   <span className="nb-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
                 )}
+                {item.label === 'Requests' && requestCount > 0 && (
+                  <span className="nb-badge nb-badge--requests">{requestCount > 9 ? '9+' : requestCount}</span>
+                )}
               </span>
               <span className="nb-label">{item.label}</span>
               <span className="nb-tooltip">{item.label}</span>
@@ -374,17 +371,6 @@ const Navbar = () => {
 
         {/* Bottom section */}
         <div className="nb-bottom">
-          {/* Svap / Requests */}
-          {/* <Link
-            to="/requests"
-            className={`nb-item ${isActive("/requests") ? "nb-item--active" : ""}`}
-            aria-label="Requests"
-          >
-            <span className="nb-icon"><HiOutlineArrowsRightLeft size={24} /></span>
-            <span className="nb-label">Requests</span>
-            <span className="nb-tooltip">Requests</span>
-          </Link> */}
-
           {/* Profile with dropdown */}
           <div className="nb-profile-wrap">
             <button
@@ -398,12 +384,8 @@ const Navbar = () => {
               }}
               aria-label="Profile"
             >
-              <span className="nb-icon" style={{ position: 'relative' }}>
+              <span className="nb-icon">
                 <UserIcon size={24} />
-                {(requestCount > 0) && (
-                  <span className="nb-badge nb-badge--requests">{requestCount > 9 ? '9+' : requestCount}</span>
-                )}
-                {/* Temporary test badge - remove after testing */}
               </span>
               <span className="nb-label">{getUserDisplayName()}</span>
               <span className="nb-tooltip">{typeof user?.name === "string" && user.name.trim() ? user.name : "Profile"}</span>

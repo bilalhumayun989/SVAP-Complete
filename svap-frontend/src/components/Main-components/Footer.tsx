@@ -1,6 +1,6 @@
 import { QRCodeSVG } from "qrcode.react";
 import { Link } from "react-router-dom";
-import { FaGooglePlay, FaApple, FaTwitter, FaInstagram, FaFacebookF, FaLinkedinIn } from "react-icons/fa";
+import { FaGooglePlay, FaApple, FaInstagram, FaFacebookF, FaTiktok } from "react-icons/fa";
 import { FiMail } from "react-icons/fi";
 
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.swapzone";
@@ -38,10 +38,9 @@ const footerLinks = [
 ];
 
 const socials = [
-  { icon: <FaTwitter />,   href: "https://twitter.com/svap_app" },
-  { icon: <FaInstagram />, href: "https://instagram.com/svap.app" },
-  { icon: <FaFacebookF />, href: "https://facebook.com/svap.app" },
-  { icon: <FaLinkedinIn />, href: "https://linkedin.com/company/svap-app" },
+  { icon: <FaInstagram />, href: "https://www.instagram.com/svap.pakistan?stkn=MXR0aWNibHhnaGl1NA%3D%3D&utm_source=qr" },
+  { icon: <FaFacebookF />, href: "https://www.facebook.com/share/17jXFUZM8w/?mibextid=wwXIfr" },
+  { icon: <FaTiktok />, href: "https://www.tiktok.com/@svap.pakistan?_r=1&_t=ZS-9A0qbUldCdd" },
 ];
 
 const legalLinks = [

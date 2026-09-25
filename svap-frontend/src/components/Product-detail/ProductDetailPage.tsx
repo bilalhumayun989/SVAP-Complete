@@ -147,6 +147,42 @@ const ProductDetailPage = () => {
     loadSavedState().catch(() => setIsSaved(false));
   }, [id, myUserId]);
 
+  useEffect(() => {
+    if (!showSwapModal) return;
+
+    const scrollY = window.scrollY;
+    const previousOverflow = document.body.style.overflow;
+    const previousPosition = document.body.style.position;
+    const previousTop = document.body.style.top;
+    const previousWidth = document.body.style.width;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    document.documentElement.style.overflow = 'hidden';
+
+    const preventBackgroundScroll = (event: WheelEvent | TouchEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest('.pdp-modal')) {
+        event.preventDefault();
+      }
+    };
+    document.addEventListener('wheel', preventBackgroundScroll, { capture: true, passive: false });
+    document.addEventListener('touchmove', preventBackgroundScroll, { capture: true, passive: false });
+
+    return () => {
+      document.removeEventListener('wheel', preventBackgroundScroll, true);
+      document.removeEventListener('touchmove', preventBackgroundScroll, true);
+      document.body.style.overflow = previousOverflow;
+      document.body.style.position = previousPosition;
+      document.body.style.top = previousTop;
+      document.body.style.width = previousWidth;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, [showSwapModal]);
+
   const toggleSaved = async () => {
     if (!myUserId || !id) {
       navigate('/login');
@@ -425,8 +461,19 @@ const ProductDetailPage = () => {
 
       {/* ══ Swap Request Modal ══ */}
       {showSwapModal && (
-        <div className="pdp-modal-overlay" onClick={() => setShowSwapModal(false)}>
-          <div className="pdp-modal" onClick={e => e.stopPropagation()}>
+        <div
+          className="pdp-modal-overlay"
+          onClick={() => setShowSwapModal(false)}
+          onWheel={e => e.preventDefault()}
+        >
+          <div
+            className="pdp-modal"
+            onClick={e => e.stopPropagation()}
+            onWheel={e => {
+              e.preventDefault();
+              e.currentTarget.scrollTop += e.deltaY;
+            }}
+          >
             <div className="pdp-modal-header">
               <h3 className="pdp-modal-title">Choose One!!</h3>
               <p className="pdp-modal-sub">Select the product you want to offer in exchange for <strong>{product?.title}</strong></p>
@@ -458,7 +505,7 @@ const ProductDetailPage = () => {
             {/* Cash Boost (optional) */}
             <div className="pdp-cash-boost-wrap">
               <label className="pdp-cash-boost-label" htmlFor="pdp-cash-boost">
-                {`💰 Add Cash Boost`} <span>(Optional)</span>
+                {` Add Cash Boost`} <span>(Optional)</span>
               </label>
               <div className="pdp-cash-boost-input-row">
                 <span className="pdp-cash-boost-prefix">PKR</span>
@@ -1193,19 +1240,27 @@ const ProductDetailPage = () => {
           justify-content: center;
           padding: 20px;
           backdrop-filter: blur(4px);
+          overflow: hidden;
+          overscroll-behavior: contain;
+          touch-action: none;
         }
         .pdp-modal {
           background: #fff;
           border-radius: 22px;
           width: 100%;
           max-width: 500px;
-          max-height: 80vh;
+          max-height: min(90vh, 680px);
           display: flex;
           flex-direction: column;
           box-shadow: 0 32px 80px rgba(0,0,0,0.25);
           animation: pdp-modal-in 0.2s ease-out;
-          overflow: hidden;
+          overflow-x: hidden;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          touch-action: pan-y;
+          scrollbar-width: none;
         }
+        .pdp-modal::-webkit-scrollbar { display: none; }
         html[data-theme='dark'] .pdp-modal {
           background: #1a1a1a;
           border: 1px solid #2a2a2a;
@@ -1241,10 +1296,13 @@ const ProductDetailPage = () => {
           grid-template-columns: repeat(2, 1fr);
           gap: 12px;
           padding: 16px 24px;
-          overflow-y: auto;
-          flex: 1;
+          overflow: visible;
+          flex: 0 0 auto;
+          grid-auto-rows: max-content;
+          align-content: start;
         }
         .pdp-modal-card {
+          min-width: 0;
           background: #f8fbf2;
           border: 2px solid rgba(165,194,111,0.2);
           border-radius: 14px;
@@ -1263,7 +1321,7 @@ const ProductDetailPage = () => {
         }
         .pdp-modal-img-wrap {
           position: relative;
-          aspect-ratio: 4/3;
+          height: 120px;
           overflow: hidden;
           background: #eee;
           margin-bottom: 8px;
@@ -1399,6 +1457,15 @@ const ProductDetailPage = () => {
         html[data-theme='dark'] .pdp-cash-boost-wrap { background: rgba(228,88,33,0.07); border-color: rgba(228,88,33,0.25); }
         html[data-theme='dark'] .pdp-cash-boost-input-row { background: #1a1a1a; border-color: rgba(228,88,33,0.3); }
         html[data-theme='dark'] .pdp-cash-boost-input { color: #fff; }
+
+        @media (max-width: 520px) {
+          .pdp-modal-overlay { padding: 12px; }
+          .pdp-modal { max-height: 92vh; border-radius: 18px; }
+          .pdp-modal-header { padding: 20px 18px 14px; }
+          .pdp-modal-grid { padding: 14px 18px; gap: 10px; max-height: 300px; }
+          .pdp-modal-img-wrap { height: 96px; }
+          .pdp-modal-actions { padding: 14px 18px; }
+        }
       `}</style>
     </div>
   )

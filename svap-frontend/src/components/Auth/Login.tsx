@@ -195,7 +195,7 @@ const Login = () => {
                   onClick={() => setOtpMode('email_otp')}
                   className="svap-otp-toggle"
                 >
-                  Use OTP instead
+                  {/* Use OTP instead */}
                 </button>
                 <Link to="/forgot-password" className="svap-forgot-link">
                   Forgot Password?
