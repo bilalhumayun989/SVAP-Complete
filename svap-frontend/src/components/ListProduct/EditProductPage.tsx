@@ -6,7 +6,7 @@ import {
 } from "react-icons/fi";
 import { api } from "../../services/api";
 
-const CATEGORIES = ["Electronics", "Gaming", "Fashion", "Sports", "Books", "Home", "Vehicles", "Toys", "Phones", "Clothing", "Furniture", "Jewelry", "Other"];
+const CATEGORIES = ["Electronics", "Gaming", "Fashion", "Sports", "Books", "Home", "Toys", "Phones", "Clothing", "Furniture", "Jewelry", "Other"];
 const CONDITIONS = ["Brand New", "Like New", "Good", "Fair", "For Parts"];
 const MAX_PHOTOS = 6;
 

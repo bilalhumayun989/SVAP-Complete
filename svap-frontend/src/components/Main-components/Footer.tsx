@@ -11,10 +11,9 @@ const footerLinks = [
     {
       heading: "Explore",
       links: [
-        { label: "Electronics", href: "/category/Electronics" },
+        { label: "Clothing", href: "/category/Clothing" },
         { label: "Fashion",     href: "/category/Fashion" },
         { label: "Gaming",      href: "/category/Gaming" },
-        { label: "Vehicles",    href: "/category/Vehicles" },
         { label: "Books",       href: "/category/Books" },
         { label: "Home",        href: "/category/Home" },
       ],
@@ -68,8 +67,7 @@ const Footer = () => {
               <div className="ft-brand">
                 <span className="ft-logo">SVAP</span>
                 <p className="ft-tagline">
-                  Pakistan's smartest platform to buy, sell &amp; svap products
-                  securely with verified users.
+                  Pakistan’s smart and secure platform to exchange products with verified users.
                 </p>
 
                 <div className="ft-contact-list">

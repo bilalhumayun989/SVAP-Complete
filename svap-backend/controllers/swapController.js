@@ -1,7 +1,7 @@
 const { supabase, supabaseAdmin } = require('../config/supabase');
 
 const PROFILE_FALLBACK = { username: null, avatar_url: null };
-const COOLDOWN_MESSAGE = 'You Have Already Sent a Request for This Item in the Last 24 Hours. Please Wait Before Sending Another Request.';
+const COOLDOWN_MESSAGE = 'You Have Already Sent a Request for This Item in the Last 48 Hours. Please Wait Before Sending Another Request.';
 
 const attachRequestProfiles = async (requests) => {
   const rows = Array.isArray(requests) ? requests : [requests].filter(Boolean);
@@ -46,6 +46,9 @@ const attachRequestProfiles = async (requests) => {
 exports.getMyRequests = async (req, res) => {
   try {
     const { userId } = req.params;
+    const now = new Date().toISOString();
+
+    // Fetch all requests for the user
     const { data, error } = await supabaseAdmin
       .from('swap_requests')
       .select(`
@@ -57,7 +60,28 @@ exports.getMyRequests = async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) return res.status(400).json({ error: error.message });
-    const hydrated = await attachRequestProfiles(data || []);
+
+    // Filter to match mobile app behavior:
+    // 1. pending   → only if NOT expired (expires_at > now)
+    // 2. accepted  → always show (they are in checkout flow)
+    // 3. rejected  → show only last 48 hours (user awareness)
+    // 4. completed/unavailable → hide (clutter, mobile hides these)
+    const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const filtered = (data || []).filter((r) => {
+      if (r.status === 'pending') {
+        // Only show pending if not yet expired
+        return new Date(r.expires_at).getTime() > Date.now();
+      }
+      if (r.status === 'accepted') return true;
+      if (r.status === 'rejected') {
+        // Show rejected only within last 48 hours
+        return new Date(r.created_at).getTime() > new Date(cutoff48h).getTime();
+      }
+      // completed, unavailable → hide
+      return false;
+    });
+
+    const hydrated = await attachRequestProfiles(filtered);
     res.json({ data: hydrated });
   } catch (err) {
     res.status(500).json({ error: 'Internal Server Error' });
@@ -100,29 +124,29 @@ exports.createSwapRequest = async (req, res) => {
       return res.status(400).json({ error: 'from_user_id, to_user_id, offered_product_id, requested_product_id are required' });
     }
 
-    // ── 24-HOUR LIMIT CHECK ──
-    // Check if user already sent a request for this product in the last 24 hours
+    // ── 48-HOUR LIMIT CHECK ──
+    // Check if user already sent a request for this product in the last 48 hours
     const { data: existingRequests, error: checkError } = await supabaseAdmin
       .from('swap_requests')
       .select('id, created_at')
       .eq('from_user_id', from_user_id)
       .eq('requested_product_id', requested_product_id)
-      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .gte('created_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
       .limit(1);
 
     if (checkError) {
-      console.error('[24h-check]', checkError.message);
+      console.error('[48h-check]', checkError.message);
       return res.status(400).json({ error: checkError.message });
     }
 
     if (existingRequests && existingRequests.length > 0) {
       return res.status(429).json({ 
         error: COOLDOWN_MESSAGE,
-        code: 'RATE_LIMIT_24H'
+        code: 'RATE_LIMIT_48H'
       });
     }
 
-    const expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const expires_at = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
 
     const insertPayload = {
       from_user_id,

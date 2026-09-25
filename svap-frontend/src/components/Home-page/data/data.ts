@@ -29,11 +29,7 @@ export const categories = [
     image:
       "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=600&q=80",
   },
-  {
-    label: "Vehicles",
-    image:
-      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=80",
-  },
+
   {
     label: "Toys",
     image:

@@ -61,8 +61,8 @@ const Requests = () => {
     setCheckoutOrders(
       Array.isArray(ordersResponse)
         ? ordersResponse.filter(
-            (order: CheckoutOrder) => order.swap_request_id
-          )
+          (order: CheckoutOrder) => order.swap_request_id
+        )
         : []
     );
     setLoading(false);
@@ -178,9 +178,8 @@ const Requests = () => {
         {/* TABS */}
         <div className="req-tabs">
           <button
-            className={`req-tab ${
-              tab === "incoming" ? "req-tab--active" : ""
-            }`}
+            className={`req-tab ${tab === "incoming" ? "req-tab--active" : ""
+              }`}
             onClick={() => setTab("incoming")}
           >
             Incoming
@@ -189,9 +188,8 @@ const Requests = () => {
             )}
           </button>
           <button
-            className={`req-tab ${
-              tab === "outgoing" ? "req-tab--active" : ""
-            }`}
+            className={`req-tab ${tab === "outgoing" ? "req-tab--active" : ""
+              }`}
             onClick={() => setTab("outgoing")}
           >
             Outgoing
@@ -202,9 +200,8 @@ const Requests = () => {
             )}
           </button>
           <button
-            className={`req-tab ${
-              tab === "checkout" ? "req-tab--active" : ""
-            }`}
+            className={`req-tab ${tab === "checkout" ? "req-tab--active" : ""
+              }`}
             onClick={() => setTab("checkout")}
           >
             Checkout
@@ -249,7 +246,7 @@ const Requests = () => {
                   </div>
                   <p>No checkout records yet</p>
                   <span>
-                    Swap checkouts will appear here after an order is placed
+                    Svap checkouts will appear here after an order is placed
                   </span>
                 </>
               )}
@@ -377,9 +374,8 @@ const Requests = () => {
 
                   {/* TIMER BOX WITH PROGRESS BAR */}
                   <div
-                    className={`req-timer-box ${
-                      isExpired ? "req-timer-box--expired" : ""
-                    }`}
+                    className={`req-timer-box ${isExpired ? "req-timer-box--expired" : ""
+                      }`}
                   >
                     <div className="req-timer-content">
                       <div className="req-timer-left">
@@ -397,7 +393,20 @@ const Requests = () => {
                     <div className="req-progress-bar">
                       <div
                         className="req-progress-fill"
-                        style={{ width: isExpired ? "0%" : "35%" }}
+                        style={{
+                          width: isExpired
+                            ? "0%"
+                            : (() => {
+                                const created = new Date(req.created_at).getTime();
+                                const expires = new Date(req.expires_at).getTime();
+                                const now = Date.now();
+                                if (now <= created) return "100%";
+                                const total = expires - created;
+                                const remaining = expires - now;
+                                const pct = Math.max(0, Math.min(100, (remaining / total) * 100));
+                                return `${pct}%`;
+                              })(),
+                        }}
                       />
                     </div>
                   </div>
@@ -422,20 +431,26 @@ const Requests = () => {
 
                   {tab === "outgoing" && isPending && (
                     <div className="req-pending-label">
-                      <FiClock size={14} /> Waiting for user response…
+                       Waiting for user response…
                     </div>
                   )}
 
                   {tab === "checkout" && (
                     <button
-                      className="req-btn req-btn--order-placed"
+                      className={`req-btn ${
+                        checkoutOrderByRequest.has(req.id)
+                          ? "req-btn--order-placed"
+                          : "req-btn--accept"
+                      }`}
                       onClick={() =>
                         checkoutOrderByRequest.has(req.id)
                           ? navigate("/orders")
                           : navigate(`/checkout/${req.id}`)
                       }
                     >
-                      ⏳ Order placed · Waiting for other user
+                      {checkoutOrderByRequest.has(req.id)
+                        ? "⏳ Order placed · Waiting for other user"
+                        : "PROCEED TO CHECKOUT"}
                     </button>
                   )}
                 </div>
@@ -729,43 +744,65 @@ const Requests = () => {
         }
 
         /* ACTION BUTTONS */
-        .req-actions {
-          display: grid;
-          grid-template-columns: 1fr 1.8fr;
-          gap: 10px;
-        }
-        .req-btn {
-          padding: 12px;
-          border-radius: 20px;
-          font-size: 0.78rem;
-          font-weight: 700;
-          border: none;
-          cursor: pointer;
-          text-align: center;
-        }
-        .req-btn--reject {
-          background: var(--btn-swap);
-          color: var(--text-on-orange);
-        }
-        .req-btn--accept {
-          background: var(--text-dark);
-          color: var(--page-bg);
-        }
-        .req-btn--order-placed {
-          width: 100%;
-          background: rgba(34, 197, 94, 0.08);
-          border: 1px solid rgba(34, 197, 94, 0.25);
-          color: #22c55e;
-          border-radius: 20px;
-        }
-        .req-pending-label {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.8rem;
-          color: var(--text-muted);
-          font-weight: 500;
-        }
+       .req-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.req-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem; /* 12px */
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 12px 20px;
+  border-radius: 9999px; /* Pill Shape */
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  outline: none;
+  text-transform: uppercase;
+}
+
+/* REJECT Button (Exact Orange matching screenshot) */
+.req-btn--reject {
+  background-color: #E55B32;
+  color: #ffffff;
+}
+
+.req-btn--reject:hover {
+  background-color: #d04d26;
+  transform: translateY(-1px);
+}
+
+.req-btn--reject:active {
+  transform: translateY(0);
+}
+
+/* ACCEPT & CHECKOUT Button (Dark Slate Navy matching screenshot) */
+.req-btn--accept {
+  flex: 1;
+  background-color: #2C354A;
+  color: #ffffff;
+}
+
+.req-btn--accept:hover {
+  background-color: #38435d;
+  transform: translateY(-1px);
+}
+
+.req-btn--accept:active {
+  transform: translateY(0);
+}
+
+/* Light Theme Adaptivity (Agar Light theme mein colors change karne hon) */
+html:not([data-theme="dark"]) .req-btn--accept {
+  background-color: #1e293b; /* Slightly darker slate for crisp light mode contrast */
+  color: #ffffff;
+}
 
         /* EMPTY STATE */
         .req-empty {

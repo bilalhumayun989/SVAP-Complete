@@ -7,8 +7,7 @@ import { api } from "../../services/api";
 import { generateUUID } from "../../utils/uuid";
 
 const CATEGORIES = [
-  "Clothing", "Shoes", "Accessories", "Toys",
-  "Textiles", "Decor", "Books", "Sports", "Other"
+  "Clothing", "Shoes", "Accessories", "Toys", "Decor", "Books", "Sports", "Other"
 ];
 
 const CONDITIONS = ["Mint", "Like New", "Good", "Fair"];
@@ -19,6 +18,10 @@ const ListProductPage = () => {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const reelRef = useRef<HTMLInputElement>(null);
+  const reelSectionRef = useRef<HTMLDivElement>(null);
+  const photoSectionRef = useRef<HTMLDivElement>(null);
+  const categorySectionRef = useRef<HTMLDivElement>(null);
+  const titleSectionRef = useRef<HTMLDivElement>(null);
 
   const [photos, setPhotos] = useState<{ file: File, url: string }[]>([]);
   const [reel, setReel] = useState<{ file: File, url: string } | null>(null);
@@ -51,22 +54,31 @@ const ListProductPage = () => {
     e.target.value = "";
   };
 
-  const validate = () => {
-    const e: Record<string, string> = {};
-    if (!photos.length) e.photos = "Add at least one photo";
-    if (!reel) e.reel = "Add a reel video";
-    if (!category) e.category = "Select a category";
-    if (!title.trim()) e.title = "Enter item title";
-    if (!description.trim()) e.description = "Enter description";
-    if (!condition) e.condition = "Select condition";
-    if (!swapFor.trim()) e.swapFor = "Enter what you want to swap for";
-    setErrors(e);
-    return !Object.keys(e).length;
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!validate()) return;
+    const newErrors: Record<string, string> = {};
+    if (!photos.length) newErrors.photos = "Add at least one photo";
+    if (!reel) newErrors.reel = "Add a reel video";
+    if (!category) newErrors.category = "Select a category";
+    if (!title.trim()) newErrors.title = "Enter item title";
+    if (!description.trim()) newErrors.description = "Enter description";
+    if (!condition) newErrors.condition = "Select condition";
+    if (!swapFor.trim()) newErrors.swapFor = "Enter what you want to swap for";
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      // Scroll to first error
+      if (newErrors.photos && photoSectionRef.current) {
+        photoSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (newErrors.reel && reelSectionRef.current) {
+        reelSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (newErrors.category && categorySectionRef.current) {
+        categorySectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (newErrors.title && titleSectionRef.current) {
+        titleSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
 
     setLoading(true);
     try {
@@ -210,7 +222,7 @@ const ListProductPage = () => {
           <p className="lp-hint">Takes about a minute. Fill out the details below.</p>
 
           {/* Photos Section */}
-          <div className="lp-section">
+          <div className="lp-section" ref={photoSectionRef}>
             <div className="lp-field-header">
               <span className="lp-label">Photos <span className="lp-req">Required</span></span>
             </div>
@@ -279,7 +291,7 @@ const ListProductPage = () => {
           </div>
 
           {/* Reel Video Section */}
-          <div className="lp-section">
+          <div className="lp-section" ref={reelSectionRef}>
             <div className="lp-field-header">
               <span className="lp-label">Reel Video <span className="lp-req">Required</span></span>
             </div>
@@ -325,7 +337,7 @@ const ListProductPage = () => {
           </div>
 
           {/* Category */}
-          <div className="lp-section">
+          <div className="lp-section" ref={categorySectionRef}>
             <div className="lp-field-header">
               <span className="lp-label">Category</span>
             </div>
@@ -363,7 +375,7 @@ const ListProductPage = () => {
           </div>
 
           {/* What is it? */}
-          <div className="lp-section">
+          <div className="lp-section" ref={titleSectionRef}>
             <div className="lp-field-header">
               <span className="lp-label">What is it?</span>
             </div>
@@ -487,7 +499,7 @@ const ListProductPage = () => {
                 maxLength={100}
               />
             </div>
-            <p className="lp-field-hint">Helps others know what you're looking to swap for.</p>
+            <p className="lp-field-hint">Helps others know what you're looking to svap for.</p>
             {errors.swapFor && (
               <p className="lp-error">
                 <FiAlertCircle size={12} />
@@ -511,12 +523,12 @@ const ListProductPage = () => {
                 onChange={(e) => setEstimatedValue(e.target.value.replace(/\D/g, ""))}
               />
             </div>
-            <p className="lp-field-hint">Optional — helps match you with similar value items</p>
+            <p className="lp-field-hint">Help others gauge a fair svap</p>
           </div>
 
           {/* Submit Button */}
           <button type="submit" className="lp-submit" disabled={loading}>
-            {loading ? "Publishing..." : "List My Item"}
+            {loading ? "Publishing..." : "List"}
           </button>
         </form>
       </div>

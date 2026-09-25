@@ -55,17 +55,6 @@ const HomeIcon = () => (
   </svg>
 );
 
-const VehiclesIcon = () => (
-  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-    <path d="M4 18l2-6h20l2 6" stroke="#313C5C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <rect x="3" y="18" width="26" height="6" rx="2" stroke="#313C5C" strokeWidth="2"/>
-    <circle cx="9" cy="26" r="2.5" stroke="#E45821" strokeWidth="2"/>
-    <circle cx="23" cy="26" r="2.5" stroke="#E45821" strokeWidth="2"/>
-    <path d="M8 18l2-6h12l2 6" stroke="#E45821" strokeWidth="1.2"/>
-    <rect x="10" y="13" width="5" height="5" rx="1" fill="#E45821" fillOpacity="0.2"/>
-  </svg>
-);
-
 const ToysIcon = () => (
   <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
     <circle cx="16" cy="16" r="9" stroke="#313C5C" strokeWidth="2"/>
@@ -114,7 +103,6 @@ const MOBILE_CATS = [
   { label: "Sports",      icon: <SportsIcon /> },
   { label: "Books",       icon: <BooksIcon /> },
   { label: "Home",        icon: <HomeIcon /> },
-  { label: "Vehicles",    icon: <VehiclesIcon /> },
   { label: "Toys",        icon: <ToysIcon /> },
   { label: "Phones",      icon: <PhonesIcon /> },
   { label: "Clothing",    icon: <ClothingIcon /> },

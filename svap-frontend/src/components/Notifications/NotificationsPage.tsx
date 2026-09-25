@@ -5,7 +5,7 @@ import { api } from "../../services/api";
 import { supabase } from "../../services/supabase";
 import { useNotifications } from "../../context/NotificationContext";
 
-type NotifType = "swap_request" | "swap_accepted" | "swap_rejected" | "order_update" | "system" | string;
+type NotifType = "svap_request" | "svap_accepted" | "svap_rejected" | "order_update" | "system" | string;
 
 interface Notif {
   id: string;
@@ -18,16 +18,16 @@ interface Notif {
 }
 
 const iconMap = (type: NotifType) => {
-  if (type === "swap_request" || type === "swap_accepted" || type === "swap_rejected" || type === "swap_unavailable")
+  if (type === "svap_request" || type === "svap_accepted" || type === "svap_rejected" || type === "svap_unavailable")
     return <FiRepeat size={16} />;
   if (type === "order_update") return <FiShoppingBag size={16} />;
   return <FiBell size={16} />;
 };
 
 const colorMap = (type: NotifType) => {
-  if (type === "swap_request") return "#8DC63F";
-  if (type === "swap_accepted") return "#22c55e";
-  if (type === "swap_rejected" || type === "swap_unavailable") return "#ef4444";
+  if (type === "svap_request") return "#8DC63F";
+  if (type === "svap_accepted") return "#22c55e";
+  if (type === "svap_rejected" || type === "svap_unavailable") return "#ef4444";
   if (type === "order_update") return "#E45821";
   return "#8b5cf6";
 };
@@ -43,7 +43,7 @@ function timeAgo(dateStr: string): string {
   return `${d}d ago`;
 }
 
-type FilterTab = "all" | "unread" | "Swaps" | "orders" | "Q&A";
+type FilterTab = "all" | "unread" | "Svaps" | "orders" | "Q&A";
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
@@ -101,7 +101,7 @@ const NotificationsPage = () => {
 
   const filtered = notifs.filter(n => {
     if (activeTab === "unread") return !n.is_read;
-    if (activeTab === "Swaps") return n.type.startsWith("swap");
+    if (activeTab === "Svaps") return n.type.startsWith("svap");
     if (activeTab === "orders") return n.type === "order_update";
     if (activeTab === "Q&A") return n.type === "system";
     return true;
@@ -115,10 +115,19 @@ const NotificationsPage = () => {
       setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x));
       refreshCount();
     }
-    if (n.route) {
-      navigate(n.route);
+    
+    // Some older notifications might have /swaps which is now /orders or /requests
+    let targetRoute = n.route;
+    if (targetRoute === "/swaps") {
+      targetRoute = n.type === "order_update" ? "/orders" : "/requests";
+    }
+
+    if (targetRoute) {
+      navigate(targetRoute);
     } else {
-      navigate("/requests");
+      console.error(`[Notification Click] Missing related ID or route for notification type: ${n.type}. Notification ID: ${n.id}`);
+      alert("Details load nahi ho sakin. Related reference missing in database.");
+      navigate("/requests"); // Fallback
     }
   };
 
@@ -146,7 +155,7 @@ const NotificationsPage = () => {
 
       {/* Filter tabs */}
       <div className="np-tabs">
-        {(["all", "unread", "Swaps", "orders", "Q&A"] as FilterTab[]).map(tab => (
+        {(["all", "unread", "Svaps", "orders", "Q&A"] as FilterTab[]).map(tab => (
           <button
             key={tab}
             className={`np-tab ${activeTab === tab ? "np-tab--active" : ""}`}

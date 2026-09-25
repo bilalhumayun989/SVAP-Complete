@@ -1,4 +1,4 @@
-﻿import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import {
   FiArrowLeft,
@@ -17,7 +17,7 @@ const SvapBtnIcon = () => (
   </svg>
 );
 
-const SWAP_COOLDOWN_MESSAGE = 'You have already sent a request for this item in the last 24 hours. Please wait before sending another request.';
+const SWAP_COOLDOWN_MESSAGE = 'You have already sent a request for this item in the last 48 hours. Please wait before sending another request.';
 
 interface DetailProduct {
   id: string
@@ -49,7 +49,7 @@ const ProductDetailPage = () => {
   const [cashBoost, setCashBoost] = useState<string>('')
   const [swapLoading, setSwapLoading] = useState(false)
   const [canSendSwap, setCanSendSwap] = useState(true)
-  const [swapCooldownMessage, setSwapCooldownMessage] = useState<string | null>(null)
+  const [, setSwapCooldownMessage] = useState<string | null>(null)
   const [isSaved, setIsSaved] = useState(false)
   const [saveLoading, setSaveLoading] = useState(false)
 
@@ -358,15 +358,6 @@ const ProductDetailPage = () => {
                   {requested ? <><FiCheck /> View Request</> : <><SvapBtnIcon /> Send Swap Request</>}
                 </button>
               </div>
-              {swapCooldownMessage && !requested && (
-                <div className="pdp-cooldown-msg">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                  </svg>
-                  {swapCooldownMessage}
-                </div>
-              )}
             </>
           )}
 

@@ -413,10 +413,10 @@ const SwapCheckoutPage = () => {
                     </div>
                   </div>
                 </div>
-                {swapInfo.premium_amount && swapInfo.premium_amount > 0 && (
+                {Boolean(swapInfo.premium_amount && swapInfo.premium_amount > 0) && (
                   <div className="scp-boost-banner">
-                    💰 Cash Boost: <strong>PKR {swapInfo.premium_amount.toLocaleString()}</strong>
-                    <span> — Rider will collect this on delivery</span>
+                    Cash Boost: <strong>PKR {swapInfo.premium_amount?.toLocaleString()}</strong>
+                    <span>Rider will collect this on delivery</span>
                   </div>
                 )}
               </div>
@@ -620,11 +620,10 @@ const SwapCheckoutPage = () => {
               </button>
 
               <p className="scp-submit-note">
-                Your order will be reviewed within 24 hours. You'll be notified once payment is verified.
+                Your order will be reviewed within 48 hours. You'll be notified once payment is verified.
               </p>
             </div>
-
-          </div>{/* /scp-left */}
+          </div>
 
           {/* RIGHT — Summary Sidebar */}
           <div className="scp-right">
