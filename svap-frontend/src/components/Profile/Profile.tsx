@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  FiGrid, FiBookmark, FiRepeat, FiTag,
-  FiCamera, FiEdit2, FiTrash2, FiHeart,
+  FiBookmark, FiRepeat, FiTag,
+  FiEdit2, FiTrash2, FiHeart,
   FiCheck, FiClock, FiX, FiStar, FiBox
 } from "react-icons/fi";
 import { HiCheckBadge } from "react-icons/hi2";
@@ -13,12 +13,21 @@ const INIT_STORIES: { id: string; url: string; duration: number }[] = [];
 
 type TabKey = "listings" | "saved" | "swaps" | "reels" | "orders";
 
-const TABS: { key: TabKey; icon: React.ReactNode; label: string }[] = [
-  { key: "listings", icon: <FiGrid size={17} />,     label: "Listings" },
-  { key: "saved",    icon: <FiBookmark size={17} />, label: "Saved" },
-  { key: "swaps",    icon: <FiRepeat size={17} />,   label: "Swaps" },
-  { key: "reels",    icon: <FiCamera size={17} />,   label: "Reels" },
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "listings", label: "Items" },
+  { key: "saved",    label: "Saved" },
+  { key: "orders",   label: "Orders" },
+  { key: "swaps",    label: "Svaps" },
 ];
+
+const getSwapTimeRemaining = (expiresAt?: string) => {
+  if (!expiresAt) return 'Checkout pending';
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  if (diff <= 0) return 'Expired';
+  const hours = Math.floor(diff / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  return `${hours}h ${minutes}m`;
+};
 
 /* ── Grid card (shared) ─────────────────────────────────── */
 const GridCard = ({ item, badge, onDelete, onEdit }: { item: { id: number; image: string; name: string; price?: string; swapFor?: string }; badge?: "price" | "swap"; onDelete?: (id: number) => void; onEdit?: (id: number) => void }) => (
@@ -227,14 +236,21 @@ const Profile = () => {
             new Map(swapsRes.data.map((request: any) => [request.id, request])).values()
           );
           setSwapRequests(uniqueSwapRequests.map((r: any) => ({
+            ...(() => {
+              const relatedOrder = ordersBySwapId.get(r.id);
+              return {
+                checkoutReady: Boolean(relatedOrder) || ['accepted', 'completed'].includes(r.status),
+                orderId: relatedOrder?.id || null,
+                orderStatus: relatedOrder?.status || null,
+              };
+            })(),
             id: r.id,
             direction: r.from_user_id === savedUser.id ? 'sent' : 'received',
             status: r.status,
-            orderId: ordersBySwapId.get(r.id)?.id || null,
-            orderStatus: ordersBySwapId.get(r.id)?.status || null,
             created_at: r.created_at,
-            offeredTitle: r.offered?.title || 'Unknown',
-            offeredImage: r.offered?.image_urls?.[0] || 'https://placehold.co/400x400',
+            expires_at: r.expires_at,
+            offeredTitle: r.offered?.title || (!r.offered_product_id ? `Cash Offer · PKR ${Number(r.premium_amount || 0).toLocaleString()}` : 'Unknown'),
+            offeredImage: r.offered?.image_urls?.[0] || (!r.offered_product_id ? '/request.png' : 'https://placehold.co/400x400'),
             requestedTitle: r.requested?.title || 'Unknown',
             requestedImage: r.requested?.image_urls?.[0] || 'https://placehold.co/400x400',
             otherUser: r.from_user_id === savedUser.id
@@ -451,7 +467,6 @@ const Profile = () => {
                 onClick={() => setActiveTab(tab.key)}
                 title={tab.label}
               >
-                {tab.icon}
                 <span className="pf-tab-lbl">{tab.label}</span>
               </button>
             ))}
@@ -623,7 +638,48 @@ const Profile = () => {
 
             {activeTab === "orders" && (
               <div className="pf-orders-list">
-                <div className="pf-empty">No orders yet.</div>
+                {swapRequests.filter(swap => swap.checkoutReady).length === 0 ? (
+                  <div className="pf-empty">No ongoing checkout orders yet.</div>
+                ) : (
+                  swapRequests.filter(swap => swap.checkoutReady).map(swap => {
+                    const timeRemaining = getSwapTimeRemaining(swap.expires_at);
+                    const isExpired = timeRemaining === 'Expired';
+                    return (
+                      <div key={swap.id} className="pf-order-request-card">
+                        <div className="pf-order-request-header">
+                          <div className="pf-order-request-user">
+                            <span className="pf-order-request-avatar">{swap.otherUser?.charAt(0).toUpperCase() || 'U'}</span>
+                            <strong>@{swap.otherUser}</strong>
+                          </div>
+                          <button type="button" onClick={() => navigate(`/profile/${swap.otherUser}`)}>Visit Store &gt;</button>
+                        </div>
+                        <div className="pf-order-request-items">
+                          <div className="pf-order-request-item">
+                            <img src={swap.offeredImage} alt={swap.offeredTitle} className={!swap.offeredImage.includes('request.png') ? '' : 'pf-order-request-cash'} />
+                            <div><span>Their Offer</span><strong>{swap.offeredTitle}</strong><em>View details</em></div>
+                          </div>
+                          <span className="pf-order-request-arrow">⇄</span>
+                          <div className="pf-order-request-item pf-order-request-item--right">
+                            <img src={swap.requestedImage} alt={swap.requestedTitle} />
+                            <div><span>Your Item</span><strong>{swap.requestedTitle}</strong><em>View details</em></div>
+                          </div>
+                        </div>
+                        <div className={`pf-order-request-timer ${isExpired ? 'is-expired' : ''}`}>
+                          <span>◷ {isExpired ? 'Checkout expired' : 'Complete checkout before time runs out'}</span>
+                          <strong>{timeRemaining}</strong>
+                          <div><i /></div>
+                        </div>
+                        <button
+                          type="button"
+                          className="pf-order-request-action"
+                          onClick={() => navigate(swap.orderId ? "/orders" : `/checkout/${swap.id}`)}
+                        >
+                          {swap.orderId ? 'VIEW ORDER' : 'PROCEED TO CHECKOUT'}
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             )}
           </div>
@@ -1163,6 +1219,56 @@ const Profile = () => {
           flex-direction: column;
           gap: 12px;
         }
+
+        .pf-orders-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .pf-order-request-card { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 16px; background: #1a1a1a; border: 1px solid #2a2a2a; color: #fff; }
+        .pf-order-request-header, .pf-order-request-user, .pf-order-request-items, .pf-order-request-timer { display: flex; align-items: center; }
+        .pf-order-request-header { justify-content: space-between; }
+        .pf-order-request-user { gap: 9px; font-size: 0.82rem; }
+        .pf-order-request-avatar { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: #E45821; color: #fff; font-weight: 800; }
+        .pf-order-request-header button { border: 0; background: none; color: #E45821; font: inherit; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+        .pf-order-request-items { gap: 9px; }
+        .pf-order-request-item { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+        .pf-order-request-item--right { flex-direction: row-reverse; text-align: right; }
+        .pf-order-request-item img { width: 50px; height: 50px; border-radius: 9px; object-fit: cover; background: #222; flex-shrink: 0; }
+        .pf-order-request-item img.pf-order-request-cash { object-fit: contain; padding: 10px; border: 1px solid rgba(228,88,33,0.35); }
+        .pf-order-request-item div { display: flex; flex-direction: column; min-width: 0; }
+        .pf-order-request-item span { color: #888; font-size: 0.65rem; }
+        .pf-order-request-item strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.78rem; }
+        .pf-order-request-item em { color: #E45821; font-size: 0.65rem; font-style: normal; margin-top: 2px; }
+        .pf-order-request-arrow { color: #E45821; font-size: 1.1rem; flex-shrink: 0; }
+        .pf-order-request-timer { flex-wrap: wrap; gap: 8px; padding: 10px; border: 1px solid rgba(34,197,94,0.55); border-radius: 11px; color: #22c55e; font-size: 0.7rem; }
+        .pf-order-request-timer span { flex: 1; }
+        .pf-order-request-timer strong { font-size: 0.72rem; }
+        .pf-order-request-timer > div { width: 100%; height: 4px; border-radius: 999px; background: rgba(34,197,94,0.15); overflow: hidden; }
+        .pf-order-request-timer i { display: block; width: 100%; height: 100%; background: #22c55e; }
+        .pf-order-request-timer.is-expired { color: #ef4444; border-color: rgba(239,68,68,0.5); }
+        .pf-order-request-timer.is-expired i { background: #ef4444; width: 0; }
+        .pf-order-request-action { border: 0; border-radius: 999px; padding: 11px 14px; background: #2c354a; color: #fff; font: inherit; font-size: 0.72rem; font-weight: 800; cursor: pointer; }
+        .pf-order-request-action:hover { background: #3c4b6c; }
+        .pf-order-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          border: 1px solid var(--pf-line);
+          border-radius: 14px;
+          background: var(--pf-surface);
+          cursor: pointer;
+        }
+        html[data-theme='dark'] .pf-order-card { background: #1a1a1a; border-color: #2a2a2a; }
+        .pf-order-images { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+        .pf-order-images img { width: 42px; height: 42px; border-radius: 8px; object-fit: cover; }
+        .pf-order-images span { color: #E45821; font-weight: 700; }
+        .pf-order-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+        .pf-order-main strong { color: var(--pf-ink); font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pf-order-main span { color: var(--pf-orange); font-size: 0.7rem; font-weight: 600; text-transform: capitalize; }
+        .pf-order-action { flex-shrink: 0; border: 0; border-radius: 8px; padding: 8px 10px; background: #E45821; color: #fff; font: inherit; font-size: 0.68rem; font-weight: 700; cursor: pointer; }
+        html[data-theme='dark'] .pf-order-main strong { color: #fff; }
 
         .pf-swap-card {
           background: var(--pf-surface);

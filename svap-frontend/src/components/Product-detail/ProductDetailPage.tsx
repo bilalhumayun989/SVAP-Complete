@@ -376,7 +376,7 @@ const ProductDetailPage = () => {
                     const rawUser = localStorage.getItem('sz_user');
                     const me = rawUser ? JSON.parse(rawUser) : null;
                     if (!me?.id) {
-                      alert('Please log in to send swap requests');
+                      alert('Please log in to send svap requests');
                       navigate('/login');
                       return;
                     }
@@ -390,7 +390,7 @@ const ProductDetailPage = () => {
                     setShowSwapModal(true);
                   }}
                 >
-                  {requested ? <><FiCheck /> View Request</> : <><SvapBtnIcon /> Send Swap Request</>}
+                  {requested ? <><FiCheck /> View Request</> : <><SvapBtnIcon /> Send Svap Request</>}
                 </button>
               </div>
             </>

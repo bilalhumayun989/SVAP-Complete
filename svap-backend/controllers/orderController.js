@@ -160,7 +160,48 @@ exports.getOrders = async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
-    res.json(data || []);
+    const orders = data || [];
+    const orderRequestIds = new Set(
+      orders.map((order) => order.swap_request_id).filter(Boolean)
+    );
+
+    // Accepted swaps are checkout records even before the delivery order exists.
+    // Include them so the Orders page and Requests > Checkout stay consistent.
+    const { data: checkoutRequests, error: checkoutError } = await supabaseAdmin
+      .from('swap_requests')
+      .select('id, from_user_id, to_user_id, status, created_at')
+      .or(`from_user_id.eq.${user_id},to_user_id.eq.${user_id}`)
+      .in('status', ['accepted', 'completed'])
+      .order('created_at', { ascending: false });
+
+    if (checkoutError) {
+      console.error('Error fetching checkout requests:', checkoutError);
+      return res.json(orders);
+    }
+
+    const pendingCheckoutRecords = (checkoutRequests || [])
+      .filter((request) => !orderRequestIds.has(request.id))
+      .map((request) => ({
+        id: `checkout-${request.id}`,
+        swap_request_id: request.id,
+        from_user_id: request.from_user_id,
+        to_user_id: request.to_user_id,
+        delivery_name: 'Checkout pending',
+        delivery_phone: '',
+        delivery_address: 'Complete checkout from Requests',
+        delivery_city: '',
+        payment_method: 'Awaiting checkout',
+        shipping_cost: 0,
+        discount: 0,
+        total: 0,
+        status: 'pending',
+        tracking_number: null,
+        transaction_ref: null,
+        created_at: request.created_at,
+        is_checkout_pending: true,
+      }));
+
+    res.json([...orders, ...pendingCheckoutRecords]);
   } catch (err) {
     console.error('Get orders error:', err);
     res.status(500).json({ error: 'Internal Server Error' });
