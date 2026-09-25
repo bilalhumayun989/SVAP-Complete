@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { FiArrowLeft, FiCheck, FiAlertCircle, FiCopy, FiUpload, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiCheck, FiAlertCircle, FiCopy, FiUpload, FiX, FiUser, FiPhone, FiMapPin, FiHome } from 'react-icons/fi';
 import { api } from '../../services/api';
 import { supabase } from '../../services/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SwapInfo {
   id: string;
-  offered_product_id: string;
+  offered_product_id: string | null;
   requested_product_id: string;
   from_user_id: string;
   to_user_id: string;
@@ -34,6 +34,19 @@ const BANK_DETAILS = {
   accountNumber: '0265-0105876956',
   iban: 'PK57MEZN0002650105876956',
   deliveryFee: 500,
+};
+
+const WALLET_DETAILS = {
+  easypaisa: {
+    name: 'EasyPaisa',
+    accountTitle: 'Muhammad Noorkhan Mir',
+    accountNumber: '033208416',
+  },
+  jazzcash: {
+    name: 'JazzCash',
+    accountTitle: 'Noorkhan Noor',
+    accountNumber: '033208416',
+  },
 };
 
 // ─── Main Component ────────────────────────────────────────────────────────────
@@ -336,8 +349,8 @@ const SwapCheckoutPage = () => {
               </div>
               {swapInfo?.premium_amount && swapInfo.premium_amount > 0 && (
                 <div className="scp-success-row">
-                  <span>Cash Boost</span>
-                  <span className="scp-boost-val">PKR {swapInfo.premium_amount.toLocaleString()} (collected by rider)</span>
+                  <span>{!swapInfo.offered_product_id ? 'Cash Offer' : 'Cash Boost'}</span>
+                  <span className="scp-boost-val">PKR {swapInfo.premium_amount.toLocaleString()} {!swapInfo.offered_product_id && '(cash only)'}</span>
                 </div>
               )}
             </div>
@@ -363,8 +376,9 @@ const SwapCheckoutPage = () => {
   const isSender = swapInfo?.from_user_id === (
     (() => { try { return JSON.parse(localStorage.getItem('sz_user') || '{}').id; } catch { return null; } })()
   );
-  const myItem = isSender ? swapInfo?.offered : swapInfo?.requested;
-  const theirItem = isSender ? swapInfo?.requested : swapInfo?.offered;
+  const isCashOnlyOffer = !swapInfo?.offered_product_id || !swapInfo.offered;
+  const myItem = isCashOnlyOffer ? (isSender ? null : swapInfo?.requested) : (isSender ? swapInfo?.offered : swapInfo?.requested);
+  const theirItem = isCashOnlyOffer ? (isSender ? swapInfo?.requested : null) : (isSender ? swapInfo?.requested : swapInfo?.offered);
 
   return (
     <div className="scp-page">
@@ -390,33 +404,41 @@ const SwapCheckoutPage = () => {
                 <p className="scp-section-label">Your Svap</p>
                 <div className="scp-swap-row">
                   <div className="scp-swap-item">
-                    <img
-                      src={myItem?.image_urls?.[0] || '/1.png'}
-                      alt={myItem?.title || 'Your item'}
-                      className="scp-swap-img"
-                    />
+                    {isCashOnlyOffer && isSender ? (
+                      <div className="scp-cash-offer-box">PKR</div>
+                    ) : (
+                      <img
+                        src={myItem?.image_urls?.[0] || '/1.png'}
+                        alt={myItem?.title || 'Your item'}
+                        className="scp-swap-img"
+                      />
+                    )}
                     <div>
                       <span className="scp-swap-tag">You Give</span>
-                      <p className="scp-swap-name">{myItem?.title || '—'}</p>
+                      <p className={`scp-swap-name ${isCashOnlyOffer && isSender ? 'scp-cash-offer-name' : ''}`}>{isCashOnlyOffer && isSender ? `Cash Offer · PKR ${swapInfo?.premium_amount?.toLocaleString() || 0}` : (myItem?.title || '—')}</p>
                     </div>
                   </div>
                   <div className="scp-swap-arrow">⇄</div>
                   <div className="scp-swap-item scp-swap-item--right">
-                    <img
-                      src={theirItem?.image_urls?.[0] || '/2.png'}
-                      alt={theirItem?.title || 'Their item'}
-                      className="scp-swap-img"
-                    />
+                    {isCashOnlyOffer && !isSender ? (
+                      <div className="scp-cash-offer-box">PKR</div>
+                    ) : (
+                      <img
+                        src={theirItem?.image_urls?.[0] || '/2.png'}
+                        alt={theirItem?.title || 'Their item'}
+                        className="scp-swap-img"
+                      />
+                    )}
                     <div>
                       <span className="scp-swap-tag">You Receive</span>
-                      <p className="scp-swap-name">{theirItem?.title || '—'}</p>
+                      <p className={`scp-swap-name ${isCashOnlyOffer && !isSender ? 'scp-cash-offer-name' : ''}`}>{isCashOnlyOffer && !isSender ? `Cash Offer · PKR ${swapInfo?.premium_amount?.toLocaleString() || 0}` : (theirItem?.title || '—')}</p>
                     </div>
                   </div>
                 </div>
                 {Boolean(swapInfo.premium_amount && swapInfo.premium_amount > 0) && (
                   <div className="scp-boost-banner">
-                    Cash Boost: <strong>PKR {swapInfo.premium_amount?.toLocaleString()}</strong>
-                    <span>Rider will collect this on delivery</span>
+                    {isCashOnlyOffer ? 'Cash Offer' : 'Cash Boost'}: <strong>PKR {swapInfo.premium_amount?.toLocaleString()}</strong>
+                    <span>{isCashOnlyOffer ? ' Cash offer amount' : 'Rider will collect this on delivery'}</span>
                   </div>
                 )}
               </div>
@@ -432,60 +454,45 @@ const SwapCheckoutPage = () => {
               <div className="scp-form-grid">
                 <div className={`scp-field ${errors.fullName ? 'scp-field--error' : ''}`}>
                   <label htmlFor="fullName">Full Name *</label>
-                  <input
-                    id="fullName"
-                    type="text"
-                    value={form.fullName}
-                    onChange={e => setField('fullName', e.target.value)}
-                    placeholder="Enter your full name"
-                  />
+                  <div className="scp-input-wrap">
+                    <FiUser className="scp-input-icon" />
+                    <input id="fullName" type="text" value={form.fullName} onChange={e => setField('fullName', e.target.value)} placeholder="Enter your full name" />
+                  </div>
                   {errors.fullName && <span className="scp-err">{errors.fullName}</span>}
                 </div>
 
                 <div className={`scp-field ${errors.phone ? 'scp-field--error' : ''}`}>
                   <label htmlFor="phone">Phone Number *</label>
-                  <input
-                    id="phone"
-                    type="tel"
-                    value={form.phone}
-                    onChange={e => setField('phone', e.target.value)}
-                    placeholder="03XX XXXXXXX"
-                  />
+                  <div className="scp-input-wrap">
+                    <FiPhone className="scp-input-icon" />
+                    <input id="phone" type="tel" value={form.phone} onChange={e => setField('phone', e.target.value)} placeholder="03XX XXXXXXX" />
+                  </div>
                   {errors.phone && <span className="scp-err">{errors.phone}</span>}
                 </div>
 
                 <div className={`scp-field ${errors.city ? 'scp-field--error' : ''}`}>
                   <label htmlFor="city">City *</label>
-                  <input
-                    id="city"
-                    type="text"
-                    value={form.city}
-                    onChange={e => setField('city', e.target.value)}
-                    placeholder="Karachi, Lahore, etc."
-                  />
+                  <div className="scp-input-wrap">
+                    <FiMapPin className="scp-input-icon" />
+                    <input id="city" type="text" value={form.city} onChange={e => setField('city', e.target.value)} placeholder="Karachi, Lahore, etc." />
+                  </div>
                   {errors.city && <span className="scp-err">{errors.city}</span>}
                 </div>
 
                 <div className="scp-field">
                   <label htmlFor="area">Area / Locality</label>
-                  <input
-                    id="area"
-                    type="text"
-                    value={form.area}
-                    onChange={e => setField('area', e.target.value)}
-                    placeholder="e.g. DHA Phase 5, Gulshan-e-Iqbal"
-                  />
+                  <div className="scp-input-wrap">
+                    <FiMapPin className="scp-input-icon" />
+                    <input id="area" type="text" value={form.area} onChange={e => setField('area', e.target.value)} placeholder="e.g. DHA Phase 5, Gulshan-e-Iqbal" />
+                  </div>
                 </div>
 
                 <div className={`scp-field scp-field--full ${errors.streetAddress ? 'scp-field--error' : ''}`}>
                   <label htmlFor="streetAddress">Street Address *</label>
-                  <input
-                    id="streetAddress"
-                    type="text"
-                    value={form.streetAddress}
-                    onChange={e => setField('streetAddress', e.target.value)}
-                    placeholder="House/flat number, street name"
-                  />
+                  <div className="scp-input-wrap">
+                    <FiHome className="scp-input-icon" />
+                    <input id="streetAddress" type="text" value={form.streetAddress} onChange={e => setField('streetAddress', e.target.value)} placeholder="House/flat number, street name" />
+                  </div>
                   {errors.streetAddress && <span className="scp-err">{errors.streetAddress}</span>}
                 </div>
               </div>
@@ -532,11 +539,32 @@ const SwapCheckoutPage = () => {
                 />
               </div>
 
+              <div className="scp-wallet-details">
+                {[WALLET_DETAILS.easypaisa, WALLET_DETAILS.jazzcash].map((wallet) => (
+                  <div className="scp-wallet-card" key={wallet.name}>
+                    <p className="scp-wallet-name">{wallet.name}</p>
+                    <BankRow
+                      label="Account Name"
+                      value={wallet.accountTitle}
+                      copyKey={`${wallet.name}-title`}
+                      copied={copied}
+                      onCopy={copyToClipboard}
+                    />
+                    <BankRow
+                      label="Number"
+                      value={wallet.accountNumber}
+                      copyKey={`${wallet.name}-number`}
+                      copied={copied}
+                      onCopy={copyToClipboard}
+                    />
+                  </div>
+                ))}
+              </div>
+
               {swapInfo?.premium_amount && swapInfo.premium_amount > 0 && (
                 <div className="scp-boost-note">
-                  <span>💡</span>
                   <p>
-                    Cash Boost of <strong>PKR {swapInfo.premium_amount.toLocaleString()}</strong> is NOT included in the bank transfer. The rider will collect it in cash at the time of delivery.
+                    {!isCashOnlyOffer ? <>Cash Boost of <strong>PKR {swapInfo.premium_amount.toLocaleString()}</strong> is NOT included in the bank transfer. The rider will collect it in cash at the time of delivery.</> : <>Cash offer of <strong>PKR {swapInfo.premium_amount.toLocaleString()}</strong> is separate from the delivery fee.</>}
                   </p>
                 </div>
               )}
@@ -793,6 +821,13 @@ const pageStyles = `
     width: 56px; height: 56px; border-radius: 12px; object-fit: cover;
     border: 1px solid rgba(165,194,111,0.3); flex-shrink: 0;
   }
+  .scp-cash-offer-box {
+    width: 56px; height: 56px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(228,88,33,0.12);
+    border: 1px solid rgba(228,88,33,0.35);
+    font-size: 1.35rem; line-height: 1; text-align: center; flex-shrink: 0;
+  }
   .scp-swap-tag {
     display: block; font-size: 0.62rem; font-weight: 700;
     letter-spacing: 0.08em; text-transform: uppercase;
@@ -802,6 +837,13 @@ const pageStyles = `
     font-size: 0.84rem; font-weight: 700; color: var(--text-dark);
     margin: 0; line-height: 1.3; max-width: 140px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .scp-cash-offer-name {
+    max-width: 220px;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
   }
   .scp-swap-arrow {
     font-size: 1.3rem; color: #E45821; flex-shrink: 0;
@@ -831,8 +873,21 @@ const pageStyles = `
   .scp-field label {
     font-size: 0.82rem; font-weight: 600; color: var(--text-dark);
   }
+  .scp-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .scp-input-icon {
+    position: absolute;
+    left: 12px;
+    width: 14px;
+    height: 14px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
   .scp-field input {
-    padding: 11px 14px; border: 1.5px solid var(--border);
+    width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid var(--border);
     border-radius: 10px; font-size: 0.875rem;
     background: var(--bg); color: var(--text-dark);
     transition: border-color 0.2s; font-family: inherit; outline: none;
@@ -865,6 +920,14 @@ const pageStyles = `
     margin-bottom: 16px;
   }
   html[data-theme='dark'] .scp-bank-details { background: #111; border-color: #2a2a2a; }
+  .scp-wallet-details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .scp-wallet-card { background: var(--bg-section); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  html[data-theme='dark'] .scp-wallet-card { background: #111; border-color: #2a2a2a; }
+  .scp-wallet-name { margin: 0; padding: 10px 12px; color: #E45821; font-size: 0.78rem; font-weight: 800; border-bottom: 1px solid var(--border); }
+  .scp-wallet-card .scp-bank-row { padding: 9px 12px; display: block; }
+  .scp-wallet-card .scp-bank-label { display: block; margin-bottom: 4px; font-size: 0.62rem; }
+  .scp-wallet-card .scp-bank-val-wrap { justify-content: space-between; gap: 5px; }
+  .scp-wallet-card .scp-bank-val { font-size: 0.72rem; }
   .scp-bank-row {
     display: flex; justify-content: space-between; align-items: center;
     padding: 12px 16px; gap: 12px;
@@ -1153,6 +1216,13 @@ const pageStyles = `
     .scp-swap-item--right > div { align-items: flex-start; }
     .scp-swap-arrow { margin: 0 auto; }
     .scp-card { padding: 16px; }
+    .scp-card-title { font-size: 0.9rem; margin-bottom: 16px; }
+    .scp-form-grid { gap: 12px; }
+    .scp-field { gap: 4px; }
+    .scp-field label { font-size: 0.68rem; }
+    .scp-field input { height: 40px; padding-top: 9px; padding-bottom: 9px; font-size: 0.78rem; border-radius: 9px; }
+    .scp-input-icon { left: 11px; width: 13px; height: 13px; }
+    .scp-wallet-details { grid-template-columns: 1fr; }
     .scp-bank-row { flex-direction: column; align-items: flex-start; gap: 6px; }
     .scp-bank-val-wrap { width: 100%; justify-content: space-between; }
   }

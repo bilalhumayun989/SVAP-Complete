@@ -379,7 +379,7 @@ const Signup = () => {
                     type="email"
                     value={form.email}
                     onChange={(e) => handleChange("email", e.target.value)}
-                    placeholder="EMAIL"
+                    placeholder="Contactatsvap@gmail.com"
                     className={`dark-input ${emailError ? "error-border" : ""}`}
                   />
                   {form.email.includes('@') && !emailError && (

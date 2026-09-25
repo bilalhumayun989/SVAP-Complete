@@ -153,7 +153,7 @@ function ScrollToTop() {
 }
 
 // Pages that should NOT have sidebar offset (full-screen)
-const FULL_SCREEN_ROUTES = ['/reels', '/reel-upload', '/create-reel', '/login', '/signup', '/forgot-password', '/reset-password']
+const FULL_SCREEN_ROUTES = ['/reels', '/reel', '/reel-upload', '/create-reel', '/login', '/signup', '/forgot-password', '/reset-password']
 
 function AppInner() {
   const lenisInstanceRef = useRef<Lenis | null>(null)
@@ -382,6 +382,7 @@ function AppInner() {
         <>
           <Routes>
             <Route path="/reels"       element={<ReelsPage />} />
+            <Route path="/reel"        element={<ReelsPage />} />
             <Route path="/reel-upload" element={<CreateReelPage />} />
             <Route path="/create-reel" element={<CreateReelPage />} />
             <Route path="/login"       element={<Login />} />

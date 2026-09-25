@@ -118,10 +118,30 @@ exports.checkSwapEligibility = async (req, res) => {
 // ── POST /api/swap-requests ────────────────────────────────────────────────
 exports.createSwapRequest = async (req, res) => {
   try {
-    const { from_user_id, to_user_id, offered_product_id, requested_product_id, premium_amount } = req.body;
+    const {
+      from_user_id,
+      to_user_id,
+      offered_product_id,
+      requested_product_id,
+      premium_amount,
+      is_cash_only,
+      cash_amount,
+    } = req.body;
+    const isCashOnly = Boolean(is_cash_only);
+    const normalizedCashAmount = Number(cash_amount ?? premium_amount);
 
-    if (!from_user_id || !to_user_id || !offered_product_id || !requested_product_id) {
-      return res.status(400).json({ error: 'from_user_id, to_user_id, offered_product_id, requested_product_id are required' });
+    if (!from_user_id || !to_user_id || !requested_product_id) {
+      return res.status(400).json({ error: 'from_user_id, to_user_id and requested_product_id are required' });
+    }
+    if (isCashOnly && (!Number.isFinite(normalizedCashAmount) || normalizedCashAmount <= 0)) {
+      return res.status(400).json({ error: 'A valid cash amount is required for a cash-only offer' });
+    }
+    if (!isCashOnly && premium_amount !== undefined && premium_amount !== null &&
+      (!Number.isFinite(Number(premium_amount)) || Number(premium_amount) < 0)) {
+      return res.status(400).json({ error: 'Cash amount must be zero or a positive number' });
+    }
+    if (!isCashOnly && !offered_product_id) {
+      return res.status(400).json({ error: 'offered_product_id is required for an item offer' });
     }
 
     // ── 48-HOUR LIMIT CHECK ──
@@ -151,16 +171,14 @@ exports.createSwapRequest = async (req, res) => {
     const insertPayload = {
       from_user_id,
       to_user_id,
-      offered_product_id,
+      offered_product_id: isCashOnly ? null : offered_product_id,
       requested_product_id,
       status: 'pending',
       expires_at,
+      premium_amount: isCashOnly
+        ? normalizedCashAmount
+        : Math.max(0, Number(premium_amount) || 0),
     };
-
-    // Only set premium_amount if provided and > 0
-    if (premium_amount && Number(premium_amount) > 0) {
-      insertPayload.premium_amount = Number(premium_amount);
-    }
 
     const { data: swapData, error: swapError } = await supabaseAdmin
       .from('swap_requests')

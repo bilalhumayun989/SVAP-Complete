@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiCamera, FiUser, FiMapPin, FiMail, FiPhone, FiLink, FiLock } from "react-icons/fi";
+import { FiArrowLeft, FiCamera, FiUser, FiMapPin, FiMail, FiPhone, FiLock } from "react-icons/fi";
 import { api } from "../../services/api";
 
 const EditProfilePage = () => {
@@ -18,7 +18,7 @@ const EditProfilePage = () => {
   const [bio, setBio] = useState(saved.bio || "");
   const [city, setCity] = useState(saved.city || "");
   const [phone, setPhone] = useState(saved.phone || "");
-  const [website, setWebsite] = useState(saved.website || "");
+  const website = saved.website || "";
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -183,13 +183,7 @@ const EditProfilePage = () => {
             </div>
           </div>
 
-          <div className="ep-field">
-            <div className="ep-field-icon"><FiLink size={16} /></div>
-            <div className="ep-field-body">
-              <label className="ep-label">Website / Link</label>
-              <input className="ep-input" value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yoursite.com" />
-            </div>
-          </div>
+          
 
           {error && <p className="ep-error">{error}</p>}
         </div>

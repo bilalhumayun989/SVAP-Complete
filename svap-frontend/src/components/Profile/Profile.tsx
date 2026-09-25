@@ -373,14 +373,7 @@ const Profile = () => {
                   }
                 </div>
               </div>
-              <button
-                className="pf-cam-btn"
-                onClick={() => storyFileRef.current?.click()}
-                aria-label="Add story"
-                title="Add to story"
-              >
-                <FiCamera size={13} />
-              </button>
+             
             </div>
 
             <div className="pf-info">
@@ -703,24 +696,6 @@ const Profile = () => {
         }
         .pf-avatar-img { width: 100%; height: 100%; object-fit: cover; }
         .pf-avatar-letter { font-size: 1.9rem; font-weight: 700; color: #fff; line-height: 1; }
-
-        .pf-cam-btn {
-          position: absolute;
-          bottom: 0;
-          right: 0;
-          width: 26px;
-          height: 26px;
-          border-radius: 50%;
-          background: var(--pf-ink);
-          border: 2.5px solid var(--pf-surface);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #fff;
-          cursor: pointer;
-          transition: background 0.15s;
-        }
-        .pf-cam-btn:hover { background: var(--pf-orange-dark); }
 
         .pf-info { flex: 1; min-width: 0; padding-top: 4px; }
 
@@ -1089,7 +1064,7 @@ const Profile = () => {
         ════════════════════════════════════════ */
         .pf-reels-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(2, 1fr);
           gap: 14px;
           margin-bottom: 0;
         }

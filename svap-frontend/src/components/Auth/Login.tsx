@@ -157,7 +157,7 @@ const Login = () => {
               type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. you@example.com"
+              placeholder="Contactatsvap@gmail.com"
               className="svap-input"
               autoComplete="email"
               required

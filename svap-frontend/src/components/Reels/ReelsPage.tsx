@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { FiVolume2, FiVolumeX, FiArrowLeft, FiBookmark } from "react-icons/fi";
+import { FiArrowLeft, FiBookmark, FiExternalLink } from "react-icons/fi";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../services/api";
 
@@ -13,6 +13,9 @@ interface Reel {
   title: string;
   product: string;
   price: string;
+  category: string;
+  condition: string;
+  swapFor: string;
   thumbnail: string;
   video: string;
 }
@@ -24,6 +27,9 @@ interface ProductRow {
   price?: number | string | null;
   image_urls?: string[] | null;
   video_url?: string | null;
+  category?: string | null;
+  condition?: string | null;
+  swap_for?: string | null;
   profiles?: {
     name?: string | null;
     full_name?: string | null;
@@ -31,17 +37,6 @@ interface ProductRow {
     avatar_url?: string | null;
   } | null;
 }
-
-// White SVAP left-right arrows icon for use on orange button background
-const SvapBtnIcon = ({ size = 16 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    {/* Top Arrow */}
-    <path d="M3 7h18m0 0l-4-4m4 4l-4 4" />
-
-    {/* Bottom Arrow */}
-    <path d="M21 17H3m0 0l4-4M3 17l4 4" />
-  </svg>
-);
 
 interface ReelCardProps {
   reel: Reel;
@@ -54,7 +49,6 @@ interface ReelCardProps {
 
 const ReelCard = ({ reel, isActive, index }: ReelCardProps) => {
   const navigate = useNavigate();
-  const [muted, setMuted] = useState(true);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -115,7 +109,7 @@ const ReelCard = ({ reel, isActive, index }: ReelCardProps) => {
           ref={videoRef}
           src={reel.video}
           className="reel-thumb"
-          muted={muted}
+          muted
           loop
           playsInline
           poster={reel.thumbnail}
@@ -137,12 +131,6 @@ const ReelCard = ({ reel, isActive, index }: ReelCardProps) => {
 
       {/* Right actions — only mute */}
       <div className="reel-actions">
-       
-
-        <button className="reel-action-btn" onClick={() => setMuted((m) => !m)}>
-          {muted ? <FiVolumeX size={22} /> : <FiVolume2 size={22} />}
-        </button>
-
         <button
           className={`reel-action-btn ${saved ? "reel-action-btn--saved" : ""}`}
           onClick={handleSave}
@@ -151,6 +139,17 @@ const ReelCard = ({ reel, isActive, index }: ReelCardProps) => {
         >
           <FiBookmark size={22} fill={saved ? "#E45821" : "none"} />
           <span>{saved ? "Saved" : "Save"}</span>
+        </button>
+        <button
+          className="reel-action-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/product/${reel.id}`);
+          }}
+          title="Open product"
+        >
+          <FiExternalLink size={21} />
+          <span>Open</span>
         </button>
       </div>
 
@@ -173,20 +172,21 @@ const ReelCard = ({ reel, isActive, index }: ReelCardProps) => {
           <span className="reel-username">@{reel.user.name}</span>
         </div>
         <p className="reel-title">{reel.title}</p>
-
-        <div className="reel-product-strip" onClick={() => navigate(`/product/${reel.id}`)}>
-          <div className="reel-product-img-wrap">
-            <img src={reel.thumbnail} alt="" className="reel-product-img" />
-          </div>
-          <div className="reel-product-info">
-            <span className="reel-product-name">{reel.product}</span>
-            <span className="reel-product-price">{reel.price}</span>
-          </div>
-          <button className="reel-buy-btn">
-            <SvapBtnIcon size={14} />
-            Svap
-          </button>
+        <div className="reel-tags">
+          {reel.category && <span>{reel.category}</span>}
+          {reel.condition && <span>{reel.condition}</span>}
         </div>
+        {reel.swapFor && <p className="reel-swap-for">Wants: {reel.swapFor}</p>}
+        <button
+          className="reel-swap-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/product/${reel.id}`);
+          }}
+        >
+          <img src="/request.png" alt="" className="reel-swap-icon" />
+          Svap for This
+        </button>
       </div>
     </div>
   );
@@ -265,6 +265,9 @@ const ReelsPage = () => {
                   product.price !== null && product.price !== undefined && product.price !== ""
                     ? `Rs ${Number.isFinite(priceNumber) ? priceNumber.toLocaleString() : product.price}`
                     : "Price on request",
+                category: product.category || "",
+                condition: product.condition || "",
+                swapFor: product.swap_for || "",
                 thumbnail: product.image_urls?.[0] || "https://placehold.co/600x800?text=SVAP",
                 video: product.video_url || "",
               };
@@ -697,6 +700,57 @@ const ReelsPage = () => {
           line-height: 1.4;
           margin: 0 0 12px;
           text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+        }
+
+        .reel-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          margin: 0 0 8px;
+        }
+        .reel-tags span {
+          padding: 3px 8px;
+          border: 1px solid rgba(255,255,255,0.28);
+          border-radius: 999px;
+          color: rgba(255,255,255,0.78);
+          background: rgba(0,0,0,0.2);
+          font-size: 0.65rem;
+          line-height: 1.2;
+        }
+        .reel-swap-for {
+          color: rgba(255,255,255,0.72);
+          font-size: 0.7rem;
+          margin: 0 0 10px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .reel-swap-btn {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 9px 14px;
+          border: 0;
+          border-radius: 999px;
+          background: #E45821;
+          color: #fff;
+          font-size: 0.78rem;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: 'Poppins', sans-serif;
+          transition: background 0.18s, transform 0.18s;
+        }
+        .reel-swap-icon {
+          width: 22px;
+          height: 22px;
+          object-fit: contain;
+          filter: brightness(0) invert(1);
+        }
+        .reel-swap-btn:hover {
+          background: #c94d1c;
+          transform: translateY(-1px);
         }
 
         /* Product strip */

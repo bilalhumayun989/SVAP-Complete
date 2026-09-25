@@ -287,13 +287,13 @@ const Requests = () => {
                   {/* ITEMS SWAP SECTION */}
                   <div className="req-swap-row">
                     {/* LEFT ITEM */}
-                    {(req as any).is_cash_only ? (
+                    {((req as any).is_cash_only || !req.offered_product_id) ? (
                       <div className="req-item req-cash-box">
-                        <div className="req-cash-icon">💵</div>
+                        
                         <div className="req-item-info">
-                          <span className="req-item-label">Their Offer</span>
+                          <span className="req-item-label">Cash Offer</span>
                           <span className="req-cash-amount">
-                            PKR {(req as any).cash_amount || 0}
+                            PKR {Number((req as any).cash_amount || (req as any).premium_amount || 0).toLocaleString()}
                           </span>
                           <span className="req-cash-sub">Direct cash</span>
                         </div>
@@ -674,6 +674,20 @@ const Requests = () => {
           border: 1px solid rgba(34, 197, 94, 0.2);
           border-radius: 12px;
           padding: 8px 10px;
+        }
+        .req-cash-icon {
+          width: 42px;
+          height: 42px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          text-align: center;
+          font-size: 0.72rem;
+          font-weight: 800;
+          color: #22c55e;
+          border: 1px solid rgba(34, 197, 94, 0.35);
+          border-radius: 10px;
         }
         .req-cash-amount {
           color: #22c55e;

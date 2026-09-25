@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import {
   FiArrowLeft,
-  FiEye, FiCheck, FiBookmark
+  FiEye, FiCheck, FiBookmark, FiPackage
 } from 'react-icons/fi'
 import { api } from '../../services/api'
 
@@ -46,7 +46,8 @@ const ProductDetailPage = () => {
   const [showSwapModal, setShowSwapModal] = useState(false)
   const [myProducts, setMyProducts] = useState<any[]>([])
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
-  const [cashBoost, setCashBoost] = useState<string>('')
+  const [offerMode, setOfferMode] = useState<'my_items' | 'cash_only'>('my_items')
+  const [cashAmount, setCashAmount] = useState<string>('')
   const [swapLoading, setSwapLoading] = useState(false)
   const [canSendSwap, setCanSendSwap] = useState(true)
   const [, setSwapCooldownMessage] = useState<string | null>(null)
@@ -382,13 +383,11 @@ const ProductDetailPage = () => {
 
                     // Fetch user's active products for selection
                     const res = await api.getProductsByUser(me.id, true);
-                    if (res.data && res.data.length > 0) {
-                      setMyProducts(res.data);
-                      setShowSwapModal(true);
-                    } else {
-                      alert('You need to list a product first before sending swap requests');
-                      navigate('/list-product');
-                    }
+                    setMyProducts(res.data || []);
+                    setOfferMode('my_items');
+                    setSelectedProductId(null);
+                    setCashAmount('');
+                    setShowSwapModal(true);
                   }}
                 >
                   {requested ? <><FiCheck /> View Request</> : <><SvapBtnIcon /> Send Swap Request</>}
@@ -475,87 +474,130 @@ const ProductDetailPage = () => {
             }}
           >
             <div className="pdp-modal-header">
-              <h3 className="pdp-modal-title">Choose One!!</h3>
-              <p className="pdp-modal-sub">Select the product you want to offer in exchange for <strong>{product?.title}</strong></p>
+              <h3 className="pdp-modal-title">Send Svap Offer</h3>
+              <p className="pdp-modal-sub">Choose an item or a cash-only offer for <strong>{product?.title}</strong></p>
             </div>
 
-            <div className="pdp-modal-grid">
-              {myProducts.map((p: any) => (
-                <button
-                  key={p.id}
-                  className={`pdp-modal-card ${selectedProductId === p.id ? 'pdp-modal-card--selected' : ''}`}
-                  onClick={() => setSelectedProductId(p.id)}
-                >
-                  <div className="pdp-modal-img-wrap">
-                    <img
-                      src={p.image_urls?.[0] || 'https://placehold.co/200'}
-                      alt={p.title}
-                      className="pdp-modal-img"
+            <div className="pdp-offer-tabs" role="tablist" aria-label="Offer type">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={offerMode === 'my_items'}
+                className={`pdp-offer-tab ${offerMode === 'my_items' ? 'pdp-offer-tab--active' : ''}`}
+                onClick={() => { setOfferMode('my_items'); setCashAmount(''); }}
+              >
+                <FiPackage size={15} /> My Items
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={offerMode === 'cash_only'}
+                className={`pdp-offer-tab ${offerMode === 'cash_only' ? 'pdp-offer-tab--active' : ''}`}
+                onClick={() => { setOfferMode('cash_only'); setSelectedProductId(null); }}
+              >
+                 Cash Only
+              </button>
+            </div>
+
+            {offerMode === 'my_items' ? (
+              <>
+                <div className="pdp-modal-grid">
+                  {myProducts.length === 0 ? (
+                    <div className="pdp-offer-empty">
+                      No listed items. Switch to Cash Only to send an amount.
+                    </div>
+                  ) : myProducts.map((p: any) => (
+                    <button
+                      type="button"
+                      key={p.id}
+                      className={`pdp-modal-card ${selectedProductId === p.id ? 'pdp-modal-card--selected' : ''}`}
+                      onClick={() => setSelectedProductId(p.id)}
+                    >
+                      <div className="pdp-modal-img-wrap">
+                        <img
+                          src={p.image_urls?.[0] || 'https://placehold.co/200'}
+                          alt={p.title}
+                          className="pdp-modal-img"
+                        />
+                        {selectedProductId === p.id && (
+                          <div className="pdp-modal-check"><FiCheck size={16} /></div>
+                        )}
+                      </div>
+                      <p className="pdp-modal-name">{p.title}</p>
+                      <p className="pdp-modal-cat">{p.condition || p.category || 'My item'}</p>
+                    </button>
+                  ))}
+                </div>
+                <div className="pdp-cash-only-wrap pdp-item-cash-wrap">
+                  <label className="pdp-cash-boost-label" htmlFor="pdp-item-cash">Add Cash with Item <span>(Optional)</span></label>
+                  <div className="pdp-cash-boost-input-row">
+                    <span className="pdp-cash-boost-prefix">PKR</span>
+                    <input
+                      id="pdp-item-cash"
+                      type="number"
+                      min="0"
+                      step="50"
+                      placeholder="0"
+                      value={cashAmount}
+                      onChange={e => setCashAmount(e.target.value)}
+                      className="pdp-cash-boost-input"
                     />
-                    {selectedProductId === p.id && (
-                      <div className="pdp-modal-check"><FiCheck size={16} /></div>
-                    )}
                   </div>
-                  <p className="pdp-modal-name">{p.title}</p>
-                  <p className="pdp-modal-cat">{p.category}</p>
-                </button>
-              ))}
-            </div>
-
-            {/* Cash Boost (optional) */}
-            <div className="pdp-cash-boost-wrap">
-              <label className="pdp-cash-boost-label" htmlFor="pdp-cash-boost">
-                {` Add Cash Boost`} <span>(Optional)</span>
-              </label>
-              <div className="pdp-cash-boost-input-row">
-                <span className="pdp-cash-boost-prefix">PKR</span>
-                <input
-                  id="pdp-cash-boost"
-                  type="number"
-                  min="0"
-                  step="50"
-                  placeholder="0"
-                  value={cashBoost}
-                  onChange={e => setCashBoost(e.target.value)}
-                  className="pdp-cash-boost-input"
-                />
+                </div>
+              </>
+            ) : (
+              <div className="pdp-cash-only-wrap">
+                <label className="pdp-cash-boost-label" htmlFor="pdp-cash-amount">Cash Amount (PKR)</label>
+                <div className="pdp-cash-boost-input-row">
+                  <span className="pdp-cash-boost-prefix">PKR</span>
+                  <input
+                    id="pdp-cash-amount"
+                    type="number"
+                    min="1"
+                    step="50"
+                    placeholder="Enter amount"
+                    value={cashAmount}
+                    onChange={e => setCashAmount(e.target.value)}
+                    className="pdp-cash-boost-input"
+                  />
+                </div>
               </div>
-              <p className="pdp-cash-boost-hint">
-                Sweetening the deal? Extra cash makes your offer more attractive. Rider collects on delivery.
-              </p>
-            </div>
+            )}
 
             <div className="pdp-modal-actions">
               <button
                 className="pdp-modal-cancel"
-                onClick={() => { setShowSwapModal(false); setSelectedProductId(null); setCashBoost(''); }}
+                onClick={() => { setShowSwapModal(false); setSelectedProductId(null); setCashAmount(''); }}
               >
                 Cancel
               </button>
               <button
                 className="pdp-modal-send"
-                disabled={!selectedProductId || swapLoading}
+                disabled={(offerMode === 'my_items' ? !selectedProductId : !(Number(cashAmount) > 0)) || swapLoading}
                 onClick={async () => {
-                  if (!selectedProductId || !product) return;
+                  const validCashAmount = Number(cashAmount);
+                  if (!product) return;
+                  if (offerMode === 'my_items' && !selectedProductId) return;
+                  if (offerMode === 'cash_only' && !(validCashAmount > 0)) return;
                   const rawUser = localStorage.getItem('sz_user');
                   const me = rawUser ? JSON.parse(rawUser) : null;
                   if (!me?.id) return;
-
-                  const boostAmount = parseFloat(cashBoost) || 0;
 
                   setSwapLoading(true);
                   try {
                     const res = await api.createSwapRequest({
                       from_user_id: me.id,
                       to_user_id: product.owner_id,
-                      offered_product_id: selectedProductId,
+                      offered_product_id: offerMode === 'my_items' ? selectedProductId : null,
                       requested_product_id: product.id,
-                      premium_amount: boostAmount > 0 ? boostAmount : null,
+                      premium_amount: validCashAmount > 0 ? validCashAmount : 0,
+                      is_cash_only: offerMode === 'cash_only',
+                      cash_amount: validCashAmount > 0 ? validCashAmount : null,
                     });
                     if (res.error) throw new Error(res.error);
                     setShowSwapModal(false);
                     setSelectedProductId(null);
-                    setCashBoost('');
+                    setCashAmount('');
                     setRequested(true);
                     setCanSendSwap(false);
                     setSwapCooldownMessage(SWAP_COOLDOWN_MESSAGE);
@@ -567,7 +609,7 @@ const ProductDetailPage = () => {
                       setSwapCooldownMessage(SWAP_COOLDOWN_MESSAGE);
                       setShowSwapModal(false);
                       setSelectedProductId(null);
-                      setCashBoost('');
+                      setCashAmount('');
                     }
                     alert(err.message || 'Failed to send swap request');
                   } finally {
@@ -1301,6 +1343,14 @@ const ProductDetailPage = () => {
           grid-auto-rows: max-content;
           align-content: start;
         }
+        .pdp-offer-empty {
+          grid-column: 1 / -1;
+          padding: 28px 12px;
+          text-align: center;
+          color: var(--text-muted);
+          font-size: 0.78rem;
+          line-height: 1.5;
+        }
         .pdp-modal-card {
           min-width: 0;
           background: #f8fbf2;
@@ -1395,9 +1445,37 @@ const ProductDetailPage = () => {
         .pdp-modal-send:hover:not(:disabled) { background: #c94d1c; transform: translateY(-1px); }
         .pdp-modal-send:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* Cash Boost */
-        .pdp-cash-boost-wrap {
-          margin: 0 0 4px;
+        .pdp-offer-tabs {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 6px;
+          margin: 0 24px 2px;
+          padding: 4px;
+          border-radius: 12px;
+          background: var(--bg-section);
+        }
+        .pdp-offer-tab {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          min-height: 36px;
+          border: 0;
+          border-radius: 9px;
+          background: transparent;
+          color: var(--text-muted);
+          font-size: 0.78rem;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: inherit;
+        }
+        .pdp-offer-tab--active {
+          background: #E45821;
+          color: #fff;
+          box-shadow: 0 3px 8px rgba(228,88,33,0.25);
+        }
+        .pdp-cash-only-wrap {
+          margin: 16px 24px 4px;
           padding: 16px 18px;
           border-radius: 14px;
           background: rgba(228,88,33,0.05);
@@ -1454,7 +1532,7 @@ const ProductDetailPage = () => {
           color: var(--text-muted);
           line-height: 1.5;
         }
-        html[data-theme='dark'] .pdp-cash-boost-wrap { background: rgba(228,88,33,0.07); border-color: rgba(228,88,33,0.25); }
+        html[data-theme='dark'] .pdp-cash-only-wrap { background: rgba(228,88,33,0.07); border-color: rgba(228,88,33,0.25); }
         html[data-theme='dark'] .pdp-cash-boost-input-row { background: #1a1a1a; border-color: rgba(228,88,33,0.3); }
         html[data-theme='dark'] .pdp-cash-boost-input { color: #fff; }
 
@@ -1463,6 +1541,8 @@ const ProductDetailPage = () => {
           .pdp-modal { max-height: 92vh; border-radius: 18px; }
           .pdp-modal-header { padding: 20px 18px 14px; }
           .pdp-modal-grid { padding: 14px 18px; gap: 10px; max-height: 300px; }
+          .pdp-offer-tabs { margin-left: 18px; margin-right: 18px; }
+          .pdp-cash-only-wrap { margin-left: 18px; margin-right: 18px; }
           .pdp-modal-img-wrap { height: 96px; }
           .pdp-modal-actions { padding: 14px 18px; }
         }
