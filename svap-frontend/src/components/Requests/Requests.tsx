@@ -105,12 +105,6 @@ const Requests = () => {
     refresh();
   }, [tick, refresh]);
 
-  const currentUserCheckoutRequestIds = new Set(
-    checkoutOrders
-      .filter((order) => order.from_user_id === userId)
-      .map((order) => order.swap_request_id)
-      .filter((id): id is string => Boolean(id))
-  );
   const checkoutRequestIds = new Set(
     checkoutOrders
       .map((order) => order.swap_request_id)
@@ -129,12 +123,12 @@ const Requests = () => {
     (order) => order.from_user_id === userId
   );
   const checkoutOrderByRequest = new Map(
-    currentUserCheckoutOrders.map((order) => [order.swap_request_id, order])
+    currentUserCheckoutOrders
+      .filter((order: any) => !order.is_checkout_pending && !String(order.id).startsWith('checkout-'))
+      .map((order) => [order.swap_request_id, order])
   );
   const checkout = requests.filter(
-    (request) =>
-      isCheckoutRequest(request) &&
-      !currentUserCheckoutRequestIds.has(request.id)
+    (request) => isCheckoutRequest(request)
   );
   const active =
     tab === "incoming" ? incoming : tab === "outgoing" ? outgoing : checkout;
@@ -146,6 +140,7 @@ const Requests = () => {
     } else {
       await updateRequestStatus(id, "accepted", userId || undefined);
       refresh();
+      // Acceptance unlocks checkout for both parties, including cash-only offers.
       navigate(`/checkout/${id}`);
     }
   };

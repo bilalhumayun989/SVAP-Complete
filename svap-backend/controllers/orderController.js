@@ -75,6 +75,21 @@ exports.createOrder = async (req, res) => {
             is_read: false,
           });
         }
+        
+        // Check if the other user has already placed an order for this swap
+        const { count: otherUserOrdersCount } = await supabaseAdmin
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('swap_request_id', swap_request_id)
+          .neq('from_user_id', from_user_id);
+
+        if (otherUserOrdersCount > 0) {
+          // Both users have now checked out. Mark swap request as completed.
+          await supabaseAdmin
+            .from('swap_requests')
+            .update({ status: 'completed' })
+            .eq('id', swap_request_id);
+        }
       }
 
       // Mark competing requests for the REQUESTED product as unavailable
@@ -161,8 +176,13 @@ exports.getOrders = async (req, res) => {
     }
 
     const orders = data || [];
+    // Only track swap_request_ids where THIS user placed the order
+    // (not orders where they are just the to_user_id / recipient)
     const orderRequestIds = new Set(
-      orders.map((order) => order.swap_request_id).filter(Boolean)
+      orders
+        .filter((order) => order.from_user_id === user_id)
+        .map((order) => order.swap_request_id)
+        .filter(Boolean)
     );
 
     // Accepted swaps are checkout records even before the delivery order exists.

@@ -110,7 +110,6 @@ const SwapCheckoutPage = () => {
         
         // Check if swap request is unavailable (already swapped)
         if (found && (found as any).status === 'unavailable') {
-          alert('This product has already been swapped with another user.');
           navigate('/requests', { replace: true });
           return;
         }
@@ -136,7 +135,11 @@ const SwapCheckoutPage = () => {
         const orders = await api.getOrders(userId);
         if (Array.isArray(orders)) {
           const exists = orders.find(
-            (o: any) => o.swap_request_id === swapRequestId && o.from_user_id === userId,
+            (o: any) => 
+              o.swap_request_id === swapRequestId && 
+              o.from_user_id === userId &&
+              !o.is_checkout_pending && 
+              !String(o.id).startsWith('checkout-')
           );
           if (exists) {
             // Already submitted — go straight to confirmation

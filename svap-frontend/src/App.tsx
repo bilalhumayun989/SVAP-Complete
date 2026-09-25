@@ -51,7 +51,7 @@ function GlobalToasts() {
   const { toasts, dismissToast } = useNotifications()
   const navigate = useNavigate()
 
-  if (toasts.length === 0) return null
+  if (true) return null; // Unconditionally hide popups as requested
 
   return (
     <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 99999, display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 340, width: '90vw' }}>

@@ -4,7 +4,7 @@ export interface SwapRequest {
   id: string;
   from_user_id: string;
   to_user_id: string;
-  offered_product_id: string;
+  offered_product_id: string | null;
   requested_product_id: string;
   status: "pending" | "accepted" | "rejected" | "completed" | "unavailable";
   expires_at: string;

@@ -125,9 +125,8 @@ const NotificationsPage = () => {
     if (targetRoute) {
       navigate(targetRoute);
     } else {
-      console.error(`[Notification Click] Missing related ID or route for notification type: ${n.type}. Notification ID: ${n.id}`);
-      alert("Details load nahi ho sakin. Related reference missing in database.");
-      navigate("/requests"); // Fallback
+      console.error(`[Notification] Missing route for type: ${n.type}, id: ${n.id}`);
+      navigate("/requests");
     }
   };
 

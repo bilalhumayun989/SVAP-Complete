@@ -72,12 +72,12 @@ exports.getMyRequests = async (req, res) => {
         // Only show pending if not yet expired
         return new Date(r.expires_at).getTime() > Date.now();
       }
-      if (r.status === 'accepted') return true;
+      if (r.status === 'accepted' || r.status === 'completed') return true;
       if (r.status === 'rejected') {
         // Show rejected only within last 48 hours
         return new Date(r.created_at).getTime() > new Date(cutoff48h).getTime();
       }
-      // completed, unavailable → hide
+      // unavailable → hide
       return false;
     });
 
