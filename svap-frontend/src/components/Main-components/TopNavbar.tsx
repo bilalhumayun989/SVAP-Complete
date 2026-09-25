@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, Bell, Settings } from "lucide-react";
 import SettingsDrawer from "../Profile/SettingsDrawer";
@@ -6,6 +6,8 @@ import SettingsDrawer from "../Profile/SettingsDrawer";
 export default function TopNavbar() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+
   const [isDark, setIsDark] = useState<boolean>(() => {
     const savedTheme = localStorage.getItem("sz_theme");
     if (savedTheme !== null) {
@@ -33,21 +35,52 @@ export default function TopNavbar() {
     location.pathname.startsWith("/reel-upload") ||
     location.pathname.startsWith("/create-reel");
 
-  // Sync scroll detection
+  // Timer ref to handle scroll stop detection robustly
+  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setIsScrolled(true);
+      const currentScrollY = window.scrollY;
+
+      // Background blur toggle
+      setIsScrolled(currentScrollY > 10);
+
+      // Path check direct inside event handler for accuracy
+      if (location.pathname === "/") {
+        // Page ke bilkul top par humesha dikhayen
+        if (currentScrollY <= 10) {
+          setIsVisible(true);
+          if (scrollTimer.current) clearTimeout(scrollTimer.current);
+          return;
+        }
+
+        // Jab scroll ho raha ho to hide kar do
+        setIsVisible(false);
+
+        // Purana timer clear karke naya timer lagayein (180ms delay)
+        if (scrollTimer.current) {
+          clearTimeout(scrollTimer.current);
+        }
+
+        // Jaise hi 180ms tak scroll event rukega, navbar neechay aa jayegi
+        scrollTimer.current = setTimeout(() => {
+          setIsVisible(true);
+        }, 180);
       } else {
-        setIsScrolled(false);
+        // Dusre sabhi pages par visible rakhein
+        setIsVisible(true);
       }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
-  // Sync theme changes dynamically
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollTimer.current) clearTimeout(scrollTimer.current);
+    };
+  }, [location.pathname]);
+
+  // Dynamic theme syncing
   useEffect(() => {
     const syncTheme = () => {
       const savedTheme = localStorage.getItem("sz_theme");
@@ -79,13 +112,15 @@ export default function TopNavbar() {
   return (
     <>
       <header
-        className={`md:hidden w-full absolute top-0 left-0 right-0 z-40 px-4 py-4 flex items-center justify-between transition-all duration-300 ${
+        className={`md:hidden w-full fixed top-0 left-0 right-0 z-40 px-4 py-4 flex items-center justify-between transition-transform duration-300 ease-in-out ${
+          isVisible ? "translate-y-0" : "-translate-y-full"
+        } ${
           isDark
             ? isScrolled
-              ? "bg-[#0A0A0A]/90 backdrop-blur-md  "
-              : "bg-[#0A0A0A] "
+              ? "bg-[#0A0A0A]/90 backdrop-blur-md"
+              : "bg-[#0A0A0A]"
             : isScrolled
-            ? "bg-white/90 backdrop-blur-md "
+            ? "bg-white/90 backdrop-blur-md"
             : "bg-white"
         }`}
       >
