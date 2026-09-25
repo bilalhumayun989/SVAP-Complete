@@ -276,8 +276,8 @@ const Navbar = () => {
           <Link to="/profile" onClick={() => setProfileOpen(false)} className="nb-dropdown-item">
             <UserIcon size={16} /> My Profile
           </Link>
-          <Link to="/orders" onClick={() => setProfileOpen(false)} className="nb-dropdown-item">
-            <img src="/ICONS/SVAP.png" alt="Svap" style={{ width: 18, height: 18, objectFit: 'contain', filter: 'var(--icon-filter)' }} /> Svaps
+          <Link to="/orders" onClick={() => setProfileOpen(false)} className="nb-dropdown-item ">
+            <img src="/request.png" alt="Svap" style={{ width: 18, height: 18, objectFit: 'contain', filter: isDarkMode ? 'var(--icon-filter)' : 'brightness(0)' }} /> Svaps
           </Link>
           <Link to="/list-product" onClick={() => setProfileOpen(false)} className="nb-dropdown-item">
             <img src="/ICONS/Listing.png" alt="List" style={{ width: 18, height: 18, objectFit: 'contain', filter: 'var(--icon-filter)' }} /> List a Product
