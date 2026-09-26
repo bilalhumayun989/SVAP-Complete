@@ -11,64 +11,50 @@ const BrandIcon = ({ src, alt, size = 24, className }: { src: string; alt: strin
   <img src={src} alt={alt} width={size} height={size} style={{ objectFit: 'contain', display: 'block' }} className={className} />
 );
 
-// ─── Custom Home Icon (brand two-tone) ────────────────────────────────────────
-const HomeIcon = ({ size = 24 }: { size?: number }) => (
+// ─── Custom Home Icon ─────────────────────────────────────────────────────────
+const SearchIcon = ({ size = 24 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className="nb-brand-svg">
-    {/* Roof */}
-    <path d="M3 10.5L12 3l9 7.5" stroke="#313C5C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    {/* Walls */}
-    <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-5h4v5h4a1 1 0 0 0 1-1V9.5" stroke="#313C5C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    {/* Door */}
-    <rect x="9.5" y="15" width="5" height="6" rx="0.5" stroke="#E45821" strokeWidth="1.8" />
+    <circle cx="11" cy="11" r="8" stroke="currentColor" fill="none" strokeWidth="2.5" />
+    <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
   </svg>
 );
 
-// ─── Custom Search Icon with Colors ───────────────────────────────────────────
-const SearchIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round" className="nb-search-svg">
-    <circle cx="11" cy="11" r="8" stroke="#313C5C" fill="none" strokeWidth="2.5" className="nb-search-circle" />
-    <path d="M21 21l-4.35-4.35" stroke="#E45821" strokeWidth="2.5" strokeLinecap="round" className="nb-search-handle" />
-  </svg>
-);
-
-// ─── Reels / PlayCircle Icon (brand-matching, dark/light aware) ─────────────────
+// ─── Reels / PlayCircle Icon ─────────────────────────────────────────────────
 const ReelsIcon = ({ size = 24 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className="nb-brand-svg">
-    {/* Outer circle - uses nb-brand-stroke class for dark/light */}
-    <circle cx="12" cy="12" r="10" className="nb-playcircle-ring" strokeWidth="2" />
-    {/* Inner play triangle - always brand orange */}
+    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
     <path
       d="M10 8.5l6 3.5-6 3.5V8.5z"
-      fill="#E45821"
-      stroke="#E45821"
+      fill="currentColor"
+      stroke="currentColor"
       strokeWidth="0.5"
       strokeLinejoin="round"
     />
   </svg>
 );
 
-// ─── Notifications Bell SVG (now without hardcoded badge) ────────────────────
+// ─── Notifications Bell SVG ───────────────────────────────────────────────────
 const BellIcon = ({ size = 24 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className="nb-brand-svg">
-    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#313C5C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#E45821" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
-// ─── Custom User Icon with Colors ─────────────────────────────────────────────
+// ─── Custom User Icon ─────────────────────────────────────────────────────────
 const UserIcon = ({ size = 24 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="8" r="4" stroke="#313C5C" />
-    <path d="M5 20c0-3.314 3.13-6 7-6s7 2.686 7 6" stroke="#E45821" />
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="nb-brand-svg">
+    <circle cx="12" cy="8" r="4" stroke="currentColor" />
+    <path d="M5 20c0-3.314 3.13-6 7-6s7 2.686 7 6" stroke="currentColor" />
   </svg>
 );
 
-// ─── Custom Login Icon (Key with Arrow) ────────────────────────────────────────
+// ─── Custom Login Icon ────────────────────────────────────────────────────────
 const LoginIcon = ({ size = 24 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" stroke="#313C5C" />
-    <polyline points="10 17 15 12 10 7" stroke="#E45821" strokeWidth="2.5" />
-    <line x1="15" y1="12" x2="3" y2="12" stroke="#E45821" strokeWidth="2.5" />
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="nb-brand-svg">
+    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" stroke="currentColor" />
+    <polyline points="10 17 15 12 10 7" stroke="currentColor" strokeWidth="2.5" />
+    <line x1="15" y1="12" x2="3" y2="12" stroke="currentColor" strokeWidth="2.5" />
   </svg>
 );
 
@@ -81,7 +67,7 @@ interface NavUser {
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 const CollapseIcon = () => (
-  <svg width="16" height="16" fill="none" stroke="#E45821" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
     <rect x="3" y="3" width="18" height="18" rx="2"></rect>
     <path d="M9 3v18"></path>
     <path d="M14 9l-2 3 2 3"></path>
@@ -89,7 +75,7 @@ const CollapseIcon = () => (
 );
 
 const ExpandIcon = () => (
-  <svg width="16" height="16" fill="none" stroke="#E45821" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
     <rect x="3" y="3" width="18" height="18" rx="2"></rect>
     <path d="M15 3v18"></path>
     <path d="M10 15l2-3-2-3"></path>
@@ -98,12 +84,12 @@ const ExpandIcon = () => (
 
 // ─── NAV ITEMS (top section) ──────────────────────────────────────────────────
 const TOP_NAV = [
-  { icon: <HomeIcon size={24} />, label: "Home", route: "/" },
-  { icon: <SearchIcon />, label: "Search", route: "/search" },
+  { icon: <BrandIcon src="/home.png" alt="Home" size={24} className="nb-req-icon" />, label: "Home", route: "/" },
+  { icon: <SearchIcon size={24} />, label: "Search", route: "/search" },
   { icon: <ReelsIcon size={24} />, label: "Reels", route: "/reels" },
   { icon: <BellIcon size={24} />, label: "Notifications", route: "/notifications" },
   { icon: <BrandIcon src="/request.png" alt="Requests" size={24} className="nb-req-icon" />, label: "Requests", route: "/requests" },
-  { icon: <BrandIcon src="/ICONS/Category.png" alt="Create" size={24} className="nb-nav-img" />, label: "Create", route: "/list-product" },
+  { icon: <BrandIcon src="/ICONS/Category.png" alt="Create" size={24} className="nb-req-icon" />, label: "Create", route: "/list-product" },
 ];
 
 const Navbar = () => {
@@ -173,30 +159,19 @@ const Navbar = () => {
     }
   };
 
-  // Update request count when user changes or on page load
   useEffect(() => {
     fetchRequestCount();
   }, [user?.id]);
 
-  // Listen for request changes and page navigation
   useEffect(() => {
-    const handleRequestsChange = () => {
-      fetchRequestCount();
-    };
-
-    // Listen for request updates
+    const handleRequestsChange = () => fetchRequestCount();
     window.addEventListener("sz_requests_change", handleRequestsChange);
     
-    // Also refresh when navigating (in case user was on requests page)
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchRequestCount();
-      }
+      if (!document.hidden) fetchRequestCount();
     };
-    
     document.addEventListener("visibilitychange", handleVisibilityChange);
     
-    // Refresh every 30 seconds to catch any updates
     const interval = setInterval(fetchRequestCount, 30000);
 
     return () => {
@@ -206,12 +181,11 @@ const Navbar = () => {
     };
   }, [user?.id]);
 
-  // Refresh count when navigating away from requests page
   useEffect(() => {
-    // Small delay to ensure any request status changes have been processed
     const timer = setTimeout(fetchRequestCount, 100);
     return () => clearTimeout(timer);
   }, [location.pathname]);
+
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.setAttribute("data-theme", "dark");
@@ -222,16 +196,13 @@ const Navbar = () => {
     }
   }, [isDarkMode]);
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
+  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   const getUserDisplayName = () => {
     const name = typeof user?.name === "string" ? user.name.trim() : "";
     return name ? name.split(/\s+/)[0] : "Profile";
   };
 
-  // Close profile dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -276,11 +247,8 @@ const Navbar = () => {
           <Link to="/profile" onClick={() => setProfileOpen(false)} className="nb-dropdown-item">
             <UserIcon size={16} /> My Profile
           </Link>
-          <Link to="/orders" onClick={() => setProfileOpen(false)} className="nb-dropdown-item ">
-            <img src="/request.png" alt="Svap" style={{ width: 18, height: 18, objectFit: 'contain', filter: isDarkMode ? 'var(--icon-filter)' : 'brightness(0)' }} /> Svaps
-          </Link>
-          <Link to="/list-product" onClick={() => setProfileOpen(false)} className="nb-dropdown-item">
-            <img src="/ICONS/Listing.png" alt="List" style={{ width: 18, height: 18, objectFit: 'contain', filter: 'var(--icon-filter)' }} /> List a Product
+          <Link to="/orders" onClick={() => setProfileOpen(false)} className="nb-dropdown-item">
+            <img src="/request.png" alt="Svap" className="nb-req-icon" style={{ width: 18, height: 18, objectFit: 'contain' }} /> Svaps
           </Link>
           <div className="nb-dropdown-divider" />
           <button className="nb-dropdown-item" onClick={toggleDarkMode}>
@@ -298,7 +266,7 @@ const Navbar = () => {
             <LoginIcon size={14} /> Login
           </Link>
           <Link to="/signup" onClick={() => setProfileOpen(false)} className="nb-dropdown-item">
-            <img src="/ICONS/Profile.png" alt="Signup" style={{ width: 14, height: 14, objectFit: 'contain', filter: 'var(--icon-filter)' }} /> Create Account
+            <img src="/ICONS/Profile.png" alt="Signup" className="nb-req-icon" style={{ width: 14, height: 14, objectFit: 'contain' }} /> Create Account
           </Link>
           <div className="nb-dropdown-divider" />
           <button className="nb-dropdown-item" onClick={toggleDarkMode}>
@@ -310,7 +278,6 @@ const Navbar = () => {
     </div>
   );
 
-  // Hide sidebar on full-screen pages (reels)
   if (location.pathname === "/reels") return null;
 
   return (
@@ -320,10 +287,7 @@ const Navbar = () => {
           --sidebar-width: ${isCollapsed ? '80px' : '240px'};
         }
       `}</style>
-      {/* ── Left Sidebar ── */}
       <nav className={`nb-sidebar ${isCollapsed ? "nb-sidebar--collapsed" : ""}`}>
-
-        {/* Logo & Toggle */}
         <div className="nb-logo-header">
           <Link to="/" className="nb-logo" aria-label="SVAP Home">
             <img src="/Logo.png" alt="SVAP Logo" className="nb-logo-img" />
@@ -338,7 +302,6 @@ const Navbar = () => {
           </button>
         </div>
 
-        {/* Top nav items */}
         <div className="nb-top-items">
           {TOP_NAV.map((item) => (
             <Link
@@ -369,9 +332,7 @@ const Navbar = () => {
           ))}
         </div>
 
-        {/* Bottom section */}
         <div className="nb-bottom">
-          {/* Profile with dropdown */}
           <div className="nb-profile-wrap">
             <button
               className={`nb-item nb-item--btn ${isActive("/profile") ? "nb-item--active" : ""}`}
@@ -390,12 +351,9 @@ const Navbar = () => {
               <span className="nb-label">{getUserDisplayName()}</span>
               <span className="nb-tooltip">{typeof user?.name === "string" && user.name.trim() ? user.name : "Profile"}</span>
             </button>
-
-            {/* Profile dropdown */}
             {profileOpen && renderDropdown()}
           </div>
 
-          {/* Login shortcut if not logged in */}
           {!user && (
             <Link to="/login" className="nb-login-btn" aria-label="Login">
               <LoginIcon size={20} />
@@ -406,12 +364,8 @@ const Navbar = () => {
         </div>
       </nav>
 
-
-
       <style>{`
-        /* ══════════════════════════════════════════
-           SIDEBAR — desktop
-        ══════════════════════════════════════════ */
+        /* SIDEBAR BASICS */
         .nb-sidebar {
           position: fixed;
           left: 0;
@@ -429,20 +383,9 @@ const Navbar = () => {
           transition: width 0.3s ease;
         }
 
-        /* Logo */
-        .nb-logo {
-          display: flex;
-          align-items: center;
-          padding: 8px 2px 28px;
-          text-decoration: none;
-        }
-        .nb-logo-img {
-          height: 35px;
-          width: auto;
-          object-fit: contain;
-        }
+        .nb-logo { display: flex; align-items: center; padding: 8px 2px 28px; text-decoration: none; }
+        .nb-logo-img { height: 35px; width: auto; object-fit: contain; }
 
-        /* Logo header with toggle */
         .nb-logo-header {
           display: flex;
           align-items: center;
@@ -454,7 +397,6 @@ const Navbar = () => {
           margin-bottom: 12px;
         }
 
-        /* Toggle button */
         .nb-toggle-btn {
           flex-shrink: 0;
           display: flex;
@@ -464,102 +406,34 @@ const Navbar = () => {
           height: 36px;
           margin-bottom: 18px;
           background: var(--card-bg);
-          border: 1px solid #313C5C;
+          border: 1px solid var(--border);
           border-radius: 10px;
           color: var(--text-dark);
           cursor: pointer;
           transition: all 0.2s;
-          font-family: inherit;
           padding: 0;
         }
-        .nb-toggle-btn:hover {
-          background: var(--bg-section);
-          color: var(--text-dark);
-        }
+        .nb-toggle-btn:hover { background: var(--bg-section); color: var(--text-dark); }
 
-        /* Nav groups */
-        .nb-top-items {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
+        .nb-top-items { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+        .nb-bottom { display: flex; flex-direction: column; gap: 2px; border-top: 1px solid #f0f0f0; padding-top: 12px; }
 
-        .nb-bottom {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          border-top: 1px solid #f0f0f0;
-          padding-top: 12px;
-        }
+        /* COLLAPSED SIDEBAR */
+        .nb-sidebar--collapsed { width: 80px; align-items: center; padding: 16px 8px 24px; }
+        .nb-sidebar--collapsed .nb-logo-header { flex-direction: column; gap: 0; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; margin-bottom: 12px; }
+        .nb-sidebar--collapsed .nb-logo { padding: 8px 0 12px; }
+        .nb-sidebar--collapsed .nb-logo-img { height: 40px; }
+        .nb-sidebar--collapsed .nb-toggle-btn { width: 32px; height: 32px; font-size: 0.9rem; }
+        .nb-sidebar--collapsed .nb-label { display: none; }
+        .nb-sidebar--collapsed .nb-item { justify-content: center; padding: 12px; gap: 0; }
+        .nb-sidebar--collapsed .nb-item:hover .nb-tooltip { display: block; }
+        .nb-sidebar--collapsed .nb-tooltip { display: none; }
+        .nb-sidebar--collapsed .nb-login-btn { justify-content: center; padding: 12px; gap: 0; }
+        .nb-sidebar--collapsed .nb-login-btn .nb-label { display: none; }
+        .nb-sidebar--collapsed .nb-login-btn:hover .nb-tooltip { display: block; }
+        .nb-sidebar--collapsed .nb-dropdown { left: calc(100% + 8px); bottom: 0; }
 
-        /* Collapsed sidebar state */
-        .nb-sidebar--collapsed {
-          width: 80px;
-          align-items: center;
-          padding: 16px 8px 24px;
-        }
-
-        .nb-sidebar--collapsed .nb-logo-header {
-          flex-direction: column;
-          gap: 0;
-          padding-bottom: 12px;
-          border-bottom: 1px solid #f0f0f0;
-          margin-bottom: 12px;
-        }
-
-        .nb-sidebar--collapsed .nb-logo {
-          padding: 8px 0 12px;
-        }
-
-        .nb-sidebar--collapsed .nb-logo-img {
-          height: 40px;
-        }
-
-        .nb-sidebar--collapsed .nb-toggle-btn {
-          width: 32px;
-          height: 32px;
-          font-size: 0.9rem;
-        }
-
-        .nb-sidebar--collapsed .nb-label {
-          display: none;
-        }
-
-        .nb-sidebar--collapsed .nb-item {
-          justify-content: center;
-          padding: 12px;
-          gap: 0;
-        }
-
-        .nb-sidebar--collapsed .nb-item:hover .nb-tooltip {
-          display: block;
-        }
-
-        .nb-sidebar--collapsed .nb-tooltip {
-          display: none;
-        }
-
-        .nb-sidebar--collapsed .nb-login-btn {
-          justify-content: center;
-          padding: 12px;
-          gap: 0;
-        }
-
-        .nb-sidebar--collapsed .nb-login-btn .nb-label {
-          display: none;
-        }
-
-        .nb-sidebar--collapsed .nb-login-btn:hover .nb-tooltip {
-          display: block;
-        }
-
-        .nb-sidebar--collapsed .nb-dropdown {
-          left: calc(100% + 8px);
-          bottom: 0;
-        }
-
-        /* Nav item */
+        /* NAV ITEM */
         .nb-item {
           display: flex;
           align-items: center;
@@ -577,20 +451,10 @@ const Navbar = () => {
           overflow: hidden;
         }
         .nb-item:hover { background: var(--bg-section); color: var(--text-dark); }
-        .nb-item--active {
-          background: rgba(228, 88, 33, 0.1);
-          color: #E45821;
-          font-weight: 700;
-        }
+        .nb-item--active { background: rgba(228, 88, 33, 0.1); color: #E45821; font-weight: 700; }
         .nb-item--active .nb-icon { color: #E45821; }
 
-        .nb-item--btn {
-          background: none;
-          border: none;
-          width: 100%;
-          text-align: left;
-          font-family: inherit;
-        }
+        .nb-item--btn { background: none; border: none; width: 100%; text-align: left; font-family: inherit; }
 
         .nb-icon {
           flex-shrink: 0;
@@ -598,10 +462,10 @@ const Navbar = () => {
           align-items: center;
           justify-content: center;
           width: 26px;
-          color: inherit;
+          color: currentColor;
         }
 
-        /* Unread count badge */
+        /* BADGES */
         .nb-badge {
           position: absolute;
           top: -6px;
@@ -621,19 +485,10 @@ const Navbar = () => {
           border: 2px solid var(--navbar-bg);
           z-index: 10;
         }
+        .nb-badge--requests { background: #313C5C; box-shadow: 0 2px 6px rgba(49,60,92,0.4); }
 
-        /* Request badge on profile - slightly different color */
-        .nb-badge--requests {
-          background: #313C5C;
-          box-shadow: 0 2px 6px rgba(49,60,92,0.4);
-        }
+        .nb-label { font-size: 0.92rem; font-weight: 500; }
 
-        .nb-label {
-          font-size: 0.92rem;
-          font-weight: 500;
-        }
-
-        /* Tooltip (hidden on full-width sidebar, shown on narrow) */
         .nb-tooltip {
           display: none;
           position: absolute;
@@ -661,7 +516,6 @@ const Navbar = () => {
           border-left: none;
         }
 
-        /* Login button */
         .nb-login-btn {
           display: flex;
           align-items: center;
@@ -680,9 +534,8 @@ const Navbar = () => {
         }
         .nb-login-btn:hover { background: rgba(228,88,33,0.1); }
 
-        /* Profile dropdown */
+        /* PROFILE DROPDOWN */
         .nb-profile-wrap { position: relative; }
-
         .nb-dropdown {
           position: absolute;
           bottom: calc(100% + 8px);
@@ -696,38 +549,14 @@ const Navbar = () => {
           z-index: 200;
           animation: dropUp 0.18s ease;
         }
-
         @keyframes dropUp {
           from { opacity: 0; transform: translateY(8px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-
-        .nb-dropdown-user {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 14px 16px;
-        }
-
-        .nb-dropdown-name {
-          font-size: 0.88rem;
-          font-weight: 700;
-          color: var(--text-dark);
-          margin: 0;
-        }
-
-        .nb-dropdown-un {
-          font-size: 0.72rem;
-          color: var(--text-muted);
-          margin: 0;
-        }
-
-        .nb-dropdown-divider {
-          height: 1px;
-          background: var(--border);
-          margin: 4px 0;
-        }
-
+        .nb-dropdown-user { display: flex; align-items: center; gap: 10px; padding: 14px 16px; }
+        .nb-dropdown-name { font-size: 0.88rem; font-weight: 700; color: var(--text-dark); margin: 0; }
+        .nb-dropdown-un { font-size: 0.72rem; color: var(--text-muted); margin: 0; }
+        .nb-dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
         .nb-dropdown-item {
           display: flex;
           align-items: center;
@@ -744,191 +573,64 @@ const Navbar = () => {
           width: 100%;
           text-align: left;
           font-family: inherit;
-          position: relative;
         }
         .nb-dropdown-item:hover { background: var(--bg-section); color: var(--text-dark); }
         .nb-dropdown-item--logout { color: #f87171; }
         .nb-dropdown-item--logout:hover { background: rgba(228, 88, 33, 0.1); color: #e45821; }
 
-        /* Badge in dropdown */
-        .nb-dropdown-badge {
-          background: #313C5C;
-          color: #fff;
-          font-size: 0.6rem;
-          font-weight: 700;
-          padding: 2px 6px;
-          border-radius: 8px;
-          min-width: 16px;
-          text-align: center;
-          margin-left: auto;
-        }
-
-
-        /* ══════════════════════════════════════════
-           MOBILE — hide sidebar
-        ══════════════════════════════════════════ */
         @media (max-width: 768px) {
           .nb-sidebar { display: none; }
         }
 
         /* ══════════════════════════════════════════
-           DARK MODE
+           PNG & SVG ICONS (LIGHT & DARK MODE STYLES)
         ══════════════════════════════════════════ */
-        /* ── Brand PNG icon filter for dark mode ── */
-        :root {
-          --icon-filter: none;
-        }
-        html[data-theme='dark'] {
-          --icon-filter: var(--filter-orange);
-        }
-
-        /* Nav PNG icons: orange in dark mode, white on hover/active */
-        .nb-nav-img {
-          filter: var(--icon-filter);
-          transition: filter 0.2s;
-        }
-        html[data-theme='dark'] .nb-item--active .nb-nav-img {
-          filter: var(--filter-white) !important;
-        }
-        html[data-theme='dark'] .nb-item:hover .nb-nav-img {
-          filter: var(--filter-white) !important;
-        }
-
-        /* Brand SVG icons in dark mode: orange by default, white on hover, orange on active */
-        html[data-theme='dark'] .nb-brand-svg path,
-        html[data-theme='dark'] .nb-brand-svg circle,
-        html[data-theme='dark'] .nb-brand-svg line,
-        html[data-theme='dark'] .nb-brand-svg rect {
-          stroke: #E45821;
-        }
-        html[data-theme='dark'] .nb-brand-svg circle[fill='#E45821'] {
-          fill: #E45821;
-          stroke: none;
-        }
-        /* Active: keep orange */
-        html[data-theme='dark'] .nb-item--active .nb-brand-svg path,
-        html[data-theme='dark'] .nb-item--active .nb-brand-svg circle,
-        html[data-theme='dark'] .nb-item--active .nb-brand-svg line,
-        html[data-theme='dark'] .nb-item--active .nb-brand-svg rect {
-          stroke: #E45821;
-        }
-        html[data-theme='dark'] .nb-item--active .nb-brand-svg circle[fill='#E45821'] {
-          fill: #E45821;
-          stroke: none;
-        }
-        /* Hover: turn white */
-        html[data-theme='dark'] .nb-item:hover .nb-brand-svg path,
-        html[data-theme='dark'] .nb-item:hover .nb-brand-svg circle,
-        html[data-theme='dark'] .nb-item:hover .nb-brand-svg line,
-        html[data-theme='dark'] .nb-item:hover .nb-brand-svg rect {
-          stroke: #ffffff;
-        }
-        html[data-theme='dark'] .nb-item:hover .nb-brand-svg circle[fill='#E45821'] {
-          fill: #ffffff;
-          stroke: none;
-        }
-
-        /* Search icon dark mode: orange by default, white on hover */
-        html[data-theme='dark'] .nb-search-circle {
-          stroke: #E45821;
-          transition: stroke 0.2s;
-        }
-        html[data-theme='dark'] .nb-search-handle {
-          stroke: #E45821;
-          transition: stroke 0.2s;
-        }
-        html[data-theme='dark'] .nb-item:hover .nb-search-circle,
-        html[data-theme='dark'] .nb-item--active .nb-search-circle {
-          stroke: #ffffff;
-        }
-        html[data-theme='dark'] .nb-item:hover .nb-search-handle,
-        html[data-theme='dark'] .nb-item--active .nb-search-handle {
-          stroke: #ffffff;
-        }
-
-        /* PlayCircle / Reels icon ring - light mode default */
-        .nb-playcircle-ring {
-          stroke: #313C5C;
-          transition: stroke 0.2s;
-        }
-        /* Dark mode: ring turns white */
-        html[data-theme='dark'] .nb-playcircle-ring {
-          stroke: rgba(255, 255, 255, 0.85);
-        }
-        html[data-theme='dark'] .nb-item:hover .nb-playcircle-ring,
-        html[data-theme='dark'] .nb-item--active .nb-playcircle-ring {
-          stroke: #ffffff;
-        }
-
-        html[data-theme='dark'] .nb-dropdown-item img:not(.nb-req-icon) {
-          filter: var(--filter-orange);
-          transition: filter 0.2s;
-        }
-        html[data-theme='dark'] .nb-dropdown-item:hover img:not(.nb-req-icon) {
-          filter: var(--filter-white) !important;
-        }
-
-        /* Local request.png icon (white by default) */
         .nb-req-icon {
-          filter: invert(1); /* Black in light mode */
+          filter: brightness(0);
           transition: filter 0.2s;
         }
-        html[data-theme='dark'] .nb-req-icon {
-          filter: var(--filter-orange); /* Orange in dark mode */
-        }
-        html[data-theme='dark'] .nb-dropdown-item:hover .nb-req-icon {
-          filter: var(--filter-white) !important;
-        }
 
+        /* DARK MODE STYLES FOR ALL SVG AND PNG ICONS */
         html[data-theme='dark'] .nb-sidebar {
           background: var(--navbar-bg);
           border-right-color: var(--border);
         }
+        html[data-theme='dark'] .nb-logo-header { border-bottom-color: var(--border); }
+        html[data-theme='dark'] .nb-bottom { border-top-color: var(--border); }
+        html[data-theme='dark'] .nb-item { color: #ffffff; }
+        html[data-theme='dark'] .nb-item:hover { background: var(--bg-section); color: #ffffff; }
+        html[data-theme='dark'] .nb-item--active { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
 
-        html[data-theme='dark'] .nb-logo-header {
-          border-bottom-color: var(--border);
+        /* Turn all SVG elements pure white in dark mode */
+        html[data-theme='dark'] .nb-brand-svg {
+          color: #ffffff !important;
+        }
+        html[data-theme='dark'] .nb-brand-svg path,
+        html[data-theme='dark'] .nb-brand-svg circle,
+        html[data-theme='dark'] .nb-brand-svg line,
+        html[data-theme='dark'] .nb-brand-svg rect {
+          stroke: #ffffff !important;
+        }
+        html[data-theme='dark'] .nb-brand-svg circle[fill="currentColor"],
+        html[data-theme='dark'] .nb-brand-svg path[fill="currentColor"] {
+          fill: #ffffff !important;
         }
 
-        html[data-theme='dark'] .nb-bottom {
-          border-top-color: var(--border);
-        }
-
-        html[data-theme='dark'] .nb-item {
-          color: var(--text-dark);
-        }
-
-        html[data-theme='dark'] .nb-item:hover {
-          background: var(--bg-section);
-          color: var(--text-dark);
-        }
-
-        html[data-theme='dark'] .nb-item--active {
-          background: rgba(228, 88, 33, 0.15);
-          color: #E45821;
-        }
-
-        html[data-theme='dark'] .nb-item--active .nb-icon {
-          color: #E45821;
-        }
-
-        html[data-theme='dark'] .nb-icon {
-          color: inherit;
+        /* Turn all PNG Icons pure white in dark mode */
+        html[data-theme='dark'] .nb-req-icon {
+          filter: brightness(0) invert(1) !important;
         }
 
         html[data-theme='dark'] .nb-toggle-btn {
           background: var(--card-bg);
           border-color: var(--border);
-          color: var(--text-dark);
+          color: #ffffff;
         }
 
         html[data-theme='dark'] .nb-login-btn {
-          color: #E45821;
-          border-color: rgba(228, 88, 33, 0.2);
-          background: rgba(228, 88, 33, 0.08);
-        }
-
-        html[data-theme='dark'] .nb-login-btn:hover {
-          background: rgba(228, 88, 33, 0.15);
+          color: #ffffff;
+          border-color: rgba(255, 255, 255, 0.2);
+          background: rgba(255, 255, 255, 0.08);
         }
 
         html[data-theme='dark'] .nb-dropdown {
@@ -936,14 +638,8 @@ const Navbar = () => {
           border-color: var(--border);
           box-shadow: 0 8px 32px rgba(0,0,0,0.6);
         }
-
-        html[data-theme='dark'] .nb-dropdown-item {
-          color: var(--text-dark);
-        }
-
-        html[data-theme='dark'] .nb-dropdown-item:hover {
-          background: var(--bg-section);
-        }
+        html[data-theme='dark'] .nb-dropdown-item { color: #ffffff; }
+        html[data-theme='dark'] .nb-dropdown-item:hover { background: var(--bg-section); }
       `}</style>
     </>
   );

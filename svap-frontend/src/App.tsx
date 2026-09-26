@@ -166,7 +166,8 @@ function AppInner() {
   const isForgotPassword = pathname === '/forgot-password'
   const isResetPassword = pathname === '/reset-password'
   const isRequestsPage = pathname === '/requests'
-  const hideTopBar = isListProductPage || isSearchPage || isForgotPassword || isResetPassword || isRequestsPage
+  const isCheckoutPage = pathname.startsWith('/checkout')
+  const hideTopBar = isListProductPage || isSearchPage || isForgotPassword || isResetPassword || isRequestsPage || isCheckoutPage
 
   // Check for existing session on app load and route change
   useEffect(() => {
@@ -427,7 +428,7 @@ function AppInner() {
               <Route path="/cookie-policy"      element={<CookiePolicy />} />
             </Routes>
           </main>
-          {!isProductRoute && !isSearchPage && <MobileNav />}
+          {!isProductRoute && !isSearchPage && !isCheckoutPage && <MobileNav />}
         </div>
       )}
     </>

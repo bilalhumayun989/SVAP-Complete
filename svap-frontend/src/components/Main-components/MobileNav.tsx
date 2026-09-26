@@ -1,38 +1,43 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, PlayCircle, Plus, User } from "lucide-react";
+import { PlayCircle, Plus, User } from "lucide-react";
 import { api } from "../../services/api";
 import { getAllRequests } from "../../hooks/useSwapRequests";
 
-// Local Request Image Icon Wrapper
-const LocalRequestIcon = ({
+// ─── Local PNG Icon Wrapper (Home, Requests, etc.) ─────────────────────────────
+const LocalNavIcon = ({
+  src,
+  alt,
   size = 24,
   isActive = false,
   isDark = true,
 }: {
+  src: string;
+  alt: string;
   size?: number;
   isActive?: boolean;
   isDark?: boolean;
 }) => {
   const getFilterStyle = () => {
     if (isActive) {
-      // Tint image to #D9501E Accent Color
+      // Accent Color: #D9501E
       return "invert(42%) sepia(85%) saturate(1425%) hue-rotate(346deg) brightness(92%) contrast(92%)";
     }
-    // Light Mode = Black, Dark Mode = White
-    return isDark ? "invert(0)" : "invert(1)";
+    // Dark Mode = White (#ffffff), Light Mode = Dark/Black
+    return isDark ? "brightness(0) invert(1)" : "brightness(0)";
   };
 
   return (
     <img
-      src="/request.png" // Local path in /public/request.png
-      alt="Requests"
+      src={src}
+      alt={alt}
       style={{
         width: `${size}px`,
         height: `${size}px`,
         filter: getFilterStyle(),
         transition: "filter 200ms ease-in-out",
         objectFit: "contain",
+        display: "block",
       }}
     />
   );
@@ -45,7 +50,8 @@ interface NavItem {
     className?: string;
     strokeWidth?: number;
   }>;
-  isCustomImage?: boolean;
+  customImgSrc?: string;
+  alt?: string;
   badgeCount?: number;
 }
 
@@ -75,7 +81,7 @@ export default function MobileNavbar() {
       setRequestCount(0);
       return;
     }
-    
+
     try {
       const [allRequests, ordersResponse] = await Promise.all([
         getAllRequests(user.id),
@@ -116,9 +122,7 @@ export default function MobileNavbar() {
   }, [user?.id]);
 
   useEffect(() => {
-    const handleRequestsChange = () => {
-      fetchRequestCount();
-    };
+    const handleRequestsChange = () => fetchRequestCount();
 
     window.addEventListener("sz_requests_change", handleRequestsChange);
     const handleVisibilityChange = () => {
@@ -135,10 +139,10 @@ export default function MobileNavbar() {
   }, []);
 
   const NAV_ITEMS: NavItem[] = [
-    { path: "/", icon: Home },
+    { path: "/", customImgSrc: "/home.png", alt: "Home" },
     { path: "/reels", icon: PlayCircle },
     { path: "/list-product", icon: Plus },
-    { path: "/requests", isCustomImage: true, badgeCount: requestCount },
+    { path: "/requests", customImgSrc: "/request.png", alt: "Requests", badgeCount: requestCount },
     { path: "/profile", icon: User },
   ];
 
@@ -224,8 +228,10 @@ export default function MobileNavbar() {
                   boxShadow: isMiddle ? `0 4px 20px ${BRAND_ACCENT}99` : "none",
                 }}
               >
-                {item.isCustomImage ? (
-                  <LocalRequestIcon
+                {item.customImgSrc ? (
+                  <LocalNavIcon
+                    src={item.customImgSrc}
+                    alt={item.alt || "Nav item"}
                     size={24}
                     isActive={isActive}
                     isDark={isDark}
@@ -241,7 +247,7 @@ export default function MobileNavbar() {
                           : isActive
                           ? "text-[#D9501E]"
                           : isDark
-                          ? "text-white/80"
+                          ? "text-white"
                           : "text-gray-700 hover:text-black"
                       }`}
                     />

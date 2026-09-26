@@ -30,17 +30,7 @@ export const OrderSummary = ({
         formatted: CostCalculator.formatCurrency(costBreakdown.cashDifference),
         highlight: true,
       });
-    } else {
-      // For purchases, show items total
-      // if (costBreakdown.itemsTotal > 0) {
-      //   costItems.push({
-      //     label: 'Items total',
-      //     amount: costBreakdown.itemsTotal,
-      //     formatted: CostCalculator.formatCurrency(costBreakdown.itemsTotal),
-      //   });
-      // }
     }
-
 
     if (transactionType !== 'svap' && costBreakdown.serviceFee > 0) {
       costItems.push({
@@ -49,6 +39,7 @@ export const OrderSummary = ({
         formatted: CostCalculator.formatCurrency(costBreakdown.serviceFee),
       });
     }
+    
     // Always show delivery fee
     costItems.push({
       label: 'Delivery',
@@ -88,7 +79,7 @@ export const OrderSummary = ({
                 </div>
               </div>
             </div>
-            <div className="swap-route-divider">to</div>
+            <div className="swap-route-divider">⇄</div>
             <div className="swap-route-item">
               <span className="swap-route-label">You Receive</span>
               <div className="swap-route-product">
@@ -176,30 +167,32 @@ export const OrderSummary = ({
 
       <style>{`
         .order-summary {
-          background: var(--card-bg);
-          border: 1px solid var(--border);
+          background: var(--card-bg, #18181b);
+          border: 1px solid var(--border-light, #27272a);
           border-radius: 16px;
           padding: 24px;
           display: flex;
           flex-direction: column;
           gap: 20px;
+          color: var(--text-dark, #f4f4f5);
+          transition: background-color 0.2s ease, border-color 0.2s ease;
         }
 
         .summary-header {
-          border-bottom: 1px solid var(--border);
+          border-bottom: 1px solid var(--border-light, #27272a);
           padding-bottom: 16px;
         }
 
         .summary-title {
           font-size: 1.25rem;
           font-weight: 700;
-          color: var(--text-dark);
+          color: var(--text-dark, #f4f4f5);
           margin: 0;
         }
 
         .swap-route-card {
-          background: var(--bg-section);
-          border: 1px solid rgba(228,88,33,0.22);
+          background: var(--bg-alt, #18181b);
+          border: 1px solid var(--border-light, #27272a);
           border-radius: 12px;
           padding: 14px;
         }
@@ -209,7 +202,7 @@ export const OrderSummary = ({
           font-weight: 800;
           letter-spacing: 0.06em;
           text-transform: uppercase;
-          color: #E45821;
+          color: var(--btn-swap, #a3f024);
           margin-bottom: 12px;
         }
 
@@ -224,7 +217,7 @@ export const OrderSummary = ({
           display: block;
           font-size: 0.68rem;
           font-weight: 700;
-          color: var(--text-muted);
+          color: var(--text-muted, #a1a1aa);
           margin-bottom: 6px;
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -242,13 +235,13 @@ export const OrderSummary = ({
           height: 42px;
           border-radius: 8px;
           object-fit: cover;
-          border: 1px solid var(--border);
+          border: 1px solid var(--border-light, #27272a);
           flex-shrink: 0;
         }
 
         .swap-route-product p {
           margin: 0 0 2px;
-          color: var(--text-dark);
+          color: var(--text-dark, #f4f4f5);
           font-size: 0.78rem;
           font-weight: 700;
           line-height: 1.25;
@@ -259,7 +252,7 @@ export const OrderSummary = ({
         }
 
         .swap-route-product span {
-          color: var(--text-muted);
+          color: var(--text-muted, #a1a1aa);
           font-size: 0.68rem;
         }
 
@@ -267,14 +260,14 @@ export const OrderSummary = ({
           width: 28px;
           height: 28px;
           border-radius: 50%;
-          background: #E45821;
-          color: #fff;
+          background: var(--bg, #09090b);
+          border: 1px solid var(--border-light, #27272a);
+          color: var(--btn-swap, #a3f024);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.64rem;
-          font-weight: 800;
-          text-transform: uppercase;
+          font-size: 0.85rem;
+          font-weight: 700;
         }
 
         /* Items Section */
@@ -287,7 +280,7 @@ export const OrderSummary = ({
         .items-title {
           font-size: 1rem;
           font-weight: 600;
-          color: var(--text-dark);
+          color: var(--text-dark, #f4f4f5);
           margin: 0;
         }
 
@@ -308,7 +301,7 @@ export const OrderSummary = ({
           height: 60px;
           border-radius: 8px;
           overflow: hidden;
-          border: 1px solid var(--border);
+          border: 1px solid var(--border-light, #27272a);
           flex-shrink: 0;
         }
 
@@ -326,7 +319,7 @@ export const OrderSummary = ({
         .item-name {
           font-size: 0.875rem;
           font-weight: 600;
-          color: var(--text-dark);
+          color: var(--text-dark, #f4f4f5);
           margin-bottom: 4px;
           line-height: 1.3;
         }
@@ -341,18 +334,18 @@ export const OrderSummary = ({
         .item-condition,
         .item-seller {
           font-size: 0.75rem;
-          color: var(--text-mid);
+          color: var(--text-muted, #a1a1aa);
         }
 
         .item-separator {
           font-size: 0.75rem;
-          color: var(--text-muted);
+          color: var(--text-muted, #71717a);
         }
 
         .item-price {
           font-size: 0.875rem;
           font-weight: 600;
-          color: var(--svap-blue);
+          color: var(--btn-swap, #a3f024);
         }
 
         /* Cost Section */
@@ -376,37 +369,41 @@ export const OrderSummary = ({
         }
 
         .cost-row.highlight {
-          background: rgba(65, 88, 214, 0.05);
+          background: rgba(163, 240, 36, 0.08);
           padding: 8px 12px;
-          border-radius: 6px;
-          border: 1px solid rgba(65, 88, 214, 0.2);
+          border-radius: 8px;
+          border: 1px solid rgba(163, 240, 36, 0.25);
         }
 
         .cost-label {
           font-size: 0.875rem;
-          color: var(--text-mid);
+          color: var(--text-muted, #a1a1aa);
         }
 
         .cost-amount {
           font-size: 0.875rem;
           font-weight: 600;
-          color: var(--text-dark);
+          color: var(--text-dark, #f4f4f5);
         }
 
         .cost-row.free .cost-amount {
-          color: var(--svap-lime);
+          color: var(--btn-swap, #a3f024);
           font-weight: 700;
         }
 
-        .cost-row.highlight .cost-label,
-        .cost-row.highlight .cost-amount {
-          color: var(--svap-blue);
+        .cost-row.highlight .cost-label {
+          color: var(--text-dark, #f4f4f5);
           font-weight: 600;
+        }
+
+        .cost-row.highlight .cost-amount {
+          color: var(--btn-swap, #a3f024);
+          font-weight: 700;
         }
 
         .total-divider {
           height: 1px;
-          background: var(--border);
+          background: var(--border-light, #27272a);
           margin: 4px 0;
         }
 
@@ -420,27 +417,27 @@ export const OrderSummary = ({
         .total-label {
           font-size: 1rem;
           font-weight: 700;
-          color: var(--text-dark);
+          color: var(--text-dark, #f4f4f5);
         }
 
         .total-amount {
           font-size: 1.125rem;
           font-weight: 700;
-          color: var(--svap-blue);
+          color: var(--btn-swap, #a3f024);
         }
 
         /* Swap Note */
         .swap-note {
-          background: var(--bg-section);
+          background: var(--bg-alt, #18181b);
           border-radius: 8px;
           padding: 12px 16px;
-          border: 1px solid rgba(173, 220, 90, 0.3);
+          border: 1px solid var(--border-light, #27272a);
         }
 
         .swap-note p {
           margin: 0;
           font-size: 0.8rem;
-          color: var(--text-mid);
+          color: var(--text-muted, #a1a1aa);
           line-height: 1.4;
         }
 
@@ -451,7 +448,7 @@ export const OrderSummary = ({
         .delivery-coverage-note p {
           margin: 0;
           font-size: 0.75rem;
-          color: var(--text-muted);
+          color: var(--text-muted, #a1a1aa);
           line-height: 1.4;
           text-align: center;
         }
@@ -459,7 +456,7 @@ export const OrderSummary = ({
         /* Mobile responsiveness */
         @media (max-width: 768px) {
           .order-summary {
-            padding: 20px;
+            padding: 18px;
           }
 
           .swap-route-grid {
@@ -467,7 +464,6 @@ export const OrderSummary = ({
           }
 
           .swap-route-divider {
-            transform: rotate(90deg);
             justify-self: center;
           }
 

@@ -76,19 +76,39 @@ exports.createOrder = async (req, res) => {
           });
         }
         
-        // Check if the other user has already placed an order for this swap
-        const { count: otherUserOrdersCount } = await supabaseAdmin
+        // Only the other participant's checkout should complete this swap.
+        // A stale/duplicate order from an unrelated user must not hide the
+        // request from the participant who still needs to check out.
+        const otherParticipantId = from_user_id === swapRequest?.from_user_id
+          ? swapRequest?.to_user_id
+          : swapRequest?.from_user_id;
+        const { count: otherUserOrdersCount, error: otherOrdersError } = await supabaseAdmin
           .from('orders')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('swap_request_id', swap_request_id)
-          .neq('from_user_id', from_user_id);
+          .eq('from_user_id', otherParticipantId);
+
+        if (otherOrdersError) {
+          console.error('[createOrder] Could not check other participant checkout:', otherOrdersError);
+          return res.status(500).json({ error: 'Could not verify the other participant checkout' });
+        }
+
+        console.log(`[createOrder] Swap ${swap_request_id}:`, {
+          currentUser: from_user_id,
+          otherUserOrdersCount,
+          otherParticipantId,
+        });
 
         if (otherUserOrdersCount > 0) {
           // Both users have now checked out. Mark swap request as completed.
+          console.log(`[createOrder] Marking swap ${swap_request_id} as completed - both users checked out`);
           await supabaseAdmin
             .from('swap_requests')
             .update({ status: 'completed' })
             .eq('id', swap_request_id);
+        } else {
+          // Only one user has checked out. Keep status as 'accepted', don't change it.
+          console.log(`[createOrder] First user checked out for swap ${swap_request_id}, keeping status as accepted`);
         }
       }
 

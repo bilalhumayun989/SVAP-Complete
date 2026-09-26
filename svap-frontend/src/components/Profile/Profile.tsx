@@ -82,7 +82,6 @@ const Profile = () => {
   const [reels, setReels] = useState<any[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string | number; name: string } | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [orderUpdating, setOrderUpdating] = useState<string | null>(null);
   const [profileUser, setProfileUser] = useState<any>({
     name: "User",
     username: "@user",
@@ -602,7 +601,7 @@ const Profile = () => {
                         {isPending   && <><FiClock size={11} /> Pending</>}
                         {!isComplete && !isRejected && !isPending && swap.status}
                       </div>
-                      {swap.orderId && swap.orderStatus === 'pending' && (
+                      {/* {swap.orderId && swap.orderStatus === 'pending' && (
                         <button
                           type="button"
                           className="pf-order-received-btn"
@@ -629,7 +628,7 @@ const Profile = () => {
                           <FiCheck size={14} />
                           {orderUpdating === String(swap.orderId) ? 'Updating...' : 'Order Received'}
                         </button>
-                      )}
+                      )} */}
                     </div>
                   );
                 })}

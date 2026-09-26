@@ -107,17 +107,36 @@ const Requests = () => {
 
   const checkoutRequestIds = new Set(
     checkoutOrders
+      .filter((order) => order.from_user_id === userId) // Only current user's orders
       .map((order) => order.swap_request_id)
       .filter((id): id is string => Boolean(id))
   );
-  const isCheckoutRequest = (request: SwapRequest) =>
-    checkoutRequestIds.has(request.id) ||
-    ["accepted", "completed"].includes(request.status);
+  
+  console.log('[Requests Debug] userId:', userId);
+  console.log('[Requests Debug] All checkoutOrders:', checkoutOrders);
+  console.log('[Requests Debug] Filtered checkoutOrders (from_user_id === userId):', 
+    checkoutOrders.filter((order) => order.from_user_id === userId)
+  );
+  console.log('[Requests Debug] checkoutRequestIds Set:', Array.from(checkoutRequestIds));
+  console.log('[Requests Debug] All requests:', requests);
+  
+  const isCheckoutRequest = (request: SwapRequest) => {
+    // The other participant's order is also proof that this swap entered
+    // checkout, even if the request status was not refreshed/persisted yet.
+    const hasRelatedOrder = checkoutOrders.some(
+      (order) => order.swap_request_id === request.id
+    );
+    const hasUserOrder = checkoutRequestIds.has(request.id);
+    const isAccepted = request.status === "accepted";
+    const isCompleted = request.status === "completed";
+
+    return hasRelatedOrder || hasUserOrder || isAccepted || isCompleted;
+  };
   const incoming = requests.filter(
-    (r) => r.direction === "received" && !isCheckoutRequest(r)
+    (r) => r.direction === "received" && !isCheckoutRequest(r) && r.status !== "completed"
   );
   const outgoing = requests.filter(
-    (r) => r.direction === "sent" && !isCheckoutRequest(r)
+    (r) => r.direction === "sent" && !isCheckoutRequest(r) && r.status !== "completed"
   );
   const currentUserCheckoutOrders = checkoutOrders.filter(
     (order) => order.from_user_id === userId
@@ -128,7 +147,7 @@ const Requests = () => {
       .map((order) => [order.swap_request_id, order])
   );
   const checkout = requests.filter(
-    (request) => isCheckoutRequest(request)
+    (request) => isCheckoutRequest(request) && request.status !== "completed"
   );
   const active =
     tab === "incoming" ? incoming : tab === "outgoing" ? outgoing : checkout;
