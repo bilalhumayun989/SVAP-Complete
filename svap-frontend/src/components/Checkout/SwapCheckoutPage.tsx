@@ -259,7 +259,8 @@ export const SwapCheckoutPage = () => {
 
   const currentUserId = (() => { try { return JSON.parse(localStorage.getItem('sz_user') || '{}').id; } catch { return null; } })();
   const isSender = swapInfo?.from_user_id === currentUserId;
-  const premiumAmount = (isSender && swapInfo?.premium_amount && swapInfo.premium_amount > 0) ? swapInfo.premium_amount : 0;
+  const cashTopUpAmount = Number(swapInfo?.premium_amount || 0);
+  const premiumAmount = isSender ? cashTopUpAmount : 0;
   const totalToTransfer = BANK_DETAILS.deliveryFee + premiumAmount;
   const isCashOnlyOffer = !swapInfo?.offered_product_id || !swapInfo.offered;
   const myItem = isCashOnlyOffer ? (isSender ? null : swapInfo?.requested) : (isSender ? swapInfo?.offered : swapInfo?.requested);
@@ -387,11 +388,12 @@ export const SwapCheckoutPage = () => {
         <span className="swap-icon-arrow">⇄</span>
         <span className="highlight-text">
           {myItem?.title || (isCashOnlyOffer && isSender ? `PKR ${swapInfo?.premium_amount}` : 'Your Item')}
-          {premiumAmount > 0 && !isCashOnlyOffer ? ` + PKR ${premiumAmount}` : ''}
+          {isSender && cashTopUpAmount > 0 && !isCashOnlyOffer ? ` + PKR ${cashTopUpAmount.toLocaleString()}` : ''}
         </span>
         <span className="swap-icon-app">⇄</span>
         <span className="item-text">
-          {theirItem?.title || (isCashOnlyOffer && !isSender ? `PKR ${swapInfo?.premium_amount || 0}` : 'Requested Item')}
+          {theirItem?.title || (isCashOnlyOffer && !isSender ? `PKR ${cashTopUpAmount.toLocaleString()}` : 'Requested Item')}
+          {!isSender && cashTopUpAmount > 0 && !isCashOnlyOffer ? ` + PKR ${cashTopUpAmount.toLocaleString()}` : ''}
         </span>
       </div>
 

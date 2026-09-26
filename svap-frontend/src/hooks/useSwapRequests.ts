@@ -6,6 +6,10 @@ export interface SwapRequest {
   to_user_id: string;
   offered_product_id: string | null;
   requested_product_id: string;
+  premium_amount?: number | null;
+  cash_amount?: number | null;
+  top_up_amount?: number | null;
+  is_cash_only?: boolean;
   status: "pending" | "accepted" | "rejected" | "completed" | "unavailable";
   expires_at: string;
   created_at: string;
@@ -23,6 +27,10 @@ export async function sendSwapRequest(params: {
   to_user_id: string;
   offered_product_id: string;
   requested_product_id: string;
+  premium_amount?: number | null;
+  cash_amount?: number | null;
+  top_up_amount?: number | null;
+  is_cash_only?: boolean;
 }): Promise<SwapRequest | null> {
   try {
     const res = await api.createSwapRequest(params);

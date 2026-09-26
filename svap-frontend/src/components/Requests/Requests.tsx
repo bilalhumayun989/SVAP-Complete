@@ -290,6 +290,8 @@ const Requests = () => {
                 new Date(req.expires_at).getTime() <= Date.now();
               const timeLeft = getTimeRemaining(req.expires_at);
               const isPending = req.status === "pending" && !isExpired;
+              const cashOfferAmount = Number(req.top_up_amount ?? req.cash_amount ?? req.premium_amount ?? 0);
+              const isCashOnlyOffer = Boolean(req.is_cash_only) || !req.offered_product_id;
               const targetProfile =
                 req.direction === "received"
                   ? req.from_profile
@@ -320,13 +322,13 @@ const Requests = () => {
                   {/* ITEMS SWAP SECTION */}
                   <div className="req-swap-row">
                     {/* LEFT ITEM */}
-                    {((req as any).is_cash_only || !req.offered_product_id) ? (
+                    {isCashOnlyOffer ? (
                       <div className="req-item req-cash-box">
                         
                         <div className="req-item-info">
                           <span className="req-item-label">Cash Offer</span>
                           <span className="req-cash-amount">
-                            PKR {Number((req as any).cash_amount || (req as any).premium_amount || 0).toLocaleString()}
+                            PKR {cashOfferAmount.toLocaleString()}
                           </span>
                           <span className="req-cash-sub">Direct cash</span>
                         </div>
@@ -395,12 +397,10 @@ const Requests = () => {
                   </div>
 
                   {/* CASH TOP-UP SWEETEN DEAL BADGE */}
-                  {(req as any).top_up_amount > 0 && (
+                  {!isCashOnlyOffer && cashOfferAmount > 0 && (
                     <div className="req-sweeten-box">
-                      <span className="req-sweeten-icon">🌐</span>
                       <span>
-                        They're adding PKR {(req as any).top_up_amount} cash to
-                        sweeten the deal
+                        {req.direction === "received" ? "They're adding" : "You're adding"} PKR {cashOfferAmount.toLocaleString()} cash in this deal
                       </span>
                     </div>
                   )}
