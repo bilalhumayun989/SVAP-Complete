@@ -35,41 +35,47 @@ export default function TopNavbar() {
     location.pathname.startsWith("/reel-upload") ||
     location.pathname.startsWith("/create-reel");
 
-  // Timer ref to handle scroll stop detection robustly
+  const lastScrollY = useRef(0);
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
-      // Background blur toggle
+      // Blur/border toggle
       setIsScrolled(currentScrollY > 10);
 
-      // Path check direct inside event handler for accuracy
       if (location.pathname === "/") {
-        // Page ke bilkul top par humesha dikhayen
-        if (currentScrollY <= 10) {
+        // Top par hamesha visible
+        if (currentScrollY <= 15) {
           setIsVisible(true);
           if (scrollTimer.current) clearTimeout(scrollTimer.current);
+          lastScrollY.current = currentScrollY;
           return;
         }
 
-        // Jab scroll ho raha ho to hide kar do
-        setIsVisible(false);
+        // 1. Ulta (upar) scroll karne par instantly show karo
+        if (currentScrollY < lastScrollY.current - 3) {
+          setIsVisible(true);
+        } 
+        // 2. Neeche scroll karne par hide karo
+        else if (currentScrollY > lastScrollY.current + 3) {
+          setIsVisible(false);
+        }
 
-        // Purana timer clear karke naya timer lagayein (180ms delay)
+        // 3. Jaha par scroll roko, waha 150ms baad automatic neechay aa jaye
         if (scrollTimer.current) {
           clearTimeout(scrollTimer.current);
         }
-
-        // Jaise hi 180ms tak scroll event rukega, navbar neechay aa jayegi
         scrollTimer.current = setTimeout(() => {
           setIsVisible(true);
-        }, 180);
+        }, 150);
+
       } else {
-        // Dusre sabhi pages par visible rakhein
         setIsVisible(true);
       }
+
+      lastScrollY.current = currentScrollY;
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -112,16 +118,16 @@ export default function TopNavbar() {
   return (
     <>
       <header
-        className={`md:hidden w-full fixed top-0 left-0 right-0 z-40 px-4 py-4 flex items-center justify-between transition-transform duration-300 ease-in-out ${
-          isVisible ? "translate-y-0" : "-translate-y-full"
+        className={`md:hidden w-full fixed top-0 left-0 right-0 z-40 px-4 py-2.5 flex items-center justify-between transition-all duration-300 ease-in-out border-b ${
+          isVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
         } ${
           isDark
             ? isScrolled
-              ? "bg-[#0A0A0A]/90 backdrop-blur-md"
-              : "bg-[#0A0A0A]"
+              ? "bg-[#0A0A0A]/90 backdrop-blur-md border-white/10"
+              : "bg-[#0A0A0A] border-transparent"
             : isScrolled
-            ? "bg-white/90 backdrop-blur-md"
-            : "bg-white"
+            ? "bg-white/90 backdrop-blur-md border-black/5"
+            : "bg-white border-transparent"
         }`}
       >
         {/* BRAND LOGO */}
@@ -129,50 +135,50 @@ export default function TopNavbar() {
           <img
             src="/Logo.png"
             alt="SVAP logo"
-            className="h-7 w-auto object-contain transition-opacity duration-200 active:opacity-80"
+            className="h-6 w-auto object-contain transition-opacity duration-200 active:opacity-80"
           />
         </Link>
 
-        {/* ACTION ICONS (NOTIFICATIONS, SEARCH, SETTINGS) */}
-        <div className="flex items-center gap-2.5">
+        {/* ACTION ICONS */}
+        <div className="flex items-center gap-2">
           {/* NOTIFICATION BUTTON */}
           <button
             onClick={() => navigate("/notifications")}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${
               isDark
                 ? "bg-[#1A1A1A] border border-white/10 text-white hover:bg-[#262626]"
                 : "bg-[#F3F3F5] border border-black/10 text-gray-900 hover:bg-[#E5E5EA]"
             }`}
             aria-label="Notifications"
           >
-            <Bell size={18} />
+            <Bell size={17} />
           </button>
 
           {/* SEARCH BUTTON */}
           <button
             onClick={() => navigate("/search")}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${
               isDark
                 ? "bg-[#1A1A1A] border border-white/10 text-white hover:bg-[#262626]"
                 : "bg-[#F3F3F5] border border-black/10 text-gray-900 hover:bg-[#E5E5EA]"
             }`}
             aria-label="Search"
           >
-            <Search size={18} />
+            <Search size={17} />
           </button>
 
           {/* SETTINGS ICON (Only on Profile Page) */}
           {isProfilePage && (
             <button
               onClick={() => setSettingsOpen(true)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${
+              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${
                 isDark
                   ? "bg-[#1A1A1A] border border-white/10 text-white hover:bg-[#262626]"
                   : "bg-[#F3F3F5] border border-black/10 text-gray-900 hover:bg-[#E5E5EA]"
               }`}
               aria-label="Settings"
             >
-              <Settings size={18} />
+              <Settings size={17} />
             </button>
           )}
         </div>

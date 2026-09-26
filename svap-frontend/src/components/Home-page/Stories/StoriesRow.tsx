@@ -122,7 +122,7 @@ const StoriesRow = () => {
         .stories-section {
           width: 100%;
           background: var(--bg);
-          padding: 22px 0 4px;
+          padding: 17px 0 4px;
         }
 
         .stories-head {
