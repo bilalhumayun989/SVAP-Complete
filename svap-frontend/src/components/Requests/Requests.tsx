@@ -21,9 +21,11 @@ import { api } from "../../services/api";
 type Tab = "incoming" | "outgoing" | "checkout";
 
 type CheckoutOrder = {
+  id?: string;
   swap_request_id: string | null;
   from_user_id: string;
   status: string;
+  is_checkout_pending?: boolean;
 };
 
 const getDisplayName = (profile?: { username: string | null }) =>
@@ -107,7 +109,12 @@ const Requests = () => {
 
   const checkoutRequestIds = new Set(
     checkoutOrders
-      .filter((order) => order.from_user_id === userId) // Only current user's orders
+      .filter(
+        (order) =>
+          order.from_user_id === userId &&
+          !order.is_checkout_pending &&
+          !String(order.id || '').startsWith('checkout-')
+      )
       .map((order) => order.swap_request_id)
       .filter((id): id is string => Boolean(id))
   );
@@ -146,9 +153,21 @@ const Requests = () => {
       .filter((order: any) => !order.is_checkout_pending && !String(order.id).startsWith('checkout-'))
       .map((order) => [order.swap_request_id, order])
   );
-  const checkout = requests.filter(
-    (request) => isCheckoutRequest(request) && request.status !== "completed"
-  );
+  const checkout = requests.filter((request) => {
+    const hasOwnOrder = checkoutRequestIds.has(request.id);
+    const hasOtherParticipantOrder = checkoutOrders.some(
+      (order) =>
+        order.swap_request_id === request.id &&
+        order.from_user_id !== userId &&
+        !order.is_checkout_pending &&
+        !String(order.id || '').startsWith('checkout-')
+    );
+    const bothParticipantsCheckedOut = hasOwnOrder && hasOtherParticipantOrder;
+
+    // A stale "completed" status must not hide checkout from a participant
+    // who has not placed their own order yet.
+    return isCheckoutRequest(request) && !bothParticipantsCheckedOut;
+  });
   const active =
     tab === "incoming" ? incoming : tab === "outgoing" ? outgoing : checkout;
 

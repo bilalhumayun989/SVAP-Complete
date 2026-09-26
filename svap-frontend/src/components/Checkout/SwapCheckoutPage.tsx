@@ -75,7 +75,6 @@ export const SwapCheckoutPage = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null);
   const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
@@ -158,16 +157,6 @@ export const SwapCheckoutPage = () => {
     checkExisting();
   }, [swapRequestId, navigate]);
 
-  // Optional: Order success screen par 4 second ke baad auto-redirect ke liye
-  useEffect(() => {
-    if (submitted) {
-      const timer = setTimeout(() => {
-        navigate('/orders');
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [submitted, navigate]);
-
   const validate = (): boolean => {
     const e: FormErrors = {};
     if (!form.fullName.trim()) e.fullName = 'Full name is required';
@@ -186,69 +175,49 @@ export const SwapCheckoutPage = () => {
   const handleScreenshotSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     if (!file.type.startsWith('image/')) {
       setErrors(prev => ({ ...prev, paymentScreenshot: 'Please select an image file' }));
       return;
     }
-
     if (file.size > 5 * 1024 * 1024) {
       setErrors(prev => ({ ...prev, paymentScreenshot: 'Image size must be less than 5MB' }));
       return;
     }
-
     setPaymentScreenshot(file);
     setErrors(prev => ({ ...prev, paymentScreenshot: undefined }));
   };
 
   const handleSubmit = async () => {
-    if (!validate()) return;
-    if (!swapRequestId) return;
+    if (!validate() || !swapRequestId) return;
     const stored = localStorage.getItem('sz_user');
     const userId = stored ? JSON.parse(stored).id : null;
     if (!userId) { navigate('/login'); return; }
 
     setSubmitting(true);
     setUploadingScreenshot(true);
-    
     try {
       let screenshotUrl = '';
       if (paymentScreenshot) {
         const fileExt = paymentScreenshot.name.split('.').pop();
         const fileName = `${userId}_${Date.now()}.${fileExt}`;
         const filePath = `payment-screenshots/${fileName}`;
-
         const { error: uploadError } = await supabase.storage
           .from('payment-screenshots')
-          .upload(filePath, paymentScreenshot, {
-            cacheControl: '3600',
-            upsert: false,
-          });
-
-        if (uploadError) {
-          throw new Error(`Screenshot upload failed: ${uploadError.message}`);
-        }
-
-        const { data: urlData } = supabase.storage
+          .upload(filePath, paymentScreenshot, { cacheControl: '3600', upsert: false });
+        if (uploadError) throw new Error(`Screenshot upload failed: ${uploadError.message}`);
+        const { data: urlData } = await supabase.storage
           .from('payment-screenshots')
           .getPublicUrl(filePath);
-
         screenshotUrl = urlData.publicUrl;
       }
-
       setUploadingScreenshot(false);
 
       const fullAddress = form.area.trim()
         ? `${form.area.trim()}, ${form.streetAddress.trim()}`
         : form.streetAddress.trim();
-
-      let toUserId = userId;
-      if (swapInfo) {
-        toUserId = swapInfo.from_user_id === userId
-          ? swapInfo.to_user_id
-          : swapInfo.from_user_id;
-      }
-
+      const toUserId = swapInfo
+        ? (swapInfo.from_user_id === userId ? swapInfo.to_user_id : swapInfo.from_user_id)
+        : userId;
       const orderPayload = {
         swap_request_id: swapRequestId,
         from_user_id: userId,
@@ -264,11 +233,8 @@ export const SwapCheckoutPage = () => {
         transaction_ref: screenshotUrl,
         status: 'pending_verification',
       };
-
       const res = await api.createOrder(orderPayload);
       if (res.error) throw new Error(res.error);
-
-      setCreatedOrderId(res.data?.id || res.id || null);
       setSubmitted(true);
     } catch (err: any) {
       console.error('[SwapCheckoutPage] submit error:', err);
@@ -295,7 +261,6 @@ export const SwapCheckoutPage = () => {
   const isSender = swapInfo?.from_user_id === currentUserId;
   const premiumAmount = (isSender && swapInfo?.premium_amount && swapInfo.premium_amount > 0) ? swapInfo.premium_amount : 0;
   const totalToTransfer = BANK_DETAILS.deliveryFee + premiumAmount;
-
   const isCashOnlyOffer = !swapInfo?.offered_product_id || !swapInfo.offered;
   const myItem = isCashOnlyOffer ? (isSender ? null : swapInfo?.requested) : (isSender ? swapInfo?.offered : swapInfo?.requested);
   const theirItem = isCashOnlyOffer ? (isSender ? swapInfo?.requested : null) : (isSender ? swapInfo?.requested : swapInfo?.offered);
@@ -308,95 +273,100 @@ export const SwapCheckoutPage = () => {
     );
   }
 
-  /* ──────────────── Order Success & Summary View ──────────────── */
   if (submitted) {
+    const summaryCashAmount = isCashOnlyOffer ? Number(swapInfo?.premium_amount || 0) : premiumAmount;
     return (
-      <div className="checkout-container">
-        {/* Success Header */}
+      <div className="checkout-container success-view">
         <div className="success-header">
           <div className="success-icon-wrapper">
-            <div className="success-icon-bg">
-              <FiCheck size={40} strokeWidth={3} />
-            </div>
+            <div className="success-icon-bg"><FiCheck size={34} strokeWidth={2.5} /></div>
           </div>
           <h2 className="success-title">Order Placed!</h2>
-          <p className="success-subtitle">
-            Your payment screenshot has been submitted and is being verified by our team.
-          </p>
+          <p className="success-subtitle">Payment Pending Verification</p>
         </div>
-
-        {/* Order Details Summary Card */}
-        <div className="summary-card">
-          <div className="summary-card-title">Order Summary</div>
-          
-          {createdOrderId && (
-            <div className="summary-row">
-              <div className="summary-label">Order ID</div>
-              <div className="summary-val">{createdOrderId.slice(0, 8)}...</div>
+        <div className="order-status-summary">
+          <div className="status-summary-row"><span>Status</span><span className="status-summary-badge">Pending Verification</span></div>
+          <div className="status-summary-row"><span>Delivery Fee</span><span>PKR {BANK_DETAILS.deliveryFee.toLocaleString()}</span></div>
+          {summaryCashAmount > 0 && (
+            <div className="status-summary-row status-summary-row--cash">
+              <span>{isCashOnlyOffer ? 'Cash Offer' : 'Cash Top-up'}</span>
+              <strong>PKR {summaryCashAmount.toLocaleString()}{isCashOnlyOffer ? ' (cash only)' : ''}</strong>
             </div>
           )}
-
-          <div className="summary-row">
-            <div className="summary-label">Recipient Name</div>
-            <div className="summary-val">{form.fullName}</div>
-          </div>
-
-          <div className="summary-row">
-            <div className="summary-label">Phone Number</div>
-            <div className="summary-val">{form.phone}</div>
-          </div>
-
-          <div className="summary-row">
-            <div className="summary-label">Delivery Address</div>
-            <div className="summary-val" style={{ maxWidth: '60%', textAlign: 'right', lineHeight: 1.4 }}>
-              {form.streetAddress}, {form.area}, {form.city}
-            </div>
-          </div>
-
-          <div className="summary-divider" />
-
-          <div className="summary-row">
-            <div className="summary-label">Delivery Fee</div>
-            <div className="summary-val">PKR {BANK_DETAILS.deliveryFee}</div>
-          </div>
-
-          {premiumAmount > 0 && (
-            <div className="summary-row">
-              <div className="summary-label">Cash Top-up</div>
-              <div className="summary-val">PKR {premiumAmount}</div>
-            </div>
-          )}
-
-          <div className="summary-divider" />
-
-          <div className="summary-row total-row">
-            <div className="total-label">Total Paid</div>
-            <div className="total-val">PKR {totalToTransfer}</div>
-          </div>
         </div>
-
-        {/* Next Steps Info */}
-        <div className="info-box">
-          <FiInfo size={16} />
-          <div>
-            <p style={{ margin: '0 0 8px', fontWeight: 600, fontSize: '0.875rem' }}>What happens next?</p>
-            <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.8125rem', lineHeight: 1.6 }}>
-              <li>Our team will verify your payment within 24 hours</li>
-              <li>You'll receive a notification once verified</li>
-              <li>We'll arrange pickup from both sides</li>
-              <li>Track your order status in "My Orders"</li>
-            </ul>
-          </div>
+        <p className="status-summary-note">Our team will verify your payment and confirm your order shortly. You’ll see the status update in your Orders tab.</p>
+        <div className="success-actions">
+          <button className="submit-btn" onClick={() => navigate('/orders')}>View My Orders</button>
+          <button className="success-secondary-btn" onClick={() => navigate('/requests')}>Back to Requests</button>
         </div>
-
-        <button className="submit-btn" onClick={() => navigate('/orders')}>
-          View My Orders
-        </button>
+        <style>{`
+          .success-view {
+            box-sizing: border-box;
+            width: min(100%, 512px);
+            max-width: 512px;
+            min-height: calc(100vh - 32px);
+            margin: 0 auto;
+            padding: 24px 18px 36px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: var(--bg);
+            color: var(--text-dark);
+            font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+          }
+          .success-view .success-header { text-align: center; padding: 0 0 20px; }
+          .success-view .success-icon-wrapper { display: flex; justify-content: center; margin-bottom: 16px; }
+          .success-view .success-icon-bg {
+            width: 80px; height: 80px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #10b981; background: rgba(16, 185, 129, .12);
+            border: 2px solid rgba(16, 185, 129, .42);
+          }
+          .success-view .success-title { margin: 0 0 10px; color: var(--text-dark); font-size: 1.7rem; font-weight: 800; }
+          .success-view .success-subtitle { margin: 0; padding: 0; color: var(--text-dark); font-size: .95rem; }
+          .order-status-summary {
+            width: 100%; box-sizing: border-box; padding: 16px 20px;
+            border: 1px solid var(--btn-swap); border-radius: 16px;
+            background: var(--card-bg);
+          }
+          .status-summary-row {
+            min-height: 36px; display: flex; align-items: center;
+            justify-content: space-between; gap: 12px;
+            color: var(--text-dark); font-size: .875rem;
+          }
+          .status-summary-row + .status-summary-row { margin-top: 4px; }
+          .status-summary-badge {
+            padding: 6px 14px; border: 1px solid rgba(245, 158, 11, .45);
+            border-radius: 999px; background: rgba(245, 158, 11, .1);
+            color: #f59e0b; font-size: .75rem; font-weight: 700; white-space: nowrap;
+          }
+          .status-summary-row--cash { margin-top: 8px !important; padding-top: 10px; border-top: 1px solid var(--btn-swap); }
+          .status-summary-row--cash strong { color: #f59e0b; font-size: .82rem; }
+          .status-summary-note {
+            max-width: 440px; margin: 16px auto 20px; color: var(--text-muted);
+            text-align: center; font-size: .83rem; line-height: 1.55;
+          }
+          .success-actions { display: flex; flex-direction: column; gap: 10px; }
+          .success-view .submit-btn {
+            width: 100%; min-height: 50px; border: 0; border-radius: 14px;
+            background: var(--btn-swap); color: var(--text-on-orange);
+            font: inherit; font-weight: 700; cursor: pointer;
+          }
+          .success-secondary-btn {
+            width: 100%; min-height: 50px; border: 1px solid var(--btn-swap);
+            border-radius: 14px; background: transparent; color: var(--text-dark);
+            font: inherit; font-weight: 700; cursor: pointer;
+          }
+          .success-secondary-btn:hover { background: rgba(228, 88, 33, .08); }
+          @media (max-width: 480px) {
+            .success-view { min-height: calc(100vh - 24px); padding: 20px 14px 28px; }
+            .success-view .success-title { font-size: 1.5rem; }
+            .order-status-summary { padding: 14px 16px; }
+          }
+        `}</style>
       </div>
     );
   }
-
-  /* ──────────────── Form Checkout View ──────────────── */
   return (
     <div className="checkout-container">
       {/* Top Sticky Header */}
@@ -777,6 +747,21 @@ export const SwapCheckoutPage = () => {
           padding: 0 20px;
         }
 
+        .success-view { max-width: 512px; padding-top: 0; }
+        .success-view .success-header { padding: 18px 0 16px; }
+        .success-view .success-icon-bg { width: 80px; height: 80px; color: #10b981; background: rgba(16, 185, 129, 0.12); border: 2px solid rgba(16, 185, 129, 0.42); box-shadow: none; }
+        .success-view .success-title { margin-bottom: 12px; font-weight: 800; }
+        .success-view .success-subtitle { color: var(--text-dark); }
+        .order-status-summary { border: 1px solid var(--btn-swap); border-radius: 16px; padding: 16px 20px; margin: 0 auto 16px; background: var(--card-bg); }
+        .status-summary-row { min-height: 34px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text-dark); font-size: 0.875rem; }
+        .status-summary-row + .status-summary-row { margin-top: 4px; }
+        .status-summary-badge { border: 1px solid rgba(245, 158, 11, 0.45); border-radius: 999px; padding: 6px 14px; color: #d97706; background: rgba(245, 158, 11, 0.1); font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+        .status-summary-row--cash { border-top: 1px solid var(--btn-swap); margin-top: 8px !important; padding-top: 10px; }
+        .status-summary-row--cash strong { color: #f59e0b; font-size: 0.82rem; }
+        .status-summary-note { max-width: 440px; margin: 14px auto 18px; color: #a88737; text-align: center; font-size: 0.82rem; line-height: 1.55; }
+        .success-actions { display: flex; flex-direction: column; gap: 10px; }
+        .success-secondary-btn { width: 100%; min-height: 50px; border: 1px solid var(--btn-swap); border-radius: 14px; background: transparent; color: var(--text-dark); font: inherit; font-weight: 700; cursor: pointer; }
+        .success-secondary-btn:hover { background: rgba(228, 88, 33, 0.06); }
         .info-box {
           background-color: var(--bg-alt);
           border: 1px solid var(--border-light);
