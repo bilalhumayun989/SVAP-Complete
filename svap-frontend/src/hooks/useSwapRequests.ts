@@ -10,7 +10,7 @@ export interface SwapRequest {
   cash_amount?: number | null;
   top_up_amount?: number | null;
   is_cash_only?: boolean;
-  status: "pending" | "accepted" | "rejected" | "completed" | "unavailable";
+  status: "pending" | "accepted" | "rejected" | "cancelled" | "completed" | "unavailable";
   expires_at: string;
   created_at: string;
   // Joined data

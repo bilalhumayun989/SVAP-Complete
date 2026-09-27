@@ -20,6 +20,18 @@ exports.createOrder = async (req, res) => {
     } = req.body;
 
     // Every newly submitted checkout starts in the payment verification state.
+    // Validate the swap before accepting a checkout submission.
+    if (swap_request_id) {
+      const { data: swapBeforeOrder, error: swapLookupError } = await supabaseAdmin
+        .from('swap_requests')
+        .select('id, status, from_user_id, to_user_id')
+        .eq('id', swap_request_id)
+        .single();
+      if (swapLookupError || !swapBeforeOrder) return res.status(404).json({ error: 'Swap request not found' });
+      if (swapBeforeOrder.status !== 'accepted') return res.status(409).json({ error: 'This swap is no longer available for checkout' });
+      if (![swapBeforeOrder.from_user_id, swapBeforeOrder.to_user_id].includes(from_user_id)) return res.status(403).json({ error: 'Only a swap participant can checkout this request' });
+    }
+
     const orderStatus = "payment_verification";
 
     const { data, error } = await supabaseAdmin
@@ -46,6 +58,18 @@ exports.createOrder = async (req, res) => {
     if (error) {
       console.error('Error creating order:', error);
       return res.status(500).json({ error: error.message });
+    }
+
+    if (swap_request_id) {
+      const { data: swapAfterInsert, error: statusCheckError } = await supabaseAdmin
+        .from('swap_requests')
+        .select('status')
+        .eq('id', swap_request_id)
+        .single();
+      if (statusCheckError || !['accepted', 'completed'].includes(swapAfterInsert?.status)) {
+        await supabaseAdmin.from('orders').delete().eq('id', data.id);
+        return res.status(409).json({ error: 'This swap was cancelled before checkout completed' });
+      }
     }
 
     // Once a product is checked out, competing pending swap requests for it

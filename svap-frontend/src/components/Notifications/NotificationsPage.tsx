@@ -18,7 +18,7 @@ interface Notif {
 }
 
 const iconMap = (type: NotifType) => {
-  if (type === "svap_request" || type === "svap_accepted" || type === "swap_accepted" || type === "swap_partner_checkout_completed" || type === "svap_rejected" || type === "svap_unavailable")
+  if (type === "svap_request" || type === "svap_accepted" || type === "swap_accepted" || type === "swap_partner_checkout_completed" || type === "svap_rejected" || type === "swap_rejected" || type === "swap_cancelled" || type === "svap_unavailable")
     return <FiRepeat size={16} />;
   if (type === "order_update") return <FiShoppingBag size={16} />;
   return <FiBell size={16} />;
@@ -27,7 +27,7 @@ const iconMap = (type: NotifType) => {
 const colorMap = (type: NotifType) => {
   if (type === "svap_request") return "#8DC63F";
   if (type === "svap_accepted" || type === "swap_accepted" || type === "swap_partner_checkout_completed") return "#22c55e";
-  if (type === "svap_rejected" || type === "svap_unavailable") return "#ef4444";
+  if (type === "svap_rejected" || type === "swap_rejected" || type === "swap_cancelled" || type === "svap_unavailable") return "#ef4444";
   if (type === "order_update") return "#E45821";
   return "#8b5cf6";
 };

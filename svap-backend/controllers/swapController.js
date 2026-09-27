@@ -1,7 +1,7 @@
 const { supabase, supabaseAdmin } = require('../config/supabase');
 
 const PROFILE_FALLBACK = { username: null, avatar_url: null };
-const COOLDOWN_MESSAGE = 'You Have Already Sent a Request for This Item in the Last 48 Hours. Please Wait Before Sending Another Request.';
+const ACTIVE_REQUEST_MESSAGE = 'You already have an active request for this item.';
 
 const attachRequestProfiles = async (requests) => {
   const rows = Array.isArray(requests) ? requests : [requests].filter(Boolean);
@@ -46,8 +46,6 @@ const attachRequestProfiles = async (requests) => {
 exports.getMyRequests = async (req, res) => {
   try {
     const { userId } = req.params;
-    const now = new Date().toISOString();
-
     // Fetch all requests for the user
     const { data, error } = await supabaseAdmin
       .from('swap_requests')
@@ -61,22 +59,14 @@ exports.getMyRequests = async (req, res) => {
 
     if (error) return res.status(400).json({ error: error.message });
 
-    // Filter to match mobile app behavior:
-    // 1. pending   → only if NOT expired (expires_at > now)
-    // 2. accepted  → always show (they are in checkout flow)
-    // 3. rejected  → show only last 48 hours (user awareness)
-    // 4. completed/unavailable → hide (clutter, mobile hides these)
-    const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    // Rejected requests are hidden; accepted requests remain visible for checkout.
     const filtered = (data || []).filter((r) => {
       if (r.status === 'pending') {
         // Only show pending if not yet expired
         return new Date(r.expires_at).getTime() > Date.now();
       }
       if (r.status === 'accepted' || r.status === 'completed') return true;
-      if (r.status === 'rejected') {
-        // Show rejected only within last 48 hours
-        return new Date(r.created_at).getTime() > new Date(cutoff48h).getTime();
-      }
+      if (r.status === 'rejected' || r.status === 'cancelled') return false;
       // unavailable → hide
       return false;
     });
@@ -89,27 +79,24 @@ exports.getMyRequests = async (req, res) => {
 };
 
 // ── GET /api/swap-requests/check/:userId/:productId ────────────────────────
-// Check if user can send a svap request for a specific product (24h limit)
+// Check if user has an active pending or accepted request for this product.
 exports.checkSwapEligibility = async (req, res) => {
   try {
     const { userId, productId } = req.params;
     
     const { data, error } = await supabaseAdmin
       .from('swap_requests')
-      .select('id, created_at')
+      .select('id, status, expires_at')
       .eq('from_user_id', userId)
       .eq('requested_product_id', productId)
-      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-      .limit(1);
+      .in('status', ['pending', 'accepted']);
 
     if (error) return res.status(400).json({ error: error.message });
 
-    const canSend = !data || data.length === 0;
-    const nextAvailable = data && data.length > 0 
-      ? new Date(new Date(data[0].created_at).getTime() + 24 * 60 * 60 * 1000).toISOString()
-      : null;
-
-    res.json({ canSend, nextAvailable });
+    const hasActiveRequest = (data || []).some((request) =>
+      request.status === 'accepted' || (request.status === 'pending' && new Date(request.expires_at).getTime() > Date.now())
+    );
+    res.json({ canSend: !hasActiveRequest, nextAvailable: null, code: hasActiveRequest ? 'ACTIVE_REQUEST_EXISTS' : null });
   } catch (err) {
     res.status(500).json({ error: 'Internal Server Error' });
   }
@@ -144,26 +131,24 @@ exports.createSwapRequest = async (req, res) => {
       return res.status(400).json({ error: 'offered_product_id is required for an item offer' });
     }
 
-    // ── 48-HOUR LIMIT CHECK ──
-    // Check if user already sent a request for this product in the last 48 hours
+    // Prevent duplicate offers only while a matching request is pending or accepted.
     const { data: existingRequests, error: checkError } = await supabaseAdmin
       .from('swap_requests')
-      .select('id, created_at')
+      .select('id, status, expires_at')
       .eq('from_user_id', from_user_id)
       .eq('requested_product_id', requested_product_id)
-      .gte('created_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
-      .limit(1);
+      .in('status', ['pending', 'accepted']);
 
     if (checkError) {
-      console.error('[48h-check]', checkError.message);
+      console.error('[active-request-check]', checkError.message);
       return res.status(400).json({ error: checkError.message });
     }
 
-    if (existingRequests && existingRequests.length > 0) {
-      return res.status(429).json({ 
-        error: COOLDOWN_MESSAGE,
-        code: 'RATE_LIMIT_48H'
-      });
+    const hasActiveRequest = (existingRequests || []).some((request) =>
+      request.status === 'accepted' || new Date(request.expires_at).getTime() > Date.now()
+    );
+    if (hasActiveRequest) {
+      return res.status(409).json({ error: ACTIVE_REQUEST_MESSAGE, code: 'ACTIVE_REQUEST_EXISTS' });
     }
 
     const expires_at = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
@@ -204,36 +189,82 @@ exports.createSwapRequest = async (req, res) => {
 exports.updateSwapRequestStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, updated_by } = req.body; // updated_by = userId of who is updating
+    const { status, updated_by } = req.body;
+
+    if (!['accepted', 'rejected', 'cancelled'].includes(status)) {
+      return res.status(400).json({ error: 'Unsupported swap request status' });
+    }
+
+    const { data: current, error: fetchError } = await supabaseAdmin
+      .from('swap_requests')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !current) return res.status(404).json({ error: 'Swap request not found' });
+
+    if (status === 'cancelled') {
+      const isParticipant = updated_by === current.from_user_id || updated_by === current.to_user_id;
+      if (!isParticipant) return res.status(403).json({ error: 'Only a swap participant can cancel this request' });
+      if (current.status !== 'accepted') {
+        return res.status(409).json({ error: 'Only an accepted swap can be cancelled here' });
+      }
+
+      const { count, error: ordersError } = await supabaseAdmin
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('swap_request_id', id);
+
+      if (ordersError) return res.status(500).json({ error: ordersError.message });
+      if (count > 0) {
+        return res.status(409).json({ error: 'Checkout has already started. Contact support to cancel the order.' });
+      }
+    } else {
+      if (updated_by !== current.to_user_id) {
+        return res.status(403).json({ error: 'Only the receiving user can accept or reject this request' });
+      }
+      if (current.status !== 'pending') {
+        return res.status(409).json({ error: 'This request is no longer pending' });
+      }
+    }
 
     const { data, error } = await supabaseAdmin
       .from('swap_requests')
       .update({ status })
       .eq('id', id)
-      .select(`
-        *,
-        offered:products!offered_product_id(title, image_urls),
-        requested:products!requested_product_id(title, image_urls)
-      `)
+      .eq('status', current.status)
+      .select('*, offered:products!offered_product_id(title, image_urls), requested:products!requested_product_id(title, image_urls)')
       .single();
 
-    if (error) return res.status(400).json({ error: error.message });
+    if (error || !data) return res.status(409).json({ error: error?.message || 'Request status changed; refresh and try again' });
     const hydrated = await attachRequestProfiles(data);
 
-    // Acceptance only unlocks checkout. Notify the sender after the receiver
-    // actually completes checkout in the order controller.
-    if (hydrated && hydrated.from_user_id && status === 'rejected') {
-      const updaterName = hydrated.to_profile?.username || 'Someone';
-      const productTitle = hydrated.requested?.title || 'your item';
-
+    if (status === 'rejected') {
       await supabaseAdmin.from('notifications').insert({
         user_id: hydrated.from_user_id,
-        type: 'svap_rejected',
-        title: 'Svap Request Rejected',
-        body: `@${updaterName} rejected your request — ${productTitle}`,
+        type: 'swap_rejected',
+        title: 'Request Rejected',
+        body: 'Your svap request has been rejected',
         route: '/requests',
         is_read: false,
       });
+    }
+
+    if (status === 'cancelled') {
+      const participantIds = [...new Set([hydrated.from_user_id, hydrated.to_user_id])];
+      const { error: notificationError } = await supabaseAdmin.from('notifications').insert(
+        participantIds.map((user_id) => ({
+          user_id,
+          type: 'swap_cancelled',
+          title: 'Swap Cancelled',
+          body: 'This svap is canceled',
+          route: '/requests',
+          is_read: false,
+        }))
+      );
+      if (notificationError) {
+        console.error('[cancelSwapRequest] Notification insert failed:', notificationError.message);
+      }
     }
 
     res.json({ data: hydrated });

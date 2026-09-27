@@ -6,7 +6,7 @@ import {
 } from 'react-icons/fi'
 import { api } from '../../services/api'
 
-const SWAP_COOLDOWN_MESSAGE = 'You have already sent a request for this item in the last 48 hours. Please wait before sending another request.';
+const SWAP_COOLDOWN_MESSAGE = 'You already have an active request for this item.';
 
 interface DetailProduct {
   id: string
@@ -107,7 +107,7 @@ const ProductDetailPage = () => {
     fetchProduct();
   }, [id]);
 
-  // ── Check 24-hour swap eligibility ──
+  // Check for an active pending or accepted request for this item.
   useEffect(() => {
     const checkEligibility = async () => {
       if (!myUserId || !id) return;

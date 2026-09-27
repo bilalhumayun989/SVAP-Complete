@@ -16,6 +16,7 @@ import {
 } from "../../hooks/useSwapRequests";
 import { useNotifications } from "../../context/NotificationContext";
 import { api } from "../../services/api";
+import { supabase } from "../../services/supabase";
 
 type Tab = "incoming" | "outgoing" | "checkout";
 
@@ -56,6 +57,7 @@ const Requests = () => {
   const [checkoutOrders, setCheckoutOrders] = useState<CheckoutOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
+  const [cancellingRequestId, setCancellingRequestId] = useState<string | null>(null);
 
   const userId = (() => {
     try {
@@ -116,6 +118,15 @@ const Requests = () => {
   }, [refresh]);
 
   useEffect(() => {
+    if (!userId) return;
+    const channel = supabase.channel("swap-requests-user-" + userId)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "swap_requests", filter: "from_user_id=eq." + userId }, () => refresh())
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "swap_requests", filter: "to_user_id=eq." + userId }, () => refresh())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, refresh]);
+
+  useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 60_000);
     return () => clearInterval(id);
   }, []);
@@ -149,10 +160,10 @@ const Requests = () => {
     return hasRelatedOrder || hasUserOrder || isAccepted || isCompleted;
   };
   const incoming = requests.filter(
-    (r) => r.direction === "received" && !isCheckoutRequest(r) && r.status !== "completed"
+    (r) => r.direction === "received" && !isCheckoutRequest(r) && r.status !== "completed" && r.status !== "rejected"
   );
   const outgoing = requests.filter(
-    (r) => r.direction === "sent" && !isCheckoutRequest(r) && r.status !== "completed"
+    (r) => r.direction === "sent" && !isCheckoutRequest(r) && r.status !== "completed" && r.status !== "rejected"
   );
   const currentUserCheckoutOrders = checkoutOrders.filter(
     (order) => order.from_user_id === userId
@@ -189,6 +200,23 @@ const Requests = () => {
       refresh();
       // Acceptance unlocks checkout for both parties, including cash-only offers.
       navigate(`/checkout/${id}`);
+    }
+  };
+
+  const handleCancelAcceptedSwap = async (requestId: string) => {
+    if (!userId || cancellingRequestId) return;
+    if (!window.confirm("Cancel this accepted svap?")) return;
+    setCancellingRequestId(requestId);
+    try {
+      const result = await api.updateSwapRequestStatus(requestId, "cancelled", userId);
+      if (result.error) throw new Error(result.error);
+      await refresh();
+      window.dispatchEvent(new Event("sz_requests_change"));
+    } catch (error: any) {
+      window.alert(error.message || "Could not cancel this svap.");
+      await refresh();
+    } finally {
+      setCancellingRequestId(null);
     }
   };
 
@@ -305,6 +333,8 @@ const Requests = () => {
                 req.direction === "received"
                   ? req.from_profile
                   : req.to_profile;
+              const hasAnyCheckoutOrder = checkoutOrders.some((order) => order.swap_request_id === req.id && !order.is_checkout_pending && !String(order.id || "").startsWith("checkout-"));
+              const canCancelAcceptedSwap = tab === "checkout" && req.status === "accepted" && !hasAnyCheckoutOrder;
               const ownOrder = checkoutOrderByRequest.get(req.id);
               const partnerHasOrder = checkoutOrders.some((order) => order.swap_request_id === req.id && order.from_user_id !== userId && !order.is_checkout_pending && !String(order.id || "").startsWith("checkout-"));
               const displayUserName = getDisplayName(targetProfile);
@@ -492,21 +522,16 @@ const Requests = () => {
                   )}
 
                   {tab === "checkout" && (
-                    <button
-                      className={`req-btn ${checkoutOrderByRequest.has(req.id)
-                        ? "req-btn--order-placed"
-                        : "req-btn--accept"
-                        }`}
-                      onClick={() =>
-                        checkoutOrderByRequest.has(req.id)
-                          ? navigate("/orders")
-                          : navigate(`/checkout/${req.id}`)
-                      }
-                    >
-                      {checkoutOrderByRequest.has(req.id)
-                        ? "⏳ Order placed · Waiting for other user"
-                        : "PROCEED TO CHECKOUT"}
-                    </button>
+                    <div className="req-checkout-actions">
+                      {canCancelAcceptedSwap && (
+                        <button className="req-btn req-btn--reject" disabled={cancellingRequestId === req.id} onClick={() => handleCancelAcceptedSwap(req.id)}>
+                          {cancellingRequestId === req.id ? "CANCELLING..." : "CANCEL SvAP"}
+                        </button>
+                      )}
+                      <button className={"req-btn " + (checkoutOrderByRequest.has(req.id) ? "req-btn--order-placed" : "req-btn--accept")} onClick={() => checkoutOrderByRequest.has(req.id) ? navigate("/orders") : navigate("/checkout/" + req.id)}>
+                        {checkoutOrderByRequest.has(req.id) ? "Order placed · Waiting for other user" : "PROCEED TO CHECKOUT"}
+                      </button>
+                    </div>
                   )}
                 </div>
               );
@@ -816,6 +841,10 @@ const Requests = () => {
         .req-timer-time {
           font-weight: 700;
         }
+        .req-checkout-actions { display:flex; gap:10px; width:100%; }
+        .req-checkout-actions .req-btn--accept, .req-checkout-actions .req-btn--order-placed { flex:1; }
+        .req-checkout-actions .req-btn--reject { flex:0 0 auto; }
+        .req-btn:disabled { opacity:.6; cursor:wait; }
         .req-order-status, .req-partner-checkout-note { margin:12px 0; padding:12px; border:1px solid var(--border-color,#d1d5db); border-radius:12px; background:var(--card-bg,rgba(128,128,128,.06)); }
         .req-order-status-heading { display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:.82rem; }
         .req-order-status-heading strong { color:var(--btn-swap,#e45821); text-align:right; }
