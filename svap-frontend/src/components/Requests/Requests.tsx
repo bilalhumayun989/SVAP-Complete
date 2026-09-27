@@ -148,7 +148,7 @@ const Requests = () => {
   );
 
   const isCheckoutRequest = (request: SwapRequest) => {
-    // The other participant's order is also proof that this swap entered
+    // The other participant's order is also proof that this svap entered
     // checkout, even if the request status was not refreshed/persisted yet.
     const hasRelatedOrder = checkoutOrders.some(
       (order) => order.swap_request_id === request.id
@@ -518,7 +518,7 @@ const Requests = () => {
                     </div>
                   )}
                   {tab === "checkout" && !ownOrder && partnerHasOrder && (
-                    <div className="req-partner-checkout-note" role="status">Your swap partner has completed checkout. Complete your own checkout to continue.</div>
+                    <div className="req-partner-checkout-note" role="status">Your svap partner has completed checkout. Complete your own checkout to continue.</div>
                   )}
 
                   {tab === "checkout" && (

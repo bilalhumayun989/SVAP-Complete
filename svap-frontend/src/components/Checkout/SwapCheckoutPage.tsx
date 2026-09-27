@@ -411,7 +411,7 @@ export const SwapCheckoutPage = () => {
         <div className="cash-boost-note" role="note">
           <strong>{isSender
             ? `You are offering PKR ${cashTopUpAmount.toLocaleString()} extra with your item.`
-            : `You will receive PKR ${cashTopUpAmount.toLocaleString()} extra in this swap.`}</strong>
+            : `You will receive PKR ${cashTopUpAmount.toLocaleString()} extra in this svap.`}</strong>
           <span>{isSender
             ? "Give this cash to the rider at delivery. It is not included in the bank transfer."
             : "The rider will hand you this cash at delivery. It is not part of the bank transfer."}</span>

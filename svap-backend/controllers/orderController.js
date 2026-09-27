@@ -28,8 +28,17 @@ exports.createOrder = async (req, res) => {
         .eq('id', swap_request_id)
         .single();
       if (swapLookupError || !swapBeforeOrder) return res.status(404).json({ error: 'Swap request not found' });
-      if (swapBeforeOrder.status !== 'accepted') return res.status(409).json({ error: 'This swap is no longer available for checkout' });
+      if (!['accepted', 'completed'].includes(swapBeforeOrder.status)) return res.status(409).json({ error: 'This svap is no longer available for checkout' });
       if (![swapBeforeOrder.from_user_id, swapBeforeOrder.to_user_id].includes(from_user_id)) return res.status(403).json({ error: 'Only a swap participant can checkout this request' });
+      if (swapBeforeOrder.status === 'completed') {
+        const { count: ownOrderCount, error: ownOrderError } = await supabaseAdmin
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('swap_request_id', swap_request_id)
+          .eq('from_user_id', from_user_id);
+        if (ownOrderError) return res.status(500).json({ error: 'Could not verify this user checkout state' });
+        if (ownOrderCount > 0) return res.status(409).json({ error: 'You have already completed checkout for this svap' });
+      }
     }
 
     const orderStatus = "payment_verification";
@@ -68,7 +77,7 @@ exports.createOrder = async (req, res) => {
         .single();
       if (statusCheckError || !['accepted', 'completed'].includes(swapAfterInsert?.status)) {
         await supabaseAdmin.from('orders').delete().eq('id', data.id);
-        return res.status(409).json({ error: 'This swap was cancelled before checkout completed' });
+        return res.status(409).json({ error: 'This svap was cancelled before checkout completed' });
       }
     }
 
@@ -92,7 +101,7 @@ exports.createOrder = async (req, res) => {
             user_id: swapRequest.from_user_id,
             type: 'swap_partner_checkout_completed',
             title: 'Swap Partner Checked Out',
-            body: 'Your swap partner has completed checkout. Complete your own checkout to continue.',
+            body: 'Your svap partner has completed checkout. Complete your own checkout to continue.',
             route: '/requests',
             is_read: false,
           });
