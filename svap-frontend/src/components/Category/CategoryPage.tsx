@@ -42,6 +42,7 @@ const CategoryPage = () => {
             condition: p.condition || "",
             category: p.category || categoryName,
             swapFor: p.swap_for || "",
+            estimatedValue: p.estimated_value ?? null,
             swapForImage: p.image_urls?.[1] || "",
             user: {
               name: p.profiles?.username || p.profiles?.full_name || "Unknown",

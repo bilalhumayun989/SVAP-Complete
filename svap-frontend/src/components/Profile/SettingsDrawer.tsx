@@ -148,7 +148,6 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
     if (!saved.id) return;
     setDeleting(true);
     try {
-      await api.deleteProduct && console.log("delete account");
       // Just clear local + navigate for now; real deletion needs backend endpoint
       localStorage.removeItem("sz_user");
       window.dispatchEvent(new Event("sz_auth_change"));

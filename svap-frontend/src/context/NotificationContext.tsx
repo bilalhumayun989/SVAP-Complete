@@ -88,7 +88,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
             seenIds.current.add(notif.id);
             const toast: ToastItem = {
               id: notif.id,
-              body: notif.body || notif.title || 'New swap request received',
+              body: notif.body || notif.title || 'New svap request received',
               route: '/requests',
             };
             setToasts(prev => [...prev, toast]);

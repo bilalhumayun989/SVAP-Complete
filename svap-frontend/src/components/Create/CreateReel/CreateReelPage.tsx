@@ -65,9 +65,7 @@ const CreateReelPage = () => {
 
       for (const userId of userIds) {
         try {
-          // console.log('[CreateReel] Fetching products for userId:', userId);
           const response = await api.getProductsByUser(userId, true); // activeOnly = true
-          // console.log('[CreateReel] Response:', response);
           const userProducts = response?.data || [];
           userProducts.forEach((product: ProductOption) => {
             if (product?.id) productsById.set(product.id, product);

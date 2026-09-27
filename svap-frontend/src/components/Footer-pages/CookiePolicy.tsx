@@ -66,7 +66,7 @@ const CookiePolicy = () => {
         For questions regarding our use of cookies or similar technologies:
       </p>
     <p>
-  <strong>Email:</strong> Contactatsvap@gmail.com
+  <strong>Email:</strong> contact@svap.pk
 </p>
 
     </FooterPageLayout>

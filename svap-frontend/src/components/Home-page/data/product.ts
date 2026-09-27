@@ -14,6 +14,7 @@ export interface Product {
   views: number
   condition?: string
   swapFor?: string
+  estimatedValue?: number | null
   swapForImage?: string
 }
 

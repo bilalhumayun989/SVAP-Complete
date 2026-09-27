@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  FiBookmark, FiRepeat, FiTag,
+  FiBookmark, FiRepeat, 
   FiEdit2, FiTrash2, FiHeart,
   FiCheck, FiClock, FiX, FiStar, FiBox
 } from "react-icons/fi";
@@ -37,7 +37,7 @@ const GridCard = ({ item, badge, onDelete, onEdit }: { item: { id: number; image
       <div className={`pf-grid-overlay ${badge === "swap" ? "pf-grid-overlay--swap" : ""}`}>
         {badge === "swap"
           ? <><FiRepeat size={11} /><span>{item.swapFor}</span></>
-          : <><FiTag size={11} /><span>{item.price}</span></>
+          : <><span>{item.price}</span></>
         }
       </div>
       {onDelete && onEdit && (
@@ -170,7 +170,6 @@ const Profile = () => {
         } catch { /* ignore — fallback values used */ }
 
         const { data: productData, error: productError } = await api.getProductsByUser(savedUser.id, true);
-        // console.log("Profile products response:", { userId: savedUser.id, productData, productError });
 
         if (!productError && Array.isArray(productData)) {
           const activeListings = productData.filter((p: any) => (p.status || "active") === "active");
@@ -178,8 +177,8 @@ const Profile = () => {
             id: p.id,
             image: p.image_urls?.[0] || 'https://placehold.co/400x400',
             name: p.title,
-            price: 'Swap Only',
-            swapFor: p.swap_for
+            price: '',
+            svapFor: p.svap_for
           })));
 
           // Stories: one slide per image across all active products
@@ -214,7 +213,7 @@ const Profile = () => {
               id: row.product.id,
               image: row.product.image_urls?.[0] || 'https://placehold.co/400x400',
               name: row.product.title,
-              price: 'Swap Only',
+              price: '',
               swapFor: row.product.swap_for,
             }))
           );

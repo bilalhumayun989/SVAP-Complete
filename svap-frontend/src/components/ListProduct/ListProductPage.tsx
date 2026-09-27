@@ -99,7 +99,6 @@ const ListProductPage = () => {
         const p = photos[i];
         if (p.file) {
           try {
-            console.log(`Uploading photo ${i + 1} of ${photos.length}...`);
             const formData = new FormData();
             formData.append('image', p.file);
             const uploadResponse = await api.uploadImage(formData);
@@ -109,7 +108,6 @@ const ListProductPage = () => {
             }
             if (uploadResponse.url) {
               imageUrls.push(uploadResponse.url);
-              console.log(`Photo ${i + 1} uploaded successfully`);
             } else {
               throw new Error(`Photo ${i + 1}: No URL returned from server`);
             }
@@ -125,7 +123,6 @@ const ListProductPage = () => {
       let reelUrl: string | undefined;
       if (reel) {
         try {
-          console.log('Uploading reel video...');
           const reelFormData = new FormData();
           reelFormData.append('video', reel.file);
           const reelUpload = await api.uploadVideo(reelFormData);
@@ -137,7 +134,6 @@ const ListProductPage = () => {
             throw new Error('Reel upload: No URL returned from server');
           }
           reelUrl = reelUpload.url;
-          console.log('Reel uploaded successfully');
         } catch (reelErr: any) {
           console.error('Reel upload error:', reelErr);
           alert('Failed to upload reel video. Please try again.');
@@ -145,7 +141,6 @@ const ListProductPage = () => {
         }
       }
 
-      console.log('Creating product...');
 
       const response = await api.createProduct({
         id: productId,
@@ -155,6 +150,7 @@ const ListProductPage = () => {
         category,
         condition,
         swap_for: swapFor,
+        estimated_value: estimatedValue ? Number(estimatedValue) : null,
         image_urls: imageUrls,
         ...(reelUrl ? { video_url: reelUrl } : {}),
         status: 'active',
@@ -350,14 +346,12 @@ const ListProductPage = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Category clicked:', cat);
                     setCategory(cat);
                     setErrors((prev) => ({ ...prev, category: "" }));
                   }}
                   onTouchEnd={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Category touched:', cat);
                     setCategory(cat);
                     setErrors((prev) => ({ ...prev, category: "" }));
                   }}
@@ -431,14 +425,12 @@ const ListProductPage = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Condition clicked:', cond);
                     setCondition(cond);
                     setErrors((prev) => ({ ...prev, condition: "" }));
                   }}
                   onTouchEnd={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Condition touched:', cond);
                     setCondition(cond);
                     setErrors((prev) => ({ ...prev, condition: "" }));
                   }}

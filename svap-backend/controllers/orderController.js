@@ -17,12 +17,10 @@ exports.createOrder = async (req, res) => {
       total,
       tracking_number,
       transaction_ref,
-      status: requestedStatus,
     } = req.body;
 
-    // Allow 'pending_verification' from swap checkout, otherwise default to 'pending'
-    const allowedStatuses = ['pending', 'pending_verification'];
-    const orderStatus = allowedStatuses.includes(requestedStatus) ? requestedStatus : 'pending';
+    // Every newly submitted checkout starts in the payment verification state.
+    const orderStatus = "payment_verification";
 
     const { data, error } = await supabaseAdmin
       .from('orders')
@@ -100,7 +98,7 @@ exports.createOrder = async (req, res) => {
         });
 
         if (otherUserOrdersCount > 0) {
-          // Both users have now checked out. Mark swap request as completed.
+          // Both users have now checked out. Mark svap request as completed.
           console.log(`[createOrder] Marking swap ${swap_request_id} as completed - both users checked out`);
           await supabaseAdmin
             .from('swap_requests')
@@ -187,7 +185,6 @@ exports.getOrders = async (req, res) => {
       .from('orders')
       .select('*')
       .or(`from_user_id.eq.${user_id},to_user_id.eq.${user_id}`)
-      .in('status', ['pending', 'pending_verification', 'confirmed', 'shipped', 'delivered', 'completed', 'cancelled'])
       .order('created_at', { ascending: false });
 
     if (error) {

@@ -39,6 +39,7 @@ const AllProductGrid = () => {
             views: p.saved_count || 0,
             condition: p.condition || "",
             swapFor: p.swap_for || "",
+            estimatedValue: p.estimated_value ?? null,
             swapForImage: p.image_urls?.[1] || "",
           })));
         }

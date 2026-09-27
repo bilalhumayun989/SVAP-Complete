@@ -106,7 +106,7 @@ const PrivacyPolicy = () => {
 </p>
 
 <p>
-  <strong>Email:</strong> Contactatsvap@gmail.com
+  <strong>Email:</strong> contact@svap.pk
 </p>
 
 

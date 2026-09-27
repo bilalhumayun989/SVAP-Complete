@@ -21,8 +21,6 @@ const CATEGORIES = [
   "Clothing",
   "Shoes",
   "Accessories",
-  "Electronics",
-  "Mobiles",
   "Home & Living",
   "Books",
   "Sports",

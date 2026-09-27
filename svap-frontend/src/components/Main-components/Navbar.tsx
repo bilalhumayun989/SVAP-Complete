@@ -89,7 +89,7 @@ const TOP_NAV = [
   { icon: <ReelsIcon size={24} />, label: "Reels", route: "/reels" },
   { icon: <BellIcon size={24} />, label: "Notifications", route: "/notifications" },
   { icon: <BrandIcon src="/request.png" alt="Requests" size={24} className="nb-req-icon" />, label: "Requests", route: "/requests" },
-  { icon: <BrandIcon src="/ICONS/Category.png" alt="Create" size={24} className="nb-req-icon" />, label: "Create", route: "/list-product" },
+  { icon: <BrandIcon src="/ICONS/Category.png" alt="List" size={24} className="nb-req-icon" />, label: "List an item", route: "/list-product" },
 ];
 
 const Navbar = () => {

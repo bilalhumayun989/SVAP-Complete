@@ -10,7 +10,8 @@ import { supabase } from "../../services/supabase";
 // ─── Types ────────────────────────────────────────────────────────────────────
 type OrderStatus =
   | "pending"
-  | "pending_verification"
+  | "payment_verification"
+  | "product_verification"
   | "confirmed"
   | "shipped"
   | "delivered"
@@ -47,11 +48,17 @@ const STATUS_CONFIG: Record<
     bg: "rgba(245,158,11,0.12)",
     icon: <FiClock size={13} />,
   },
-  pending_verification: {
-    label: "Pending Verification",
+  payment_verification: {
+    label: "Payment Verification",
     color: "#8b5cf6",
     bg: "rgba(139,92,246,0.12)",
     icon: <FiAlertCircle size={13} />,
+  },
+  product_verification: {
+    label: "Product Verification",
+    color: "#6366f1",
+    bg: "rgba(99,102,241,0.12)",
+    icon: <FiPackage size={13} />,
   },
   confirmed: {
     label: "Confirmed",
@@ -95,8 +102,8 @@ const getStatusCfg = (s: string) =>
 
 // ─── Status Steps for progress tracker ────────────────────────────────────────
 const STATUS_STEPS: OrderStatus[] = [
-  "pending_verification",
-  "confirmed",
+  "payment_verification",
+  "product_verification",
   "shipped",
   "delivered",
 ];
@@ -181,19 +188,28 @@ const OrdersPage = () => {
       .on(
         "postgres_changes",
         {
-          event: "UPDATE",
+          event: "*",
           schema: "public",
           table: "orders",
           filter: `to_user_id=eq.${userId}`,
         },
         (payload: any) => {
-          setOrders(prev =>
-            prev.map(o =>
-              o.id === (payload.new as RealOrder).id
-                ? { ...o, ...(payload.new as Partial<RealOrder>) }
-                : o,
-            ),
-          );
+          if (payload.eventType === "INSERT") {
+            const insertedOrder = payload.new as RealOrder;
+            setOrders(prev =>
+              prev.some(order => order.id === insertedOrder.id)
+                ? prev
+                : [insertedOrder, ...prev],
+            );
+          } else if (payload.eventType === "UPDATE") {
+            setOrders(prev =>
+              prev.map(order =>
+                order.id === (payload.new as RealOrder).id
+                  ? { ...order, ...(payload.new as Partial<RealOrder>) }
+                  : order,
+              ),
+            );
+          }
         },
       )
       .subscribe();
@@ -206,12 +222,12 @@ const OrdersPage = () => {
 
   // ── Derived values ────────────────────────────────────────────────────────────
   const pendingCount = orders.filter(o =>
-    ["pending", "pending_verification"].includes(o.status)
+    ["pending", "payment_verification", "product_verification"].includes(o.status)
   ).length;
 
   const filtered = (() => {
     if (tab === "all") return orders;
-    if (tab === "pending") return orders.filter(o => ["pending", "pending_verification"].includes(o.status));
+    if (tab === "pending") return orders.filter(o => ["pending", "payment_verification", "product_verification"].includes(o.status));
     if (tab === "completed") return orders.filter(o => ["completed", "delivered"].includes(o.status));
     return orders.filter(o => o.status === tab);
   })();
@@ -246,7 +262,7 @@ const OrdersPage = () => {
           <div className="op-stat">
             <FiAlertCircle size={22} className="op-stat-icon pv" />
             <div>
-              <h2>{orders.filter(o => o.status === "pending_verification").length}</h2>
+              <h2>{orders.filter(o => ["payment_verification", "product_verification"].includes(o.status)).length}</h2>
               <p>Verifying</p>
             </div>
           </div>
@@ -318,7 +334,7 @@ const OrdersPage = () => {
                         {order.tracking_number
                           ? `#${order.tracking_number}`
                           : `#${order.id.slice(0, 8).toUpperCase()}`}
-                        {isSwap && <span className="op-swap-tag">SWAP</span>}
+                        {isSwap && <span className="op-swap-tag">SVAP</span>}
                       </div>
                       <span className="op-date">
                         {new Date(order.created_at).toLocaleDateString("en-PK", {
@@ -422,13 +438,13 @@ const OrdersPage = () => {
                     </div>
                   </div>
 
-                  {/* View Swap Request link */}
+                  {/* View Svap Request link */}
                   {isSwap && (
                     <button
                       className="op-view-swap"
                       onClick={() => navigate("/requests")}
                     >
-                      View Swap Request →
+                      View Svap Request →
                     </button>
                   )}
                 </div>

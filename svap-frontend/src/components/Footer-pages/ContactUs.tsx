@@ -15,7 +15,7 @@ const ContactUs = () => {
         For general inquiries, account support, listing assistance, payment questions, or reporting an issue:
       </p>
       <p>
-        <a href="mailto:Contactatsvap@gmail.com">Contactatsvap@gmail.com</a>
+        <a href="mailto:contact@svap.pk">contact@svap.pk</a>
       </p>
 
       <h2>What to Include in Your Message</h2>
@@ -46,7 +46,7 @@ const ContactUs = () => {
 
       <div className="fp-highlight">
         <p style={{ margin: 0, fontSize: "0.82rem" }}>
-          <strong>Support Contact:</strong> Email us directly at <a href="mailto:Contactatsvap@gmail.com">Contactatsvap@gmail.com</a> for assistance.
+          <strong>Support Contact:</strong> Email us directly at <a href="mailto:contact@svap.pk">contact@svap.pk</a> for assistance.
         </p>
       </div>
     </FooterPageLayout>

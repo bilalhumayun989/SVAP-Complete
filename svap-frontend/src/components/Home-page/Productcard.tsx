@@ -141,10 +141,12 @@ const ProductCard = ({ product, initialSaved = false }: ProductCardProps) => {
               </div>
             )}
 
-            {/* <div className="flex items-center gap-1">
-              <span className="text-emerald-500">⚡</span>
-              <span>Value: up to you</span>
-            </div> */}
+            {Number(product.estimatedValue) > 0 && (
+              <div className="flex items-center gap-1">
+                <span className="text-emerald-500">⚡</span>
+                <span>Est Value: PKR {Number(product.estimatedValue).toLocaleString()}</span>
+              </div>
+            )}
           </div>
         </div>
 

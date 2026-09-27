@@ -6,17 +6,6 @@ import {
 } from 'react-icons/fi'
 import { api } from '../../services/api'
 
-// White SVAP left-right arrows icon for use on orange button background
-const SvapBtnIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    {/* Top Arrow */}
-    <path d="M3 7h18m0 0l-4-4m4 4l-4 4" />
-
-    {/* Bottom Arrow */}
-    <path d="M21 17H3m0 0l4-4M3 17l4 4" />
-  </svg>
-);
-
 const SWAP_COOLDOWN_MESSAGE = 'You have already sent a request for this item in the last 48 hours. Please wait before sending another request.';
 
 interface DetailProduct {
@@ -431,7 +420,7 @@ const ProductDetailPage = () => {
           {/* Toast */}
           {toast && (
             <div className="pdp-toast">
-              <FiCheck /> Swap request sent! Expires in 24h.
+              <FiCheck /> Svap request sent! Expires in 48h.
             </div>
           )}
 
@@ -470,7 +459,7 @@ const ProductDetailPage = () => {
         </div>
       </div>
 
-      {/* ══ Swap Request Modal ══ */}
+      {/* ══ Svap Request Modal ══ */}
       {showSwapModal && (
         <div
           className="pdp-modal-overlay"
@@ -623,14 +612,24 @@ const ProductDetailPage = () => {
                       setSelectedProductId(null);
                       setCashAmount('');
                     }
-                    alert(err.message || 'Failed to send swap request');
+                    alert(err.message || 'Failed to send svap request');
                   } finally {
                     setSwapLoading(false);
                   }
                 }}
               >
-                {swapLoading ? 'Sending...' : <><SvapBtnIcon /> Send Swap Request</>}
-              </button>
+                {swapLoading ? (
+                  'Sending...'
+                ) : (
+                  <>
+                    <img
+                      src="/request.png"
+                      alt="Svap Request"
+                      className="w-5 h-5 object-contain inline-block"
+                    />
+                    Send Svap Request
+                  </>
+                )}              </button>
             </div>
           </div>
         </div>
@@ -1283,7 +1282,7 @@ const ProductDetailPage = () => {
           .pdp-related-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
         }
 
-        /* ── Swap Request Modal ── */
+        /* ── Svap Request Modal ── */
         .pdp-modal-overlay {
           position: fixed;
           inset: 0;

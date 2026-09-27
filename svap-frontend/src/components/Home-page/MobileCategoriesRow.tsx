@@ -1,15 +1,7 @@
 import { useNavigate } from "react-router-dom";
 
 // ── Category icons (SVG, brand two-tone: #313C5C body + #E45821 accent) ──────
-const ElectronicsIcon = () => (
-  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-    <rect x="3" y="7" width="26" height="16" rx="2" stroke="#313C5C" strokeWidth="2" strokeLinejoin="round"/>
-    <path d="M10 27h12" stroke="#313C5C" strokeWidth="2" strokeLinecap="round"/>
-    <path d="M16 23v4" stroke="#313C5C" strokeWidth="2" strokeLinecap="round"/>
-    <rect x="7" y="11" width="12" height="8" rx="1" fill="#E45821" fillOpacity="0.15" stroke="#E45821" strokeWidth="1.5"/>
-    <circle cx="23" cy="15" r="2" fill="#E45821"/>
-  </svg>
-);
+
 
 const GamingIcon = () => (
   <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -97,7 +89,6 @@ const JewelryIcon = () => (
 );
 
 const MOBILE_CATS = [
-  { label: "Electronics", icon: <ElectronicsIcon /> },
   { label: "Gaming",      icon: <GamingIcon /> },
   { label: "Fashion",     icon: <FashionIcon /> },
   { label: "Sports",      icon: <SportsIcon /> },

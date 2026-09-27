@@ -89,7 +89,7 @@ exports.getMyRequests = async (req, res) => {
 };
 
 // ── GET /api/swap-requests/check/:userId/:productId ────────────────────────
-// Check if user can send a swap request for a specific product (24h limit)
+// Check if user can send a svap request for a specific product (24h limit)
 exports.checkSwapEligibility = async (req, res) => {
   try {
     const { userId, productId } = req.params;
@@ -228,8 +228,8 @@ exports.updateSwapRequestStatus = async (req, res) => {
 
       await supabaseAdmin.from('notifications').insert({
         user_id: hydrated.from_user_id,
-        type: 'swap_rejected',
-        title: 'Swap Request Rejected',
+        type: 'svap_rejected',
+        title: 'Svap Request Rejected',
         body: `@${updaterName} rejected your request — ${productTitle}`,
         route: '/requests',
         is_read: false,

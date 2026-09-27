@@ -196,7 +196,7 @@ const TermsOfService = () => {
         For questions regarding these Terms:
       </p>
       <p>
-  <strong>Email:</strong> Contactatsvap@gmail.com
+  <strong>Email:</strong> contact@svap.pk
 </p>
 
     </FooterPageLayout>

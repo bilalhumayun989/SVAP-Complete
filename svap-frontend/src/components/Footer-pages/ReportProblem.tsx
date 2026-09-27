@@ -65,7 +65,7 @@ const ReportProblem = () => {
 
       <div className="fp-highlight">
         <p style={{ margin: 0, fontSize: "0.82rem" }}>
-          <strong>Contact Us:</strong> Email us directly at <a href="mailto:Contactatsvap@gmail.com">Contactatsvap@gmail.com</a>.
+          <strong>Contact Us:</strong> Email us directly at <a href="mailto:contact@svap.pk">contact@svap.pk</a>.
         </p>
       </div>
 

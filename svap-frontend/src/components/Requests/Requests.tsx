@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiSend,
-  FiRepeat,
   FiCreditCard,
   FiClock,
   FiArrowLeft,
@@ -118,15 +117,7 @@ const Requests = () => {
       .map((order) => order.swap_request_id)
       .filter((id): id is string => Boolean(id))
   );
-  
-  console.log('[Requests Debug] userId:', userId);
-  console.log('[Requests Debug] All checkoutOrders:', checkoutOrders);
-  console.log('[Requests Debug] Filtered checkoutOrders (from_user_id === userId):', 
-    checkoutOrders.filter((order) => order.from_user_id === userId)
-  );
-  console.log('[Requests Debug] checkoutRequestIds Set:', Array.from(checkoutRequestIds));
-  console.log('[Requests Debug] All requests:', requests);
-  
+
   const isCheckoutRequest = (request: SwapRequest) => {
     // The other participant's order is also proof that this swap entered
     // checkout, even if the request status was not refreshed/persisted yet.
@@ -312,7 +303,7 @@ const Requests = () => {
                     <button
                       className="req-visit-store"
                       onClick={() =>
-                        navigate(`/profile/${targetProfile?.username || ""}`)
+                        navigate(`/user/${req.direction === "received" ? req.from_user_id : req.to_user_id}`)
                       }
                     >
                       <FiShoppingBag size={13} /> Visit Store &gt;
@@ -324,7 +315,7 @@ const Requests = () => {
                     {/* LEFT ITEM */}
                     {isCashOnlyOffer ? (
                       <div className="req-item req-cash-box">
-                        
+
                         <div className="req-item-info">
                           <span className="req-item-label">Cash Offer</span>
                           <span className="req-cash-amount">
@@ -364,7 +355,7 @@ const Requests = () => {
 
                     {/* SWAP ICON */}
                     <div className="req-swap-arrow">
-                      <FiRepeat size={14} />
+                      <div className="req-swap-icon" />
                     </div>
 
                     {/* RIGHT ITEM */}
@@ -416,7 +407,9 @@ const Requests = () => {
                         <span>
                           {tab === "checkout"
                             ? "Complete checkout before time runs out"
-                            : "Accept before time runs out"}
+                            : tab === "outgoing"
+                              ? "Waiting for their response"
+                              : "Accept before timer runs out"}
                         </span>
                       </div>
                       <span className="req-timer-time">
@@ -430,15 +423,15 @@ const Requests = () => {
                           width: isExpired
                             ? "0%"
                             : (() => {
-                                const created = new Date(req.created_at).getTime();
-                                const expires = new Date(req.expires_at).getTime();
-                                const now = Date.now();
-                                if (now <= created) return "100%";
-                                const total = expires - created;
-                                const remaining = expires - now;
-                                const pct = Math.max(0, Math.min(100, (remaining / total) * 100));
-                                return `${pct}%`;
-                              })(),
+                              const created = new Date(req.created_at).getTime();
+                              const expires = new Date(req.expires_at).getTime();
+                              const now = Date.now();
+                              if (now <= created) return "100%";
+                              const total = expires - created;
+                              const remaining = expires - now;
+                              const pct = Math.max(0, Math.min(100, (remaining / total) * 100));
+                              return `${pct}%`;
+                            })(),
                         }}
                       />
                     </div>
@@ -464,17 +457,16 @@ const Requests = () => {
 
                   {tab === "outgoing" && isPending && (
                     <div className="req-pending-label">
-                       Waiting for user response…
+                      Waiting for user response…
                     </div>
                   )}
 
                   {tab === "checkout" && (
                     <button
-                      className={`req-btn ${
-                        checkoutOrderByRequest.has(req.id)
-                          ? "req-btn--order-placed"
-                          : "req-btn--accept"
-                      }`}
+                      className={`req-btn ${checkoutOrderByRequest.has(req.id)
+                        ? "req-btn--order-placed"
+                        : "req-btn--accept"
+                        }`}
                       onClick={() =>
                         checkoutOrderByRequest.has(req.id)
                           ? navigate("/orders")
@@ -694,13 +686,33 @@ const Requests = () => {
           color: var(--btn-swap);
           margin-top: 2px;
         }
-        .req-swap-arrow {
-          color: var(--btn-swap);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
+  .req-swap-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
+.req-swap-icon {
+  width: 25px;
+  height: 25px;
+  /* Light mode mein default blue color */
+  background-color: var(--svap-blue, #2563eb);
+  -webkit-mask-image: url('/svap.png');
+  mask-image: url('/svap.png');
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  transition: background-color 0.2s ease;
+}
+
+/* Dark mode ke liye icon ka color white hoga */
+[data-theme="dark"] .req-swap-icon,
+.dark .req-swap-icon {
+  background-color: #ffffff;
+}
         /* CASH OFFER BOX */
         .req-cash-box {
           background: rgba(34, 197, 94, 0.08);

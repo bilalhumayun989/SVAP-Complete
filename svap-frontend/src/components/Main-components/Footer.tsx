@@ -72,7 +72,7 @@ const Footer = () => {
                 <div className="ft-contact-list">
                   <div className="ft-contact-item">
                     <FiMail className="ft-contact-icon" />
-                    <span>Contactatsvap@gmail.com</span>
+                    <span>contact@svap.pk</span>
                   </div>
                 </div>
 

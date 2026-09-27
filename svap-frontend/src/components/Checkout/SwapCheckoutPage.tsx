@@ -231,7 +231,7 @@ export const SwapCheckoutPage = () => {
         discount: 0,
         total: totalToTransfer,
         transaction_ref: screenshotUrl,
-        status: 'pending_verification',
+        status: 'payment_verification',
       };
       const res = await api.createOrder(orderPayload);
       if (res.error) throw new Error(res.error);
@@ -260,9 +260,10 @@ export const SwapCheckoutPage = () => {
   const currentUserId = (() => { try { return JSON.parse(localStorage.getItem('sz_user') || '{}').id; } catch { return null; } })();
   const isSender = swapInfo?.from_user_id === currentUserId;
   const cashTopUpAmount = Number(swapInfo?.premium_amount || 0);
-  const premiumAmount = isSender ? cashTopUpAmount : 0;
-  const totalToTransfer = BANK_DETAILS.deliveryFee + premiumAmount;
   const isCashOnlyOffer = !swapInfo?.offered_product_id || !swapInfo.offered;
+  // Item-swap cash is handed over at delivery, not included in bank transfer.
+  const cashOnlyTransferAmount = isCashOnlyOffer && isSender ? cashTopUpAmount : 0;
+  const totalToTransfer = BANK_DETAILS.deliveryFee + cashOnlyTransferAmount;
   const myItem = isCashOnlyOffer ? (isSender ? null : swapInfo?.requested) : (isSender ? swapInfo?.offered : swapInfo?.requested);
   const theirItem = isCashOnlyOffer ? (isSender ? swapInfo?.requested : null) : (isSender ? swapInfo?.requested : swapInfo?.offered);
 
@@ -275,7 +276,7 @@ export const SwapCheckoutPage = () => {
   }
 
   if (submitted) {
-    const summaryCashAmount = isCashOnlyOffer ? Number(swapInfo?.premium_amount || 0) : premiumAmount;
+    const summaryCashAmount = cashTopUpAmount;
     return (
       <div className="checkout-container success-view">
         <div className="success-header">
@@ -290,11 +291,17 @@ export const SwapCheckoutPage = () => {
           <div className="status-summary-row"><span>Delivery Fee</span><span>PKR {BANK_DETAILS.deliveryFee.toLocaleString()}</span></div>
           {summaryCashAmount > 0 && (
             <div className="status-summary-row status-summary-row--cash">
-              <span>{isCashOnlyOffer ? 'Cash Offer' : 'Cash Top-up'}</span>
+              <span>{isCashOnlyOffer ? 'Cash Offer' : (isSender ? 'Cash you offer' : 'Cash you receive')}</span>
               <strong>PKR {summaryCashAmount.toLocaleString()}{isCashOnlyOffer ? ' (cash only)' : ''}</strong>
             </div>
           )}
         </div>
+        {summaryCashAmount > 0 && !isCashOnlyOffer && (
+          <div className="cash-boost-note" role="note">
+            <strong>{isSender ? `You are offering PKR ${summaryCashAmount.toLocaleString()} extra.` : `You will receive PKR ${summaryCashAmount.toLocaleString()} extra.`}</strong>
+            <span>This cash is exchanged with the rider at delivery. It is not part of the bank transfer.</span>
+          </div>
+        )}
         <p className="status-summary-note">Our team will verify your payment and confirm your order shortly. You’ll see the status update in your Orders tab.</p>
         <div className="success-actions">
           <button className="submit-btn" onClick={() => navigate('/orders')}>View My Orders</button>
@@ -343,6 +350,9 @@ export const SwapCheckoutPage = () => {
           }
           .status-summary-row--cash { margin-top: 8px !important; padding-top: 10px; border-top: 1px solid var(--btn-swap); }
           .status-summary-row--cash strong { color: #f59e0b; font-size: .82rem; }
+          .cash-boost-note { display: flex; flex-direction: column; gap: 5px; margin-top: 12px; padding: 12px 14px; border: 1px solid rgba(245, 158, 11, .38); border-radius: 12px; background: rgba(245, 158, 11, .08); color: var(--text-dark); font-size: .82rem; line-height: 1.45; }
+          .cash-boost-note strong { color: #f59e0b; }
+          .cash-boost-note span { color: var(--text-muted); }
           .status-summary-note {
             max-width: 440px; margin: 16px auto 20px; color: var(--text-muted);
             text-align: center; font-size: .83rem; line-height: 1.55;
@@ -397,6 +407,16 @@ export const SwapCheckoutPage = () => {
         </span>
       </div>
 
+      {cashTopUpAmount > 0 && !isCashOnlyOffer && (
+        <div className="cash-boost-note" role="note">
+          <strong>{isSender
+            ? `You are offering PKR ${cashTopUpAmount.toLocaleString()} extra with your item.`
+            : `You will receive PKR ${cashTopUpAmount.toLocaleString()} extra in this swap.`}</strong>
+          <span>{isSender
+            ? "Give this cash to the rider at delivery. It is not included in the bank transfer."
+            : "The rider will hand you this cash at delivery. It is not part of the bank transfer."}</span>
+        </div>
+      )}
       {/* Form Inputs */}
       <div className="section-title">Delivery Details</div>
       
@@ -599,10 +619,13 @@ export const SwapCheckoutPage = () => {
           <div className="summary-val">PKR {BANK_DETAILS.deliveryFee}</div>
         </div>
 
-        {premiumAmount > 0 && (
+        {cashTopUpAmount > 0 && (
           <div className="summary-row">
-            <div className="summary-label">Cash Top-up</div>
-            <div className="summary-val">PKR {premiumAmount}</div>
+            <div>
+              <div className="summary-label">{isCashOnlyOffer ? "Cash Offer" : (isSender ? "Cash you offer" : "Cash you receive")}</div>
+              {!isCashOnlyOffer && <div className="summary-sublabel">Exchanged with rider at delivery; not a bank transfer.</div>}
+            </div>
+            <div className="summary-val">PKR {cashTopUpAmount.toLocaleString()}</div>
           </div>
         )}
 
