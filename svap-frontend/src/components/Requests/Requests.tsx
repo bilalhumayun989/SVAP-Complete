@@ -27,6 +27,24 @@ type CheckoutOrder = {
   is_checkout_pending?: boolean;
 };
 
+const ORDER_STAGES = [
+  { value: "payment_verification", label: "Payment Verification" },
+  { value: "product_verification", label: "Item Verification Completed" },
+  { value: "shipped", label: "Shipped" },
+  { value: "delivered", label: "Delivered" },
+];
+
+const orderStageIndex = (status: string) => ORDER_STAGES.findIndex((stage) =>
+  stage.value === (status === "pending" || status === "pending_verification" ? "payment_verification" : status === "confirmed" ? "product_verification" : status === "completed" ? "delivered" : status)
+);
+
+const orderStatusLabel = (status: string) => {
+  if (status === "pending" || status === "pending_verification") return "Payment Verification";
+  if (status === "confirmed") return "Item Verification Completed";
+  if (status === "completed") return "Delivered";
+  return ORDER_STAGES.find((stage) => stage.value === status)?.label || status;
+};
+
 const getDisplayName = (profile?: { username: string | null }) =>
   profile?.username || "Deleted User";
 
@@ -287,6 +305,8 @@ const Requests = () => {
                 req.direction === "received"
                   ? req.from_profile
                   : req.to_profile;
+              const ownOrder = checkoutOrderByRequest.get(req.id);
+              const partnerHasOrder = checkoutOrders.some((order) => order.swap_request_id === req.id && order.from_user_id !== userId && !order.is_checkout_pending && !String(order.id || "").startsWith("checkout-"));
               const displayUserName = getDisplayName(targetProfile);
               const avatarLetter = displayUserName.charAt(0).toUpperCase();
 
@@ -459,6 +479,16 @@ const Requests = () => {
                     <div className="req-pending-label">
                       Waiting for user response…
                     </div>
+                  )}
+
+                  {tab === "checkout" && ownOrder && (
+                    <div className="req-order-status" aria-label={"Your order status: " + orderStatusLabel(ownOrder.status)}>
+                      <div className="req-order-status-heading"><span>Your order status</span><strong>{orderStatusLabel(ownOrder.status)}</strong></div>
+                      {orderStageIndex(ownOrder.status) >= 0 && <div className="req-order-stages">{ORDER_STAGES.map((stage, index) => <div key={stage.value} className={"req-order-stage " + (index <= orderStageIndex(ownOrder.status) ? "is-done " : "") + (index === orderStageIndex(ownOrder.status) ? "is-current" : "")}><span className="req-order-stage-dot" /><span>{stage.label}</span></div>)}</div>}
+                    </div>
+                  )}
+                  {tab === "checkout" && !ownOrder && partnerHasOrder && (
+                    <div className="req-partner-checkout-note" role="status">Your swap partner has completed checkout. Complete your own checkout to continue.</div>
                   )}
 
                   {tab === "checkout" && (
@@ -786,6 +816,16 @@ const Requests = () => {
         .req-timer-time {
           font-weight: 700;
         }
+        .req-order-status, .req-partner-checkout-note { margin:12px 0; padding:12px; border:1px solid var(--border-color,#d1d5db); border-radius:12px; background:var(--card-bg,rgba(128,128,128,.06)); }
+        .req-order-status-heading { display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:.82rem; }
+        .req-order-status-heading strong { color:var(--btn-swap,#e45821); text-align:right; }
+        .req-order-stages { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; margin-top:12px; }
+        .req-order-stage { display:flex; flex-direction:column; align-items:center; gap:6px; color:var(--text-muted,#888); text-align:center; font-size:.62rem; line-height:1.25; }
+        .req-order-stage-dot { width:9px; height:9px; border:2px solid currentColor; border-radius:50%; }
+        .req-order-stage.is-done { color:#10b981; }
+        .req-order-stage.is-current { color:var(--btn-swap,#e45821); font-weight:700; }
+        .req-order-stage.is-current .req-order-stage-dot { background:currentColor; }
+        .req-partner-checkout-note { color:var(--text-dark); font-size:.82rem; line-height:1.45; }
         .req-progress-bar {
           height: 4px;
           background: var(--border-light);

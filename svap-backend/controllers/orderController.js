@@ -66,9 +66,9 @@ exports.createOrder = async (req, res) => {
         if (swapRequest?.status === 'accepted' && from_user_id !== swapRequest.from_user_id) {
           await supabaseAdmin.from('notifications').insert({
             user_id: swapRequest.from_user_id,
-            type: 'swap_accepted',
-            title: 'Swap Checkout Ready',
-            body: 'The receiver has completed checkout. Your svap order is ready to review.',
+            type: 'swap_partner_checkout_completed',
+            title: 'Swap Partner Checked Out',
+            body: 'Your swap partner has completed checkout. Complete your own checkout to continue.',
             route: '/requests',
             is_read: false,
           });

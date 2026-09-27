@@ -35,6 +35,7 @@ type RealOrder = {
   tracking_number: string | null;
   transaction_ref: string | null;
   created_at: string;
+  is_checkout_pending?: boolean;
 };
 
 // ─── Status Config ─────────────────────────────────────────────────────────────
@@ -55,13 +56,13 @@ const STATUS_CONFIG: Record<
     icon: <FiAlertCircle size={13} />,
   },
   product_verification: {
-    label: "Product Verification",
+    label: "Item Verification Completed",
     color: "#6366f1",
     bg: "rgba(99,102,241,0.12)",
     icon: <FiPackage size={13} />,
   },
   confirmed: {
-    label: "Confirmed",
+    label: "Item Verification Completed",
     color: "#3b82f6",
     bg: "rgba(59,130,246,0.12)",
     icon: <FiCheckCircle size={13} />,
@@ -79,7 +80,7 @@ const STATUS_CONFIG: Record<
     icon: <FiCheckCircle size={13} />,
   },
   completed: {
-    label: "Completed",
+    label: "Delivered",
     color: "#10b981",
     bg: "rgba(16,185,129,0.12)",
     icon: <FiCheckCircle size={13} />,
@@ -109,15 +110,15 @@ const STATUS_STEPS: OrderStatus[] = [
 ];
 
 const stepIndex = (s: string): number =>
-  STATUS_STEPS.indexOf(s as OrderStatus);
+  STATUS_STEPS.indexOf((s === "pending" || s === "pending_verification" ? "payment_verification" : s === "confirmed" ? "product_verification" : s === "completed" ? "delivered" : s) as OrderStatus);
 
 // ─── Tab Definitions ───────────────────────────────────────────────────────────
 const TABS = [
   { label: "All", value: "all" },
   { label: "Pending", value: "pending" },
-  { label: "Confirmed", value: "confirmed" },
+  { label: "Verification", value: "verification" },
   { label: "Shipped", value: "shipped" },
-  { label: "Completed", value: "completed" },
+  { label: "Delivered", value: "completed" },
   { label: "Cancelled", value: "cancelled" },
 ];
 
@@ -140,7 +141,7 @@ const OrdersPage = () => {
     try {
       const res = await fetch(`${API_URL}/orders?user_id=${userId}`);
       const data = await res.json();
-      if (Array.isArray(data)) setOrders(data);
+      if (Array.isArray(data)) setOrders(data.filter((order: RealOrder) => order.from_user_id === userId && !order.is_checkout_pending));
     } catch (err) {
       console.error("Failed to fetch orders:", err);
     } finally {
@@ -174,7 +175,8 @@ const OrdersPage = () => {
               ),
             );
           } else if (payload.eventType === "INSERT") {
-            setOrders(prev => [payload.new as RealOrder, ...prev]);
+            const insertedOrder = payload.new as RealOrder;
+            if (insertedOrder.from_user_id === userId) setOrders(prev => [insertedOrder, ...prev]);
           } else if (payload.eventType === "DELETE") {
             setOrders(prev => prev.filter(o => o.id !== (payload.old as RealOrder).id));
           }
@@ -182,41 +184,8 @@ const OrdersPage = () => {
       )
       .subscribe();
 
-    // Also listen for orders where this user is to_user_id
-    const channel2 = supabase
-      .channel(`orders-to-user-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "orders",
-          filter: `to_user_id=eq.${userId}`,
-        },
-        (payload: any) => {
-          if (payload.eventType === "INSERT") {
-            const insertedOrder = payload.new as RealOrder;
-            setOrders(prev =>
-              prev.some(order => order.id === insertedOrder.id)
-                ? prev
-                : [insertedOrder, ...prev],
-            );
-          } else if (payload.eventType === "UPDATE") {
-            setOrders(prev =>
-              prev.map(order =>
-                order.id === (payload.new as RealOrder).id
-                  ? { ...order, ...(payload.new as Partial<RealOrder>) }
-                  : order,
-              ),
-            );
-          }
-        },
-      )
-      .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
-      supabase.removeChannel(channel2);
     };
   }, [userId]);
 
@@ -229,6 +198,7 @@ const OrdersPage = () => {
     if (tab === "all") return orders;
     if (tab === "pending") return orders.filter(o => ["pending", "payment_verification", "product_verification"].includes(o.status));
     if (tab === "completed") return orders.filter(o => ["completed", "delivered"].includes(o.status));
+    if (tab === "verification") return orders.filter(o => ["product_verification", "confirmed"].includes(o.status));
     return orders.filter(o => o.status === tab);
   })();
 
@@ -277,7 +247,7 @@ const OrdersPage = () => {
             <FiCheckCircle size={22} className="op-stat-icon completed" />
             <div>
               <h2>{orders.filter(o => ["completed", "delivered"].includes(o.status)).length}</h2>
-              <p>Completed</p>
+              <p>Delivered</p>
             </div>
           </div>
         </div>
@@ -291,7 +261,9 @@ const OrdersPage = () => {
                 ? pendingCount
                 : t.value === "completed"
                   ? orders.filter(o => ["completed", "delivered"].includes(o.status)).length
-                  : orders.filter(o => o.status === t.value).length;
+                  : t.value === "verification"
+                    ? orders.filter(o => ["product_verification", "confirmed"].includes(o.status)).length
+                    : orders.filter(o => o.status === t.value).length;
             return (
               <button
                 key={t.value}
