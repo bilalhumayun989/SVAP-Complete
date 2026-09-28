@@ -30,18 +30,18 @@ type CheckoutOrder = {
 
 const ORDER_STAGES = [
   { value: "payment_verification", label: "Payment Verification" },
-  { value: "product_verification", label: "Item Verification Completed" },
+  { value: "product_verification", label: "Item Verification" },
   { value: "shipped", label: "Shipped" },
   { value: "delivered", label: "Delivered" },
 ];
 
 const orderStageIndex = (status: string) => ORDER_STAGES.findIndex((stage) =>
-  stage.value === (status === "pending" || status === "pending_verification" ? "payment_verification" : status === "confirmed" ? "product_verification" : status === "completed" ? "delivered" : status)
+  stage.value === (status === "pending" || status === "pending_verification" ? "payment_verification" : status === "confirmed" || status === "item_verification" ? "product_verification" : status === "completed" ? "delivered" : status)
 );
 
 const orderStatusLabel = (status: string) => {
   if (status === "pending" || status === "pending_verification") return "Payment Verification";
-  if (status === "confirmed") return "Item Verification Completed";
+  if (status === "confirmed" || status === "item_verification") return "Item Verification";
   if (status === "completed") return "Delivered";
   return ORDER_STAGES.find((stage) => stage.value === status)?.label || status;
 };

@@ -141,7 +141,7 @@ exports.getProductsByUser = async (req, res) => {
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    // Filter active-only when requested (listings page + swap modal)
+    // Filter active-only when requested (listings page + svap modal)
     if (active === 'true') {
       query = query.eq('status', 'active');
     }

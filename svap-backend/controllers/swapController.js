@@ -256,7 +256,7 @@ exports.updateSwapRequestStatus = async (req, res) => {
         participantIds.map((user_id) => ({
           user_id,
           type: 'swap_cancelled',
-          title: 'Swap Cancelled',
+          title: 'Svap Cancelled',
           body: 'This svap is canceled',
           route: '/requests',
           is_read: false,

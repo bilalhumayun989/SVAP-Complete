@@ -12,6 +12,7 @@ type OrderStatus =
   | "pending"
   | "payment_verification"
   | "product_verification"
+  | "item_verification"
   | "confirmed"
   | "shipped"
   | "delivered"
@@ -32,7 +33,6 @@ type RealOrder = {
   discount: number;
   total: number;
   status: OrderStatus;
-  tracking_number: string | null;
   transaction_ref: string | null;
   created_at: string;
   is_checkout_pending?: boolean;
@@ -56,13 +56,19 @@ const STATUS_CONFIG: Record<
     icon: <FiAlertCircle size={13} />,
   },
   product_verification: {
-    label: "Item Verification Completed",
+    label: "Item Verification",
+    color: "#6366f1",
+    bg: "rgba(99,102,241,0.12)",
+    icon: <FiPackage size={13} />,
+  },
+  item_verification: {
+    label: "Item Verification",
     color: "#6366f1",
     bg: "rgba(99,102,241,0.12)",
     icon: <FiPackage size={13} />,
   },
   confirmed: {
-    label: "Item Verification Completed",
+    label: "Item Verification",
     color: "#3b82f6",
     bg: "rgba(59,130,246,0.12)",
     icon: <FiCheckCircle size={13} />,
@@ -110,7 +116,15 @@ const STATUS_STEPS: OrderStatus[] = [
 ];
 
 const stepIndex = (s: string): number =>
-  STATUS_STEPS.indexOf((s === "pending" || s === "pending_verification" ? "payment_verification" : s === "confirmed" ? "product_verification" : s === "completed" ? "delivered" : s) as OrderStatus);
+  STATUS_STEPS.indexOf(
+    (s === "pending" || s === "pending_verification"
+      ? "payment_verification"
+      : s === "confirmed" || s === "item_verification"
+      ? "product_verification"
+      : s === "completed"
+      ? "delivered"
+      : s) as OrderStatus
+  );
 
 // ─── Tab Definitions ───────────────────────────────────────────────────────────
 const TABS = [
@@ -130,18 +144,30 @@ const OrdersPage = () => {
   const [loading, setLoading] = useState(true);
 
   const userId = (() => {
-    try { return JSON.parse(localStorage.getItem("sz_user") || "{}").id; }
-    catch { return null; }
+    try {
+      return JSON.parse(localStorage.getItem("sz_user") || "{}").id;
+    } catch {
+      return null;
+    }
   })();
 
   // ── Fetch orders ─────────────────────────────────────────────────────────────
   const fetchOrders = useCallback(async () => {
-    if (!userId) { setLoading(false); return; }
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/orders?user_id=${userId}`);
       const data = await res.json();
-      if (Array.isArray(data)) setOrders(data.filter((order: RealOrder) => order.from_user_id === userId && !order.is_checkout_pending));
+      if (Array.isArray(data))
+        setOrders(
+          data.filter(
+            (order: RealOrder) =>
+              order.from_user_id === userId && !order.is_checkout_pending
+          )
+        );
     } catch (err) {
       console.error("Failed to fetch orders:", err);
     } finally {
@@ -149,7 +175,9 @@ const OrdersPage = () => {
     }
   }, [userId]);
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   // ── Supabase Realtime subscription ────────────────────────────────────────────
   useEffect(() => {
@@ -167,20 +195,23 @@ const OrdersPage = () => {
         },
         (payload: any) => {
           if (payload.eventType === "UPDATE") {
-            setOrders(prev =>
-              prev.map(o =>
+            setOrders((prev) =>
+              prev.map((o) =>
                 o.id === (payload.new as RealOrder).id
                   ? { ...o, ...(payload.new as Partial<RealOrder>) }
-                  : o,
-              ),
+                  : o
+              )
             );
           } else if (payload.eventType === "INSERT") {
             const insertedOrder = payload.new as RealOrder;
-            if (insertedOrder.from_user_id === userId) setOrders(prev => [insertedOrder, ...prev]);
+            if (insertedOrder.from_user_id === userId)
+              setOrders((prev) => [insertedOrder, ...prev]);
           } else if (payload.eventType === "DELETE") {
-            setOrders(prev => prev.filter(o => o.id !== (payload.old as RealOrder).id));
+            setOrders((prev) =>
+              prev.filter((o) => o.id !== (payload.old as RealOrder).id)
+            );
           }
-        },
+        }
       )
       .subscribe();
 
@@ -190,23 +221,35 @@ const OrdersPage = () => {
   }, [userId]);
 
   // ── Derived values ────────────────────────────────────────────────────────────
-  const pendingCount = orders.filter(o =>
-    ["pending", "payment_verification", "product_verification"].includes(o.status)
+  const pendingCount = orders.filter((o) =>
+    ["pending", "payment_verification"].includes(
+      o.status
+    )
   ).length;
 
   const filtered = (() => {
     if (tab === "all") return orders;
-    if (tab === "pending") return orders.filter(o => ["pending", "payment_verification", "product_verification"].includes(o.status));
-    if (tab === "completed") return orders.filter(o => ["completed", "delivered"].includes(o.status));
-    if (tab === "verification") return orders.filter(o => ["product_verification", "confirmed"].includes(o.status));
-    return orders.filter(o => o.status === tab);
+    if (tab === "pending")
+      return orders.filter((o) =>
+        ["pending", "payment_verification"].includes(
+          o.status
+        )
+      );
+    if (tab === "completed")
+      return orders.filter((o) =>
+        ["completed", "delivered"].includes(o.status)
+      );
+    if (tab === "verification")
+      return orders.filter((o) =>
+        ["product_verification", "item_verification", "confirmed"].includes(o.status)
+      );
+    return orders.filter((o) => o.status === tab);
   })();
 
   // ─── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="op-page">
       <div className="op-container">
-
         {/* HEADER */}
         <div className="op-header">
           <div className="op-header-top">
@@ -232,21 +275,35 @@ const OrdersPage = () => {
           <div className="op-stat">
             <FiAlertCircle size={22} className="op-stat-icon pv" />
             <div>
-              <h2>{orders.filter(o => ["payment_verification", "product_verification"].includes(o.status)).length}</h2>
+              <h2>
+                {
+                  orders.filter((o) =>
+                    ["payment_verification", "product_verification", "item_verification"].includes(
+                      o.status
+                    )
+                  ).length
+                }
+              </h2>
               <p>Verifying</p>
             </div>
           </div>
           <div className="op-stat">
             <FiTruck size={22} className="op-stat-icon shipped" />
             <div>
-              <h2>{orders.filter(o => o.status === "shipped").length}</h2>
+              <h2>{orders.filter((o) => o.status === "shipped").length}</h2>
               <p>Shipped</p>
             </div>
           </div>
           <div className="op-stat">
             <FiCheckCircle size={22} className="op-stat-icon completed" />
             <div>
-              <h2>{orders.filter(o => ["completed", "delivered"].includes(o.status)).length}</h2>
+              <h2>
+                {
+                  orders.filter((o) =>
+                    ["completed", "delivered"].includes(o.status)
+                  ).length
+                }
+              </h2>
               <p>Delivered</p>
             </div>
           </div>
@@ -255,15 +312,20 @@ const OrdersPage = () => {
         {/* TABS */}
         <div className="op-tabs">
           {TABS.map((t) => {
-            const count = t.value === "all"
-              ? orders.length
-              : t.value === "pending"
+            const count =
+              t.value === "all"
+                ? orders.length
+                : t.value === "pending"
                 ? pendingCount
                 : t.value === "completed"
-                  ? orders.filter(o => ["completed", "delivered"].includes(o.status)).length
-                  : t.value === "verification"
-                    ? orders.filter(o => ["product_verification", "confirmed"].includes(o.status)).length
-                    : orders.filter(o => o.status === t.value).length;
+                ? orders.filter((o) =>
+                    ["completed", "delivered"].includes(o.status)
+                  ).length
+                : t.value === "verification"
+                ? orders.filter((o) =>
+                    ["product_verification", "item_verification", "confirmed"].includes(o.status)
+                  ).length
+                : orders.filter((o) => o.status === t.value).length;
             return (
               <button
                 key={t.value}
@@ -298,19 +360,18 @@ const OrdersPage = () => {
 
               return (
                 <div key={order.id} className="op-card">
-
                   {/* Card Top */}
                   <div className="op-card-top">
                     <div className="op-card-left">
                       <div className="op-card-id">
-                        {order.tracking_number
-                          ? `#${order.tracking_number}`
-                          : `#${order.id.slice(0, 8).toUpperCase()}`}
+                        {"#" + order.id.slice(0, 8).toUpperCase()}
                         {isSwap && <span className="op-swap-tag">SVAP</span>}
                       </div>
                       <span className="op-date">
                         {new Date(order.created_at).toLocaleDateString("en-PK", {
-                          day: "numeric", month: "short", year: "numeric",
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
                         })}
                       </span>
                     </div>
@@ -328,37 +389,53 @@ const OrdersPage = () => {
                   </div>
 
                   {/* Progress Stepper — only for swap orders not yet completed/cancelled */}
-                  {isSwap && !["completed", "delivered", "cancelled", "pending"].includes(order.status) && (
-                    <div className="op-stepper">
-                      {STATUS_STEPS.map((step, i) => {
-                        const done = i <= sIdx;
-                        const current = i === sIdx;
-                        const sCfg = STATUS_CONFIG[step];
-                        return (
-                          <div key={step} className={`op-step ${done ? "done" : ""} ${current ? "current" : ""}`}>
-                            <div
-                              className="op-step-dot"
-                              style={done ? { background: sCfg.color, borderColor: sCfg.color } : undefined}
-                            >
-                              {done && <FiCheck size={10} />}
-                            </div>
-                            <span className="op-step-label">{sCfg.label}</span>
-                            {i < STATUS_STEPS.length - 1 && (
-                              <div className={`op-step-line ${i < sIdx ? "done" : ""}`} />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Tracking number pill if shipped */}
-                  {order.status === "shipped" && order.tracking_number && (
-                    <div className="op-tracking-row">
-                      <FiTruck size={14} />
-                      <span>Tracking: <strong>{order.tracking_number}</strong></span>
-                    </div>
-                  )}
+                  {isSwap &&
+                    ![
+                      "completed",
+                      "delivered",
+                      "cancelled",
+                      "pending",
+                    ].includes(order.status) && (
+                      <div className="op-stepper-wrapper">
+                        <div className="op-stepper">
+                          {STATUS_STEPS.map((step, i) => {
+                            const done = i <= sIdx;
+                            const current = i === sIdx;
+                            const sCfg = STATUS_CONFIG[step];
+                            return (
+                              <div
+                                key={step}
+                                className={`op-step ${done ? "done" : ""} ${
+                                  current ? "current" : ""
+                                }`}
+                              >
+                                <div
+                                  className="op-step-dot"
+                                  style={
+                                    done
+                                      ? {
+                                          background: sCfg.color,
+                                          borderColor: sCfg.color,
+                                        }
+                                      : undefined
+                                  }
+                                >
+                                  {done && <FiCheck size={10} />}
+                                </div>
+                                <span className="op-step-label">{sCfg.label}</span>
+                                {i < STATUS_STEPS.length - 1 && (
+                                  <div
+                                    className={`op-step-line ${
+                                      i < sIdx ? "done" : ""
+                                    }`}
+                                  />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                   {/* Card Body */}
                   <div className="op-info-grid">
@@ -367,7 +444,9 @@ const OrdersPage = () => {
                       <div>
                         <span className="op-info-label">Delivery To</span>
                         <span className="op-info-val">{order.delivery_name}</span>
-                        <span className="op-info-sub">{order.delivery_address}, {order.delivery_city}</span>
+                        <span className="op-info-sub">
+                          {order.delivery_address}, {order.delivery_city}
+                        </span>
                         <span className="op-info-sub">{order.delivery_phone}</span>
                       </div>
                     </div>
@@ -376,7 +455,9 @@ const OrdersPage = () => {
                       <FiTruck size={14} />
                       <div>
                         <span className="op-info-label">Delivery Cost</span>
-                        <span className="op-info-val">PKR {order.shipping_cost?.toLocaleString()}</span>
+                        <span className="op-info-val">
+                          PKR {order.shipping_cost?.toLocaleString()}
+                        </span>
                         <span className="op-info-sub">{order.payment_method}</span>
                       </div>
                     </div>
@@ -386,7 +467,7 @@ const OrdersPage = () => {
                         <FiAlertCircle size={14} />
                         <div>
                           <span className="op-info-label">Transaction Ref</span>
-                          {order.transaction_ref.startsWith('http') ? (
+                          {order.transaction_ref.startsWith("http") ? (
                             <a
                               href={order.transaction_ref}
                               target="_blank"
@@ -396,7 +477,9 @@ const OrdersPage = () => {
                               View Screenshot →
                             </a>
                           ) : (
-                            <span className="op-info-val op-info-val--mono">{order.transaction_ref}</span>
+                            <span className="op-info-val op-info-val--mono">
+                              {order.transaction_ref}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -405,13 +488,15 @@ const OrdersPage = () => {
                     <div className="op-info-item op-info-item--total">
                       <div>
                         <span className="op-info-label">Total</span>
-                        <span className="op-total-amount">PKR {order.total?.toLocaleString()}</span>
+                        <span className="op-total-amount">
+                          PKR {order.total?.toLocaleString()}
+                        </span>
                       </div>
                     </div>
                   </div>
 
                   {/* View Svap Request link */}
-                  {isSwap && (
+                  {order.status !== "item_verification" && isSwap && (
                     <button
                       className="op-view-swap"
                       onClick={() => navigate("/requests")}
@@ -449,6 +534,7 @@ const OrdersPage = () => {
           width:38px; height:38px; border-radius:50%;
           background:var(--bg-section); border:1px solid var(--border);
           color:var(--text-mid); cursor:pointer; transition:all 0.2s;
+          flex-shrink: 0;
         }
         .op-refresh:hover { color:#E45821; border-color:#E45821; background:rgba(228,88,33,0.06); }
 
@@ -497,12 +583,12 @@ const OrdersPage = () => {
         html[data-theme='dark'] .op-card { background:#1a1a1a; border-color:#2a2a2a; }
 
         /* Card Top */
-        .op-card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; gap:12px; }
+        .op-card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; gap:12px; flex-wrap:wrap; }
         .op-card-left { display:flex; flex-direction:column; gap:4px; }
         .op-card-id {
           display:flex; align-items:center; gap:8px;
           font-size:0.875rem; font-weight:700; color:var(--text-dark);
-          letter-spacing:0.02em;
+          letter-spacing:0.02em; flex-wrap:wrap;
         }
         .op-swap-tag {
           padding:2px 8px; border-radius:6px; font-size:0.62rem; font-weight:800;
@@ -513,20 +599,29 @@ const OrdersPage = () => {
         .op-badge {
           display:inline-flex; align-items:center; gap:5px;
           padding:6px 13px; border-radius:999px;
-          font-size:0.76rem; font-weight:700; white-space:nowrap;
+          font-size:0.76rem; font-weight:700; max-width: 100%; word-break: break-word;
         }
 
         /* Progress Stepper */
-        .op-stepper {
-          display:flex; align-items:flex-start; gap:0;
-          margin-bottom:18px; padding:14px 16px;
-          background:var(--bg-section); border-radius:12px;
-          border:1px solid var(--border); overflow-x:auto;
+        .op-stepper-wrapper {
+          width: 100%;
+          overflow-x: auto;
+          margin-bottom: 18px;
+          border-radius: 12px;
+          border: 1px solid var(--border);
+          background: var(--bg-section);
         }
-        html[data-theme='dark'] .op-stepper { background:#111; border-color:#2a2a2a; }
+        html[data-theme='dark'] .op-stepper-wrapper { background:#111; border-color:#2a2a2a; }
+
+        .op-stepper {
+          display: flex;
+          align-items: flex-start;
+          min-width: 500px;
+          padding: 16px 20px;
+        }
         .op-step {
           display:flex; flex-direction:column; align-items:center; gap:6px;
-          flex:1; min-width:70px; position:relative;
+          flex:1; position:relative;
         }
         .op-step-dot {
           width:22px; height:22px; border-radius:50%;
@@ -536,7 +631,14 @@ const OrdersPage = () => {
           position:relative;
         }
         .op-step.done .op-step-dot { border-color:#10b981; }
-        .op-step-label { font-size:0.62rem; font-weight:600; color:var(--text-muted); text-align:center; white-space:nowrap; }
+        .op-step-label { 
+          font-size:0.68rem; 
+          font-weight:600; 
+          color:var(--text-muted); 
+          text-align:center; 
+          line-height: 1.2;
+          padding: 0 4px;
+        }
         .op-step.done .op-step-label { color:var(--text-mid); }
         .op-step.current .op-step-label { color:#E45821; font-weight:700; }
         .op-step-line {
@@ -568,7 +670,7 @@ const OrdersPage = () => {
           font-size:0.68rem; font-weight:600; color:var(--text-muted);
           text-transform:uppercase; letter-spacing:0.05em;
         }
-        .op-info-val { font-size:0.85rem; font-weight:700; color:var(--text-dark); }
+        .op-info-val { font-size:0.85rem; font-weight:700; color:var(--text-dark); word-break: break-word; }
         .op-info-val--mono { font-family:monospace; font-size:0.8rem; }
         .op-screenshot-link {
           font-size:0.85rem; font-weight:700; color:#E45821;
@@ -611,15 +713,16 @@ const OrdersPage = () => {
           .op-info-grid { grid-template-columns:1fr 1fr; }
         }
         @media (max-width:600px) {
-          .op-stats { grid-template-columns:1fr 1fr; gap:10px; }
+          .op-page { padding:16px 12px 60px; }
+          .op-header { margin-bottom: 20px; }
+          .op-stats { grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px; }
           .op-stat { padding:12px 14px; }
           .op-stat h2 { font-size:1.3rem; }
-          .op-info-grid { grid-template-columns:1fr; }
+          .op-info-grid { grid-template-columns:1fr; gap:14px; }
           .op-info-item--total { align-items:flex-start; text-align:left; }
           .op-info-item--total > div { align-items:flex-start; }
-          .op-stepper { padding:10px 10px; gap:0; }
-          .op-step-label { font-size:0.55rem; }
-          .op-card { padding:14px; border-radius:14px; }
+          .op-card { padding:16px; border-radius:16px; }
+          .op-card-top { flex-direction: column; align-items: flex-start; gap: 8px; }
         }
       `}</style>
     </div>
@@ -628,7 +731,16 @@ const OrdersPage = () => {
 
 // ─── FiCheck as inline SVG to avoid import issues in style block ───────────────
 const FiCheck = ({ size }: { size: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );

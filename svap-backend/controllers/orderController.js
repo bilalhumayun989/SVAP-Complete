@@ -161,8 +161,8 @@ exports.createOrder = async (req, res) => {
               supabaseAdmin.from('notifications').insert({
                 user_id: request.from_user_id,
                 type: 'swap_unavailable',
-                title: 'Product Already Swapped',
-                body: 'This product has already been swapped with another user.',
+                title: 'Product Already Svapped',
+                body: 'This product has already been svapped with another user.',
                 route: '/requests',
                 is_read: false,
               })
@@ -189,8 +189,8 @@ exports.createOrder = async (req, res) => {
               supabaseAdmin.from('notifications').insert({
                 user_id: request.from_user_id,
                 type: 'swap_unavailable',
-                title: 'Product Already Swapped',
-                body: 'This product has already been swapped with another user.',
+                title: 'Product Already Svapped',
+                body: 'This product has already been svapped with another user.',
                 route: '/requests',
                 is_read: false,
               })
@@ -216,7 +216,7 @@ exports.getOrders = async (req, res) => {
 
     const { data, error } = await supabaseAdmin
       .from('orders')
-      .select('*')
+      .select('id, swap_request_id, from_user_id, to_user_id, delivery_name, delivery_phone, delivery_address, delivery_city, payment_method, shipping_cost, discount, total, status, transaction_ref, created_at')
       .or(`from_user_id.eq.${user_id},to_user_id.eq.${user_id}`)
       .order('created_at', { ascending: false });
 
