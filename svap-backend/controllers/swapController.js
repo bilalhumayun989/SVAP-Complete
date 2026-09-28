@@ -62,11 +62,11 @@ exports.getMyRequests = async (req, res) => {
     // Rejected requests are hidden; accepted requests remain visible for checkout.
     const filtered = (data || []).filter((r) => {
       if (r.status === 'pending') {
-        // Only show pending if not yet expired
-        return new Date(r.expires_at).getTime() > Date.now();
+        // Keep expired requests visible until the server worker marks them cancelled.
+        return true;
       }
-      if (r.status === 'accepted' || r.status === 'completed') return true;
-      if (r.status === 'rejected' || r.status === 'cancelled') return false;
+      if (r.status === 'accepted' || r.status === 'completed' || r.status === 'cancelled') return true;
+      if (r.status === 'rejected') return false;
       // unavailable → hide
       return false;
     });
@@ -205,9 +205,9 @@ exports.updateSwapRequestStatus = async (req, res) => {
 
     if (status === 'cancelled') {
       const isParticipant = updated_by === current.from_user_id || updated_by === current.to_user_id;
-      if (!isParticipant) return res.status(403).json({ error: 'Only a swap participant can cancel this request' });
+      if (!isParticipant) return res.status(403).json({ error: 'Only a svap participant can cancel this request' });
       if (current.status !== 'accepted') {
-        return res.status(409).json({ error: 'Only an accepted swap can be cancelled here' });
+        return res.status(409).json({ error: 'Only an accepted svap can be cancelled here' });
       }
 
       const { count, error: ordersError } = await supabaseAdmin
@@ -220,6 +220,9 @@ exports.updateSwapRequestStatus = async (req, res) => {
         return res.status(409).json({ error: 'Checkout has already started. Contact support to cancel the order.' });
       }
     } else {
+      if (current.status === 'pending' && new Date(current.expires_at).getTime() <= Date.now()) {
+        return res.status(409).json({ error: 'This svap request expired after 48 hours' });
+      }
       if (updated_by !== current.to_user_id) {
         return res.status(403).json({ error: 'Only the receiving user can accept or reject this request' });
       }

@@ -24,12 +24,13 @@ exports.createOrder = async (req, res) => {
     if (swap_request_id) {
       const { data: swapBeforeOrder, error: swapLookupError } = await supabaseAdmin
         .from('swap_requests')
-        .select('id, status, from_user_id, to_user_id')
+        .select('id, status, from_user_id, to_user_id, expires_at')
         .eq('id', swap_request_id)
         .single();
       if (swapLookupError || !swapBeforeOrder) return res.status(404).json({ error: 'Swap request not found' });
       if (!['accepted', 'completed'].includes(swapBeforeOrder.status)) return res.status(409).json({ error: 'This svap is no longer available for checkout' });
       if (![swapBeforeOrder.from_user_id, swapBeforeOrder.to_user_id].includes(from_user_id)) return res.status(403).json({ error: 'Only a swap participant can checkout this request' });
+      if (new Date(swapBeforeOrder.expires_at).getTime() <= Date.now()) return res.status(409).json({ error: 'This svap expired after 48 hours and was cancelled' });
       if (swapBeforeOrder.status === 'completed') {
         const { count: ownOrderCount, error: ownOrderError } = await supabaseAdmin
           .from('orders')
@@ -72,10 +73,10 @@ exports.createOrder = async (req, res) => {
     if (swap_request_id) {
       const { data: swapAfterInsert, error: statusCheckError } = await supabaseAdmin
         .from('swap_requests')
-        .select('status')
+        .select('status, expires_at')
         .eq('id', swap_request_id)
         .single();
-      if (statusCheckError || !['accepted', 'completed'].includes(swapAfterInsert?.status)) {
+      if (statusCheckError || !['accepted', 'completed'].includes(swapAfterInsert?.status) || new Date(swapAfterInsert.expires_at).getTime() <= Date.now()) {
         await supabaseAdmin.from('orders').delete().eq('id', data.id);
         return res.status(409).json({ error: 'This svap was cancelled before checkout completed' });
       }
@@ -132,14 +133,14 @@ exports.createOrder = async (req, res) => {
 
         if (otherUserOrdersCount > 0) {
           // Both users have now checked out. Mark svap request as completed.
-          console.log(`[createOrder] Marking swap ${swap_request_id} as completed - both users checked out`);
+          console.log(`[createOrder] Marking svap ${swap_request_id} as completed - both users checked out`);
           await supabaseAdmin
             .from('swap_requests')
             .update({ status: 'completed' })
             .eq('id', swap_request_id);
         } else {
           // Only one user has checked out. Keep status as 'accepted', don't change it.
-          console.log(`[createOrder] First user checked out for swap ${swap_request_id}, keeping status as accepted`);
+          console.log(`[createOrder] First user checked out for svap ${swap_request_id}, keeping status as accepted`);
         }
       }
 
@@ -154,7 +155,7 @@ exports.createOrder = async (req, res) => {
           .select('id, from_user_id');
 
         if (competingError) {
-          console.error('Error resolving competing swap requests (requested):', competingError);
+          console.error('Error resolving competing svap requests (requested):', competingError);
         } else if (competingRequests?.length) {
           await Promise.all(
             competingRequests.map((request) =>
@@ -182,7 +183,7 @@ exports.createOrder = async (req, res) => {
           .select('id, from_user_id');
 
         if (offeredError) {
-          console.error('Error resolving competing swap requests (offered):', offeredError);
+          console.error('Error resolving competing svap requests (offered):', offeredError);
         } else if (competingOffered?.length) {
           await Promise.all(
             competingOffered.map((request) =>

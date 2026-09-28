@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cron = require('node-cron');
+const { supabaseAdmin } = require('./config/supabase');
 
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
@@ -34,6 +36,19 @@ app.use('/api/saved', savedRoutes);
 app.use((req, res) => {
   res.status(404).json({ error: `Route ${req.originalUrl} not found` });
 });
+
+const runSwapExpirySweep = async () => {
+  const { data, error } = await supabaseAdmin.rpc('expire_stale_swaps');
+  if (error) {
+    console.error('[swap-expiry] Failed to expire stale swaps:', error.message);
+    return;
+  }
+  if (data) console.log('[swap-expiry] Cancelled expired swaps:', data);
+};
+
+// Use backend node-cron so no pg_cron extension is required.
+cron.schedule('*/5 * * * *', runSwapExpirySweep);
+setTimeout(runSwapExpirySweep, 10_000);
 
 app.listen(port, '0.0.0.0', () => {  console.log(`✅ SwapZone Backend running on http://localhost:${port}`);
   console.log('Routes:');

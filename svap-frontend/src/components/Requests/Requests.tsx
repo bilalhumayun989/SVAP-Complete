@@ -296,9 +296,9 @@ const Requests = () => {
                   <div className="req-empty-circle">
                     <FiShoppingBag size={28} />
                   </div>
-                  <p>No incoming swaps</p>
+                  <p>No incoming svaps</p>
                   <span>
-                    When someone sends you a swap request, it will appear here
+                    When someone sends you a svap request, it will appear here
                   </span>
                 </>
               ) : tab === "outgoing" ? (
@@ -306,7 +306,7 @@ const Requests = () => {
                   <div className="req-empty-circle">
                     <FiSend size={28} />
                   </div>
-                  <p>No outgoing swaps</p>
+                  <p>No outgoing svaps</p>
                   <span>Browse Items and send svap offers</span>
                 </>
               ) : (
@@ -327,6 +327,7 @@ const Requests = () => {
                 new Date(req.expires_at).getTime() <= Date.now();
               const timeLeft = getTimeRemaining(req.expires_at);
               const isPending = req.status === "pending" && !isExpired;
+              const isCancelled = req.status === "cancelled";
               const cashOfferAmount = Number(req.top_up_amount ?? req.cash_amount ?? req.premium_amount ?? 0);
               const isCashOnlyOffer = Boolean(req.is_cash_only) || !req.offered_product_id;
               const targetProfile =
@@ -446,46 +447,51 @@ const Requests = () => {
                     </div>
                   )}
 
-                  {/* TIMER BOX WITH PROGRESS BAR */}
-                  <div
-                    className={`req-timer-box ${isExpired ? "req-timer-box--expired" : ""
-                      }`}
-                  >
-                    <div className="req-timer-content">
-                      <div className="req-timer-left">
-                        <FiClock size={14} />
-                        <span>
-                          {tab === "checkout"
-                            ? "Complete checkout before time runs out"
-                            : tab === "outgoing"
-                              ? "Waiting for their response"
-                              : "Accept before timer runs out"}
+                  {isCancelled ? (
+                    <div className="req-cancelled-label" role="status">Cancelled</div>
+                  ) : (
+                    <div
+                      className={`req-timer-box ${isExpired ? "req-timer-box--expired" : ""
+                        }`}
+                    >
+                      <div className="req-timer-content">
+                        <div className="req-timer-left">
+                          <FiClock size={14} />
+                          <span>
+                            {tab === "checkout"
+                              ? "Complete checkout before time runs out"
+                              : tab === "outgoing"
+                                ? "Waiting for their response"
+                                : "Accept before timer runs out"}
+                          </span>
+                        </div>
+                        <span className="req-timer-time">
+                          {isExpired ? "Expired" : timeLeft}
                         </span>
                       </div>
-                      <span className="req-timer-time">
-                        {isExpired ? "00:00:00" : timeLeft}
-                      </span>
+                      <div className="req-progress-bar">
+                        <div
+                          className="req-progress-fill"
+                          style={{
+                            width: isExpired
+                              ? "0%"
+                              : (() => {
+                                const created = new Date(req.created_at).getTime();
+                                const expires = new Date(req.expires_at).getTime();
+                                const now = Date.now();
+                                if (now <= created) return "100%";
+                                const total = expires - created;
+                                const remaining = expires - now;
+                                const pct = Math.max(0, Math.min(100, (remaining / total) * 100));
+                                return `${pct}%`;
+                              })(),
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className="req-progress-bar">
-                      <div
-                        className="req-progress-fill"
-                        style={{
-                          width: isExpired
-                            ? "0%"
-                            : (() => {
-                              const created = new Date(req.created_at).getTime();
-                              const expires = new Date(req.expires_at).getTime();
-                              const now = Date.now();
-                              if (now <= created) return "100%";
-                              const total = expires - created;
-                              const remaining = expires - now;
-                              const pct = Math.max(0, Math.min(100, (remaining / total) * 100));
-                              return `${pct}%`;
-                            })(),
-                        }}
-                      />
-                    </div>
-                  </div>
+
+
+                  )}
 
                   {/* ACTION BUTTONS */}
                   {tab === "incoming" && isPending && (
@@ -528,8 +534,8 @@ const Requests = () => {
                           {cancellingRequestId === req.id ? "CANCELLING..." : "CANCEL SvAP"}
                         </button>
                       )}
-                      <button className={"req-btn " + (checkoutOrderByRequest.has(req.id) ? "req-btn--order-placed" : "req-btn--accept")} onClick={() => checkoutOrderByRequest.has(req.id) ? navigate("/orders") : navigate("/checkout/" + req.id)}>
-                        {checkoutOrderByRequest.has(req.id) ? "Order placed · Waiting for other user" : "PROCEED TO CHECKOUT"}
+                      <button disabled={isExpired && !checkoutOrderByRequest.has(req.id)} className={"req-btn " + (checkoutOrderByRequest.has(req.id) ? "req-btn--order-placed" : "req-btn--accept")} onClick={() => checkoutOrderByRequest.has(req.id) ? navigate("/orders") : navigate("/checkout/" + req.id)}>
+                        {checkoutOrderByRequest.has(req.id) ? "Order placed · Waiting for other user" : isExpired ? "Expired" : "PROCEED TO CHECKOUT"}
                       </button>
                     </div>
                   )}
@@ -844,7 +850,8 @@ const Requests = () => {
         .req-checkout-actions { display:flex; gap:10px; width:100%; }
         .req-checkout-actions .req-btn--accept, .req-checkout-actions .req-btn--order-placed { flex:1; }
         .req-checkout-actions .req-btn--reject { flex:0 0 auto; }
-        .req-btn:disabled { opacity:.6; cursor:wait; }
+        .req-btn:disabled { opacity:.6; cursor:not-allowed; }
+        .req-cancelled-label { margin-top:12px; padding:10px 12px; border:1px solid rgba(239,68,68,.35); border-radius:10px; color:#ef4444; font-weight:700; font-size:.85rem; text-align:center; }
         .req-order-status, .req-partner-checkout-note { margin:12px 0; padding:12px; border:1px solid var(--border-color,#d1d5db); border-radius:12px; background:var(--card-bg,rgba(128,128,128,.06)); }
         .req-order-status-heading { display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:.82rem; }
         .req-order-status-heading strong { color:var(--btn-swap,#e45821); text-align:right; }
