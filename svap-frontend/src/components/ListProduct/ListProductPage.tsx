@@ -475,7 +475,7 @@ const ListProductPage = () => {
           {/* What would you swap for? */}
           <div className="lp-section">
             <div className="lp-field-header">
-              <span className="lp-label">What would you swap for?</span>
+              <span className="lp-label">What would you svap for?</span>
             </div>
             <div className="lp-input-wrap">
               <FiCamera size={16} className="lp-input-icon" />

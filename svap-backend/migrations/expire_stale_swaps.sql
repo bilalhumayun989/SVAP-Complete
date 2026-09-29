@@ -160,10 +160,10 @@ BEGIN
       INSERT INTO public.notifications (user_id, type, title, body, route, is_read)
       VALUES
         (r.from_user_id, 'swap_timeout', 'Svap Cancelled - Timeout',
-         'Time out: aap ne 48 ghante mein checkout complete nahi kiya, swap cancel ho gayi.',
+         'Time out: aap ne 48 ghante mein checkout complete nahi kiya, svap cancel ho gayi.',
          '/requests', false),
         (r.to_user_id, 'swap_timeout', 'Svap Cancelled - Timeout',
-         'Time out: aap ne 48 ghante mein checkout complete nahi kiya, swap cancel ho gayi.',
+         'Time out: aap ne 48 ghante mein checkout complete nahi kiya, svap cancel ho gayi.',
          '/requests', false);
     ELSE
       no_checkout_user :=
@@ -172,10 +172,10 @@ BEGIN
       INSERT INTO public.notifications (user_id, type, title, body, route, is_read)
       VALUES
         (no_checkout_user, 'swap_timeout', 'Svap Cancelled - Timeout',
-         'Time out: aap ne 48 ghante mein checkout complete nahi kiya, swap cancel ho gayi.',
+         'Time out: aap ne 48 ghante mein checkout complete nahi kiya, svap cancel ho gayi.',
          '/requests', false),
         (checkout_user, 'swap_timeout', 'Svap Cancelled - Timeout',
-         'Aapke swap partner ne time par checkout nahi kiya, swap cancel ho gayi. Aapka order cancel kar diya gaya hai; refund required hai.',
+         'Aapke swap partner ne time par checkout nahi kiya, svap cancel ho gayi. Aapka order cancel kar diya gaya hai; refund required hai.',
          '/requests', false);
     END IF;
 

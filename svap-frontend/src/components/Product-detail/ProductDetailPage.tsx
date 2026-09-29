@@ -336,7 +336,7 @@ const ProductDetailPage = () => {
               <div className="pdp-divider" />
               <div className="pdp-swap-for">
                 <div>
-                  <p className="pdp-swap-label">Looking to swap for</p>
+                  <p className="pdp-swap-label">Looking to svap for</p>
                   <p className="pdp-swap-item">{product.swapFor}</p>
                 </div>
               </div>

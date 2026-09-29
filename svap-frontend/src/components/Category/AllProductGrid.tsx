@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../Home-page/Productcard";
 import { api } from "../../services/api";
@@ -14,6 +14,10 @@ const AllProductGrid = () => {
   const [sortLabel, setSortLabel] = useState("Newest First");
   const [products, setProducts] = useState<any[]>([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+
+  // Active Filter States
+  const [selectedCondition, setSelectedCondition] = useState<string>("all");
+  const [selectedCity, setSelectedCity] = useState<string>("karachi"); // Default Karachi Fixed
 
   useEffect(() => {
     const userId = (() => { try { return JSON.parse(localStorage.getItem("sz_user") || "{}").id; } catch { return null; } })();
@@ -35,12 +39,13 @@ const AllProductGrid = () => {
             image: p.image_urls?.[0] || "https://placehold.co/600x400?text=No+Image",
             title: p.title,
             description: p.description || "",
-            location: p.profiles?.city || "Unknown",
+            location: p.city || p.profiles?.city || "Karachi", // Updated to use product table city
             views: p.saved_count || 0,
             condition: p.condition || "",
             swapFor: p.swap_for || "",
             estimatedValue: p.estimated_value ?? null,
             swapForImage: p.image_urls?.[1] || "",
+            createdAt: p.created_at ? new Date(p.created_at).getTime() : 0,
           })));
         }
         if (savedRes.data) setSavedIds(new Set(savedRes.data));
@@ -51,8 +56,40 @@ const AllProductGrid = () => {
     fetchProducts();
   }, []);
 
-  const visibleProducts = products.slice(0, visibleCount);
-  const hasMore = visibleCount < products.length;
+  // Filter & Sort Logic
+  const filteredAndSortedProducts = useMemo(() => {
+    let result = [...products];
+
+    // 1. Filter by Condition
+    if (selectedCondition !== "all") {
+      result = result.filter(
+        (p) => p.condition.toLowerCase().replace(/\s+/g, "") === selectedCondition.toLowerCase().replace(/\s+/g, "")
+      );
+    }
+
+    // 2. Filter by City
+    if (selectedCity !== "all") {
+      result = result.filter(
+        (p) => p.location.toLowerCase() === selectedCity.toLowerCase()
+      );
+    }
+
+    // 3. Sorting Logic
+    if (sortLabel === "Newest First") {
+      result.sort((a, b) => b.createdAt - a.createdAt);
+    } else if (sortLabel === "Most Viewed") {
+      result.sort((a, b) => (b.views || 0) - (a.views || 0));
+    } else if (sortLabel === "Price: Low to High") {
+      result.sort((a, b) => (a.estimatedValue || 0) - (b.estimatedValue || 0));
+    } else if (sortLabel === "Price: High to Low") {
+      result.sort((a, b) => (b.estimatedValue || 0) - (a.estimatedValue || 0));
+    }
+
+    return result;
+  }, [products, selectedCondition, selectedCity, sortLabel]);
+
+  const visibleProducts = filteredAndSortedProducts.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredAndSortedProducts.length;
 
   return (
     <>
@@ -63,7 +100,7 @@ const AllProductGrid = () => {
           <div className="apg-header">
             <div>
               <h1 className="apg-title">All Listings</h1>
-              <p className="apg-sub">{products.length} items available</p>
+              <p className="apg-sub">{filteredAndSortedProducts.length} items available</p>
             </div>
 
             {/* Actions */}
@@ -79,7 +116,11 @@ const AllProductGrid = () => {
                     <p className="apg-drop-title">Filter By</p>
                     <div className="apg-drop-group">
                       <label className="apg-drop-label">Condition</label>
-                      <select className="apg-select">
+                      <select 
+                        className="apg-select"
+                        value={selectedCondition}
+                        onChange={(e) => setSelectedCondition(e.target.value)}
+                      >
                         <option value="all">Any Condition</option>
                         <option value="new">Brand New</option>
                         <option value="likenew">Like New</option>
@@ -89,15 +130,12 @@ const AllProductGrid = () => {
                     </div>
                     <div className="apg-drop-group">
                       <label className="apg-drop-label">City</label>
-                      <select className="apg-select">
-                        <option value="all">All Pakistan</option>
-                        <option value="karachi">Karachi</option>
-                        <option value="lahore">Lahore</option>
-                        <option value="islamabad">Islamabad</option>
-                        <option value="rawalpindi">Rawalpindi</option>
-                        <option value="faisalabad">Faisalabad</option>
-                        <option value="multan">Multan</option>
-                        <option value="peshawar">Peshawar</option>
+                      <select 
+                        className="apg-select"
+                        value={selectedCity}
+                        onChange={(e) => setSelectedCity(e.target.value)}
+                      >
+                        <option value="all">Karachi</option>                       
                       </select>
                     </div>
                   </div>
@@ -148,14 +186,14 @@ const AllProductGrid = () => {
               >
                 Load More
                 <span className="apg-loadmore-count">
-                  {visibleCount} / {products.length}
+                  {visibleCount} / {filteredAndSortedProducts.length}
                 </span>
               </button>
             </div>
           )}
 
           {!hasMore && (
-            <p className="apg-end-msg">You've seen all {products.length} listings</p>
+            <p className="apg-end-msg">You've seen all {filteredAndSortedProducts.length} listings</p>
           )}
 
         </div>
@@ -312,7 +350,11 @@ const AllProductGrid = () => {
         }
         .apg-loadmore-btn {
           display: flex;
+          flex-direction: column;
+          justify-content: center;
           align-items: center;
+          text-align: center;
+          gap: 2px;
           padding: 14px 52px;
           border-radius: 12px;
           cursor: pointer;
@@ -328,14 +370,6 @@ const AllProductGrid = () => {
         .apg-loadmore-btn:hover {
           transform: translateY(-2px);
         }
-       .apg-loadmore-btn {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  gap: 2px;
-}
 
         html[data-theme='dark'] .apg-loadmore-btn {
           background: #fff;
@@ -363,9 +397,6 @@ const AllProductGrid = () => {
           .apg-grid { grid-template-columns: repeat(3, 1fr); gap: 18px; }
         }
         
-        /* ──────────────────────────────────────
-           TABLET/MEDIUM SCREENS (780px-1300px)
-        ────────────────────────────────────── */
         @media (min-width: 768px) and (max-width: 1300px) {
           .apg-root { padding: 16px 16px 50px; }
           .apg-grid { grid-template-columns: repeat(2, 1fr); gap: 11px; }

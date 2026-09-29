@@ -38,17 +38,26 @@ app.use((req, res) => {
 });
 
 const runSwapExpirySweep = async () => {
-  const { data, error } = await supabaseAdmin.rpc('expire_stale_swaps');
-  if (error) {
-    console.error('[swap-expiry] Failed to expire stale swaps:', error.message);
+  if (!supabaseAdmin) {
+    console.error('[swap-expiry] Skipping expiry sweep: SUPABASE_SERVICE_ROLE_KEY is not configured');
     return;
   }
-  if (data) console.log('[swap-expiry] Cancelled expired swaps:', data);
+
+  try {
+    const { data, error } = await supabaseAdmin.rpc('expire_stale_swaps');
+    if (error) {
+      console.error('[swap-expiry] Failed to expire stale swaps:', error.message);
+      return;
+    }
+    if (data) console.log('[swap-expiry] Cancelled expired swaps:', data);
+  } catch (error) {
+    console.error('[swap-expiry] Expiry sweep failed:', error?.message || error);
+  }
 };
 
 // Use backend node-cron so no pg_cron extension is required.
-cron.schedule('*/5 * * * *', runSwapExpirySweep);
-setTimeout(runSwapExpirySweep, 10_000);
+cron.schedule('*/5 * * * *', () => { void runSwapExpirySweep(); });
+setTimeout(() => { void runSwapExpirySweep(); }, 10_000);
 
 app.listen(port, '0.0.0.0', () => {  console.log(`✅ SwapZone Backend running on http://localhost:${port}`);
   console.log('Routes:');
