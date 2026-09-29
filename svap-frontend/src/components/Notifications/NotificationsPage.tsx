@@ -4,6 +4,7 @@ import { FiRepeat, FiShoppingBag, FiBell, FiCheck } from "react-icons/fi";
 import { api } from "../../services/api";
 import { supabase } from "../../services/supabase";
 import { useNotifications } from "../../context/NotificationContext";
+import { getEnglishNotificationCopy } from "../../utils/notificationCopy";
 
 type NotifType = "svap_request" | "svap_accepted" | "svap_rejected" | "order_update" | "system" | string;
 
@@ -178,7 +179,9 @@ const NotificationsPage = () => {
             <p>No notifications yet</p>
           </div>
         ) : (
-          filtered.map(n => (
+          filtered.map(n => {
+            const englishCopy = getEnglishNotificationCopy(n);
+            return (
             <div
               key={n.id}
               className={`np-item ${!n.is_read ? "np-item--unread" : ""}`}
@@ -189,14 +192,15 @@ const NotificationsPage = () => {
               </div>
 
               <div className="np-content">
-                <p className="np-title-text">{n.title}</p>
-                <p className="np-body">{n.body}</p>
+                <p className="np-title-text">{englishCopy.title}</p>
+                <p className="np-body">{englishCopy.body}</p>
                 <span className="np-time">{timeAgo(n.created_at)}</span>
               </div>
 
               {!n.is_read && <div className="np-dot" />}
             </div>
-          ))
+            );
+          })
         )}
       </div>
 

@@ -37,7 +37,7 @@ const GridCard = ({ item, badge, onDelete, onEdit }: { item: { id: number; image
       <div className={`pf-grid-overlay ${badge === "swap" ? "pf-grid-overlay--swap" : ""}`}>
         {badge === "swap"
           ? <><FiRepeat size={11} /><span>{item.swapFor}</span></>
-          : <><span>{item.price}</span></>
+          : <><span></span></>
         }
       </div>
       {onDelete && onEdit && (
@@ -1055,21 +1055,7 @@ const Profile = () => {
         }
         .pf-grid-card:hover .pf-grid-img { transform: scale(1.04); }
 
-        .pf-grid-overlay {
-          position: absolute;
-          top: 8px;
-          left: 8px;
-          background: rgba(21,20,15,0.78);
-          padding: 4px 8px;
-          border-radius: 6px;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          color: #fff;
-          font-size: 0.64rem;
-          font-weight: 600;
-          font-family: 'Poppins', sans-serif;
-        }
+      
         .pf-grid-overlay--swap { background: rgba(217,80,30,0.92); }
 
         .pf-grid-actions {

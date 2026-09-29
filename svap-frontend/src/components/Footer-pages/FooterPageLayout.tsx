@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { FiArrowLeft } from "react-icons/fi"; // ya lucide-react se ArrowLeft
 
 interface FooterPageLayoutProps {
   title: string;
@@ -9,18 +10,17 @@ interface FooterPageLayoutProps {
 /**
  * Shared layout for all footer-related pages (About, Privacy, Terms, etc.)
  * Provides a clean, readable article-style container that respects the
- * site's dark / light theme and stays inside the normal app layout
- * (sidebar + top-navbar).
+ * site's dark / light theme and stays inside the normal app layout.
  */
 const FooterPageLayout = ({ title, subtitle, children }: FooterPageLayoutProps) => {
   return (
     <div className="fp-page">
       <div className="fp-container">
-        <nav className="fp-breadcrumb">
-          <Link to="/" className="fp-breadcrumb-link">Home</Link>
-          <span className="fp-breadcrumb-sep">›</span>
-          <span className="fp-breadcrumb-current">{title}</span>
-        </nav>
+        {/* Back to Home Button */}
+        <Link to="/" className="fp-back-btn" aria-label="Back to Home">
+          <FiArrowLeft size={16} />
+          <span>Back to Home</span>
+        </Link>
 
         <article className="fp-article">
           <h1 className="fp-title">{title}</h1>
@@ -46,23 +46,37 @@ const FooterPageLayout = ({ title, subtitle, children }: FooterPageLayoutProps) 
           margin: 0 auto;
         }
 
-        /* Breadcrumb */
-        .fp-breadcrumb {
-          display: flex;
+        /* Back Button Styling */
+        .fp-back-btn {
+          display: inline-flex;
           align-items: center;
-          gap: 6px;
-          font-size: 0.76rem;
-          color: var(--text-muted);
+          gap: 8px;
+          font-size: 0.85rem;
           font-weight: 500;
-          margin-bottom: 24px;
-        }
-        .fp-breadcrumb-link {
           color: var(--text-muted);
           text-decoration: none;
-          transition: color 0.2s;
+          margin-bottom: 24px;
+          padding: 6px 12px;
+          border-radius: 6px;
+          background: rgba(0, 0, 0, 0.04);
+          transition: all 0.2s ease;
         }
-        .fp-breadcrumb-link:hover { color: var(--btn-swap); }
-        .fp-breadcrumb-sep { color: var(--text-muted); opacity: 0.5; }
+
+        html[data-theme='dark'] .fp-back-btn {
+          background: rgba(255, 255, 255, 0.05);
+          color: #aaa;
+        }
+
+        .fp-back-btn:hover {
+          color: var(--btn-swap);
+          background: rgba(0, 0, 0, 0.08);
+          transform: translateX(-2px);
+        }
+
+        html[data-theme='dark'] .fp-back-btn:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: var(--btn-swap);
+        }
 
         /* Article */
         .fp-article { width: 100%; }

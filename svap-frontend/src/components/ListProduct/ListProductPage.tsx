@@ -18,10 +18,6 @@ const ListProductPage = () => {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const reelRef = useRef<HTMLInputElement>(null);
-  const reelSectionRef = useRef<HTMLDivElement>(null);
-  const photoSectionRef = useRef<HTMLDivElement>(null);
-  const categorySectionRef = useRef<HTMLDivElement>(null);
-  const titleSectionRef = useRef<HTMLDivElement>(null);
 
   const [photos, setPhotos] = useState<{ file: File, url: string }[]>([]);
   const [reel, setReel] = useState<{ file: File, url: string } | null>(null);
@@ -64,19 +60,14 @@ const ListProductPage = () => {
     if (!description.trim()) newErrors.description = "Enter description";
     if (!condition) newErrors.condition = "Select condition";
     if (!swapFor.trim()) newErrors.swapFor = "Enter what you want to swap for";
+    if (!estimatedValue || !Number.isSafeInteger(Number(estimatedValue)) || Number(estimatedValue) <= 0 || Number(estimatedValue) > 2147483647) newErrors.estimatedValue = "Enter an estimated value greater than PKR 0";
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
-      // Scroll to first error
-      if (newErrors.photos && photoSectionRef.current) {
-        photoSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else if (newErrors.reel && reelSectionRef.current) {
-        reelSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else if (newErrors.category && categorySectionRef.current) {
-        categorySectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else if (newErrors.title && titleSectionRef.current) {
-        titleSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      const firstInvalidField = Object.keys(newErrors)[0];
+      document
+        .querySelector<HTMLElement>('[data-list-field="' + firstInvalidField + '"]')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
@@ -150,7 +141,7 @@ const ListProductPage = () => {
         category,
         condition,
         swap_for: swapFor,
-        estimated_value: estimatedValue ? Number(estimatedValue) : null,
+        estimated_value: Number(estimatedValue),
         image_urls: imageUrls,
         ...(reelUrl ? { video_url: reelUrl } : {}),
         status: 'active',
@@ -218,7 +209,7 @@ const ListProductPage = () => {
           <p className="lp-hint">Takes about a minute. Fill out the details below.</p>
 
           {/* Photos Section */}
-          <div className="lp-section" ref={photoSectionRef}>
+          <div className="lp-section" data-list-field="photos">
             <div className="lp-field-header">
               <span className="lp-label">Photos <span className="lp-req">Required</span></span>
             </div>
@@ -287,9 +278,9 @@ const ListProductPage = () => {
           </div>
 
           {/* Reel Video Section */}
-          <div className="lp-section" ref={reelSectionRef}>
+          <div className="lp-section" data-list-field="reel">
             <div className="lp-field-header">
-              <span className="lp-label">Reel Video <span className="lp-req">Required</span></span>
+              <span className="lp-label">Reel/Video <span className="lp-req">Required</span></span>
             </div>
 
             {reel ? (
@@ -333,9 +324,9 @@ const ListProductPage = () => {
           </div>
 
           {/* Category */}
-          <div className="lp-section" ref={categorySectionRef}>
+          <div className="lp-section" data-list-field="category">
             <div className="lp-field-header">
-              <span className="lp-label">Category</span>
+              <span className="lp-label">Category <span className="lp-req">Required</span></span>
             </div>
             <div className="lp-categories">
               {CATEGORIES.map((cat) => (
@@ -369,9 +360,9 @@ const ListProductPage = () => {
           </div>
 
           {/* What is it? */}
-          <div className="lp-section" ref={titleSectionRef}>
+          <div className="lp-section" data-list-field="title">
             <div className="lp-field-header">
-              <span className="lp-label">What is it?</span>
+              <span className="lp-label">What is it? <span className="lp-req">Required</span></span>
             </div>
             <div className="lp-input-wrap">
               <FiCamera size={16} className="lp-input-icon" />
@@ -412,9 +403,9 @@ const ListProductPage = () => {
           </div>
 
           {/* Condition */}
-          <div className="lp-section">
+          <div className="lp-section" data-list-field="condition">
             <div className="lp-field-header">
-              <span className="lp-label">Condition</span>
+              <span className="lp-label">Condition <span className="lp-req">Required</span></span>
             </div>
             <div className="lp-conditions">
               {CONDITIONS.map((cond) => (
@@ -448,9 +439,9 @@ const ListProductPage = () => {
           </div>
 
           {/* Description */}
-          <div className="lp-section">
+          <div className="lp-section" data-list-field="description">
             <div className="lp-field-header">
-              <span className="lp-label">Description</span>
+              <span className="lp-label">Description <span className="lp-req">Required</span></span>
             </div>
             <textarea
               className={`lp-textarea ${errors.description ? 'error' : ''}`}
@@ -473,9 +464,9 @@ const ListProductPage = () => {
           </div>
 
           {/* What would you swap for? */}
-          <div className="lp-section">
+          <div className="lp-section" data-list-field="swapFor">
             <div className="lp-field-header">
-              <span className="lp-label">What would you svap for?</span>
+              <span className="lp-label">What would you svap for? <span className="lp-req">Required</span></span>
             </div>
             <div className="lp-input-wrap">
               <FiCamera size={16} className="lp-input-icon" />
@@ -501,21 +492,31 @@ const ListProductPage = () => {
           </div>
 
           {/* Estimated value */}
-          <div className="lp-section">
+          <div className="lp-section" data-list-field="estimatedValue">
             <div className="lp-field-header">
-              <span className="lp-label">Estimated value (PKR)</span>
+              <span className="lp-label">Estimated value (PKR) <span className="lp-req">Required</span></span>
             </div>
             <div className="lp-input-wrap">
               <span className="lp-input-icon" style={{ fontSize: '0.875rem' }}>₨</span>
               <input
-                type="text"
-                className="lp-input"
+                type="number"
+                min="1"
+                max="2147483647"
+                step="1"
+                inputMode="numeric"
+                className={"lp-input " + (errors.estimatedValue ? "error" : "")}
                 placeholder="e.g. 5000"
                 value={estimatedValue}
-                onChange={(e) => setEstimatedValue(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => {
+                  setEstimatedValue(e.target.value.replace(/\D/g, ""));
+                  setErrors((prev) => ({ ...prev, estimatedValue: "" }));
+                }}
               />
             </div>
             <p className="lp-field-hint">Help others gauge a fair svap</p>
+            {errors.estimatedValue && (
+              <p className="lp-error"><FiAlertCircle size={12} />{errors.estimatedValue}</p>
+            )}
           </div>
 
           {/* Submit Button */}
@@ -1221,7 +1222,7 @@ const ListProductPage = () => {
           width: 100%;
           background: #E45821;
           border: none;
-          border-radius: 81px;
+          border-radius: 11px;
           padding: 13px;
           font-size: 0.875rem;
           font-weight: 600;

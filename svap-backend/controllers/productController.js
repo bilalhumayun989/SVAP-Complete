@@ -156,7 +156,18 @@ exports.getProductsByUser = async (req, res) => {
 
 exports.createProduct = async (req, res) => {
   try {
-    const productData = req.body;
+    const productData = req.body || {};
+    const requiredTextFields = ['user_id', 'title', 'description', 'category', 'condition', 'swap_for'];
+    const missingFields = requiredTextFields.filter((field) =>
+      typeof productData[field] !== 'string' || !productData[field].trim()
+    );
+    const estimatedValue = Number(productData.estimated_value);
+    if (!Number.isSafeInteger(estimatedValue) || estimatedValue <= 0 || estimatedValue > 2147483647) missingFields.push('estimated_value');
+    if (!Array.isArray(productData.image_urls) || productData.image_urls.length === 0) missingFields.push('image_urls');
+    if (typeof productData.video_url !== 'string' || !productData.video_url.trim()) missingFields.push('video_url');
+    if (missingFields.length) {
+      return res.status(400).json({ error: 'Required listing fields are missing or invalid', fields: missingFields });
+    }
     const { data, error } = await supabaseAdmin
       .from('products')
       .insert(productData)

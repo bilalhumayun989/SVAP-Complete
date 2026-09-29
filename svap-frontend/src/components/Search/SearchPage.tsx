@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Search, SlidersHorizontal, Bookmark, X } from "lucide-react";
 import { supabase } from "../../services/supabase";
+import { api } from "../../services/api";
 
 interface Product {
   id: string;
@@ -38,7 +39,29 @@ export default function SearchPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [savedProductIds, setSavedProductIds] = useState<Set<string>>(new Set());
+  const [savingProductId, setSavingProductId] = useState<string | null>(null);
+  const userId = (() => {
+    try { return JSON.parse(localStorage.getItem("sz_user") || "{}").id || null; }
+    catch { return null; }
+  })();
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!userId) {
+      setSavedProductIds(new Set());
+      return;
+    }
+
+    api.getSavedProductIds(userId)
+      .then((result) => {
+        if (result?.error) throw new Error(result.error);
+        if (!cancelled) setSavedProductIds(new Set(result?.data || []));
+      })
+      .catch((error) => console.error("Failed to load saved products:", error));
+
+    return () => { cancelled = true; };
+  }, [userId]);
   // Dynamic Theme State Sync
   const [isDark, setIsDark] = useState<boolean>(() => {
     const savedTheme = localStorage.getItem("sz_theme");
@@ -118,6 +141,34 @@ export default function SearchPage() {
     fetchProducts();
   }, [searchQuery, selectedCategory, sortBy]);
 
+  const handleSaveToggle = async (event: React.MouseEvent<HTMLButtonElement>, productId: string) => {
+    event.stopPropagation();
+    if (!userId) {
+      navigate("/login");
+      return;
+    }
+    if (savingProductId === productId) return;
+
+    const wasSaved = savedProductIds.has(productId);
+    setSavingProductId(productId);
+    try {
+      const result = wasSaved
+        ? await api.unsaveProduct(userId, productId)
+        : await api.saveProduct(userId, productId);
+      if (result?.error) throw new Error(result.error);
+
+      setSavedProductIds((current) => {
+        const next = new Set(current);
+        if (wasSaved) next.delete(productId);
+        else next.add(productId);
+        return next;
+      });
+    } catch (error) {
+      console.error("Failed to update saved product:", error);
+    } finally {
+      setSavingProductId(null);
+    }
+  };
   // Update URL search query
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,12 +312,15 @@ export default function SearchPage() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <button
-                    className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
+                    type="button"
+                    className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition-colors disabled:opacity-60"
+                    onClick={(e) => handleSaveToggle(e, item.id)}
+                    disabled={savingProductId === item.id}
+                    aria-label={savedProductIds.has(item.id) ? "Remove from saved" : "Save product"}
+                    aria-pressed={savedProductIds.has(item.id)}
+                    title={savedProductIds.has(item.id) ? "Remove from saved" : "Save product"}
                   >
-                    <Bookmark size={13} />
+                    <Bookmark size={13} fill={savedProductIds.has(item.id) ? "currentColor" : "none"} />
                   </button>
                 </div>
 

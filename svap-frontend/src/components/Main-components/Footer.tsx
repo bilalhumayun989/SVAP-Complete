@@ -15,14 +15,13 @@ const footerLinks = [
         { label: "Fashion",     href: "/category/Fashion" },
         { label: "Gaming",      href: "/category/Gaming" },
         { label: "Books",       href: "/category/Books" },
-        { label: "Home",        href: "/category/Home" },
       ],
     },
     {
       heading: "Company",
       links: [
         { label: "About Us",    href: "/about" },
-        { label: "Categories",  href: "/categories" },
+        { label: "List an item",  href: "/list-product" },
         { label: "My Orders",   href: "/orders" },
       ],
     },

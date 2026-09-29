@@ -57,6 +57,130 @@ BEGIN
 END;
 $function$;
 
+-- Notify the order owner about their own status. If a partner order is cancelled
+-- after this user has paid, tell them to contact support about their refund.
+CREATE OR REPLACE FUNCTION public.notify_order_status_change()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $function$
+DECLARE
+  v_title text;
+  v_body text;
+  v_partner_user_id uuid;
+  v_partner_order_status text;
+  v_partner_has_order boolean := false;
+BEGIN
+  IF NEW.status IS NOT DISTINCT FROM OLD.status THEN
+    RETURN NEW;
+  END IF;
+
+  CASE NEW.status
+    WHEN 'payment_verification' THEN
+      v_title := 'Payment Verification';
+      v_body := 'We''re verifying your payment. You''ll be notified once confirmed.';
+    WHEN 'product_verification' THEN
+      v_title := 'Product Verification';
+      v_body := 'Payment confirmed! Please prepare your item for dispatch.';
+    WHEN 'item_verification' THEN
+      v_title := 'Item Verification';
+      v_body := 'Your payment is confirmed. Please prepare your item for dispatch.';
+    WHEN 'shipped' THEN
+      v_title := 'Order Shipped';
+      v_body := 'Your swap order is on its way! Check your orders tab for tracking details.';
+    WHEN 'delivered' THEN
+      v_title := 'Order Delivered';
+      v_body := 'Your swap order has been delivered. Enjoy your new item!';
+    WHEN 'cancelled' THEN
+      v_title := 'Order Cancelled';
+      v_body := 'Your order has been cancelled. Contact our support team if you need assistance.';
+    ELSE
+      RETURN NEW;
+  END CASE;
+
+  -- This notification is for the owner of the order whose status changed.
+  INSERT INTO public.notifications (user_id, type, title, body, route)
+  VALUES (NEW.from_user_id, 'order_status', v_title, v_body, '/profile');
+
+  -- Notify only the swap partner whose own payment is still awaiting verification.
+  IF NEW.status IN ('product_verification', 'item_verification')
+    AND COALESCE(OLD.status, '') NOT IN ('product_verification', 'item_verification')
+    AND NEW.swap_request_id IS NOT NULL THEN
+    SELECT CASE
+        WHEN sr.from_user_id = NEW.from_user_id THEN sr.to_user_id
+        ELSE sr.from_user_id
+      END
+      INTO v_partner_user_id
+    FROM public.swap_requests sr
+    WHERE sr.id = NEW.swap_request_id;
+
+    SELECT o.status
+      INTO v_partner_order_status
+    FROM public.orders o
+    WHERE o.swap_request_id = NEW.swap_request_id
+      AND o.from_user_id = v_partner_user_id
+    ORDER BY o.created_at DESC
+    LIMIT 1;
+    v_partner_has_order := FOUND;
+
+    IF v_partner_user_id IS NOT NULL
+      AND (NOT v_partner_has_order OR v_partner_order_status IN ('pending', 'payment_verification')) THEN
+      INSERT INTO public.notifications (user_id, type, title, body, route)
+      VALUES (
+        v_partner_user_id,
+        'order_status',
+        'Swap Partner Payment Verified',
+        'Your svap partner''s payment is verified by us. Now the item will be inspected',
+        '/profile'
+      );
+    END IF;
+  END IF;
+
+  IF NEW.status = 'cancelled' AND NEW.swap_request_id IS NOT NULL THEN
+    SELECT CASE
+        WHEN sr.from_user_id = NEW.from_user_id THEN sr.to_user_id
+        ELSE sr.from_user_id
+      END
+      INTO v_partner_user_id
+    FROM public.swap_requests sr
+    WHERE sr.id = NEW.swap_request_id;
+
+    SELECT o.status
+      INTO v_partner_order_status
+    FROM public.orders o
+    WHERE o.swap_request_id = NEW.swap_request_id
+      AND o.from_user_id = v_partner_user_id
+    ORDER BY o.created_at DESC
+    LIMIT 1;
+
+    IF FOUND AND v_partner_user_id IS NOT NULL THEN
+      IF v_partner_order_status IN ('product_verification', 'item_verification', 'shipped', 'delivered') THEN
+        INSERT INTO public.notifications (user_id, type, title, body, route)
+        VALUES (
+          v_partner_user_id,
+          'order_status',
+          'Swap Partner Order Cancelled',
+          'Your swap partner''s order was cancelled. Please contact our support team to arrange your refund.',
+          '/profile'
+        );
+      ELSE
+        INSERT INTO public.notifications (user_id, type, title, body, route)
+        VALUES (
+          v_partner_user_id,
+          'order_status',
+          'Swap Partner Order Cancelled',
+          'Your swap partner''s order was cancelled. Contact our support team if you need assistance.',
+          '/profile'
+        );
+      END IF;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
+
 -- Exclude only timeout-cancelled orders from the existing generic notification trigger.
 -- The expiry function inserts the specific timeout/refund notifications instead.
 DROP TRIGGER IF EXISTS on_order_status_change ON public.orders;
@@ -159,11 +283,11 @@ BEGIN
     IF checkout_count = 0 THEN
       INSERT INTO public.notifications (user_id, type, title, body, route, is_read)
       VALUES
-        (r.from_user_id, 'swap_timeout', 'Svap Cancelled - Timeout',
-         'Time out: aap ne 48 ghante mein checkout complete nahi kiya, svap cancel ho gayi.',
+        (r.from_user_id, 'swap_timeout', 'Swap Cancelled - Timeout',
+         'Timeout: You did not complete checkout within 48 hours, so the swap has been cancelled.',
          '/requests', false),
-        (r.to_user_id, 'swap_timeout', 'Svap Cancelled - Timeout',
-         'Time out: aap ne 48 ghante mein checkout complete nahi kiya, svap cancel ho gayi.',
+        (r.to_user_id, 'swap_timeout', 'Swap Cancelled - Timeout',
+         'Timeout: You did not complete checkout within 48 hours, so the swap has been cancelled.',
          '/requests', false);
     ELSE
       no_checkout_user :=
@@ -171,11 +295,11 @@ BEGIN
 
       INSERT INTO public.notifications (user_id, type, title, body, route, is_read)
       VALUES
-        (no_checkout_user, 'swap_timeout', 'Svap Cancelled - Timeout',
-         'Time out: aap ne 48 ghante mein checkout complete nahi kiya, svap cancel ho gayi.',
+        (no_checkout_user, 'swap_timeout', 'Swap Cancelled - Timeout',
+         'Timeout: You did not complete checkout within 48 hours, so the swap has been cancelled.',
          '/requests', false),
-        (checkout_user, 'swap_timeout', 'Svap Cancelled - Timeout',
-         'Aapke swap partner ne time par checkout nahi kiya, svap cancel ho gayi. Aapka order cancel kar diya gaya hai; refund required hai.',
+        (checkout_user, 'swap_timeout', 'Swap Cancelled - Timeout',
+         'Your swap partner did not complete checkout within 48 hours, so the swap has been cancelled. Your order was cancelled and a refund is required.',
          '/requests', false);
     END IF;
 
@@ -191,3 +315,4 @@ GRANT EXECUTE ON FUNCTION public.expire_stale_swaps() TO service_role;
 
 -- Backend node-cron invokes public.expire_stale_swaps() every five minutes.
 -- No pg_cron extension or database-side schedule is required.
+

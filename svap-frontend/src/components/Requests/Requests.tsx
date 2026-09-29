@@ -337,7 +337,10 @@ const Requests = () => {
               const hasAnyCheckoutOrder = checkoutOrders.some((order) => order.swap_request_id === req.id && !order.is_checkout_pending && !String(order.id || "").startsWith("checkout-"));
               const canCancelAcceptedSwap = tab === "checkout" && req.status === "accepted" && !hasAnyCheckoutOrder;
               const ownOrder = checkoutOrderByRequest.get(req.id);
-              const partnerHasOrder = checkoutOrders.some((order) => order.swap_request_id === req.id && order.from_user_id !== userId && !order.is_checkout_pending && !String(order.id || "").startsWith("checkout-"));
+              const partnerOrder = checkoutOrders.find((order) => order.swap_request_id === req.id && order.from_user_id !== userId && !order.is_checkout_pending && !String(order.id || "").startsWith("checkout-"));
+              const partnerHasOrder = Boolean(partnerOrder);
+              const partnerPaymentVerified = Boolean(partnerOrder && ["product_verification", "item_verification", "shipped", "delivered"].includes(partnerOrder.status));
+              const ownPaymentNotVerified = !ownOrder || ["pending", "payment_verification"].includes(ownOrder.status);
               const displayUserName = getDisplayName(targetProfile);
               const avatarLetter = displayUserName.charAt(0).toUpperCase();
 
@@ -523,7 +526,10 @@ const Requests = () => {
                       {orderStageIndex(ownOrder.status) >= 0 && <div className="req-order-stages">{ORDER_STAGES.map((stage, index) => <div key={stage.value} className={"req-order-stage " + (index <= orderStageIndex(ownOrder.status) ? "is-done " : "") + (index === orderStageIndex(ownOrder.status) ? "is-current" : "")}><span className="req-order-stage-dot" /><span>{stage.label}</span></div>)}</div>}
                     </div>
                   )}
-                  {tab === "checkout" && !ownOrder && partnerHasOrder && (
+                  {tab === "checkout" && partnerHasOrder && partnerPaymentVerified && ownPaymentNotVerified && (
+                    <div className="req-partner-checkout-note" role="status">Your svap partner's payment is verified by us. Now the item will be inspected</div>
+                  )}
+                  {tab === "checkout" && !ownOrder && partnerHasOrder && !partnerPaymentVerified && (
                     <div className="req-partner-checkout-note" role="status">Your svap partner has completed checkout. Complete your own checkout to continue.</div>
                   )}
 

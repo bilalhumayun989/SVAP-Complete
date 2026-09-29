@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { RealtimePostgresInsertPayload } from '@supabase/supabase-js';
 import { supabase } from '../services/supabase';
 import { api } from '../services/api';
+import { getEnglishNotificationCopy } from '../utils/notificationCopy';
 
 interface ToastItem {
   id: string;
@@ -86,9 +87,10 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           // Show toast only once per notification id
           if (!seenIds.current.has(notif.id)) {
             seenIds.current.add(notif.id);
+            const englishCopy = getEnglishNotificationCopy(notif);
             const toast: ToastItem = {
               id: notif.id,
-              body: notif.body || notif.title || 'New svap request received',
+              body: englishCopy.body || englishCopy.title || 'New swap request received',
               route: '/requests',
             };
             setToasts(prev => [...prev, toast]);
