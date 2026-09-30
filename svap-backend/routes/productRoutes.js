@@ -11,6 +11,11 @@ router.get('/stories', productController.getStories);
 // GET /api/products/user/:userId
 router.get('/user/:userId', productController.getProductsByUser);
 
+// Product Q&A, shared with questions posted from the mobile app.
+router.get('/:id/questions', productController.getProductQuestions);
+router.post('/:id/questions', productController.createProductQuestion);
+router.patch('/:id/questions/:questionId/answer', productController.answerProductQuestion);
+
 // GET /api/products/:id
 router.get('/:id', productController.getProductById);
 

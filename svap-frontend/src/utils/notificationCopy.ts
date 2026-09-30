@@ -22,6 +22,8 @@ const copyByType: Record<string, { title: string; body: string }> = {
     body: "Your swap partner has completed checkout. Complete your own checkout to continue.",
   },
   swap_timeout: { title: "Swap Cancelled - Timeout", body: "Your swap was cancelled because checkout was not completed within 48 hours." },
+  product_question: { title: "New question about your listing", body: "A user asked a question about your listing." },
+  product_answer: { title: "Your question was answered", body: "The seller answered your question." },
   order_update: { title: "Order Update", body: "Your order status has been updated." },
   system: { title: "Notification", body: "You have a new notification." },
 };

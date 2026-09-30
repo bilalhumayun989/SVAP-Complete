@@ -22,6 +22,8 @@ interface NotificationRow {
   id: string;
   body?: string | null;
   title?: string | null;
+  type?: string | null;
+  route?: string | null;
 }
 
 const NotificationContext = createContext<NotifCtx>({
@@ -91,7 +93,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
             const toast: ToastItem = {
               id: notif.id,
               body: englishCopy.body || englishCopy.title || 'New swap request received',
-              route: '/requests',
+              route: notif.route || (notif.type === 'product_question' || notif.type === 'product_answer' ? undefined : '/requests'),
             };
             setToasts(prev => [...prev, toast]);
             // Auto-dismiss after 4s

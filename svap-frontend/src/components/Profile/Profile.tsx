@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiBookmark, FiRepeat, 
-  FiEdit2, FiTrash2, FiHeart,
+  FiEdit2, FiTrash2, FiHeart, FiStar,
   FiCheck, FiClock, FiX, FiBox
 } from "react-icons/fi";
 import { HiCheckBadge } from "react-icons/hi2";
@@ -400,13 +400,13 @@ const Profile = () => {
               {profileUser.city && <p className="pf-city">{profileUser.city}</p>}
 
               <div className="pf-stats-card">
-                {/* <div className="pf-stat-item">
+                <div className="pf-stat-item">
                   <div className="pf-stat-icon" style={{color: '#E45821'}}><FiStar size={14} /></div>
                   <div className="pf-stat-val">
                     {Number(profileUser.swap_score ?? 0).toFixed(1)}<span className="pf-stat-val-sub">/5</span>
                   </div>
                   <div className="pf-stat-label">Swap Score</div>
-                </div> */}
+                </div>
                 <div className="pf-stat-divider" />
                 <div className="pf-stat-item">
                   <div className="pf-stat-icon" style={{color: '#E45821'}}><FiBox size={14} /></div>

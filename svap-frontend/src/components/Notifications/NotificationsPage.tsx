@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiRepeat, FiShoppingBag, FiBell, FiCheck } from "react-icons/fi";
+import { FiRepeat, FiShoppingBag, FiBell, FiCheck, FiMessageCircle } from "react-icons/fi";
 import { api } from "../../services/api";
 import { supabase } from "../../services/supabase";
 import { useNotifications } from "../../context/NotificationContext";
@@ -22,6 +22,7 @@ const iconMap = (type: NotifType) => {
   if (type === "svap_request" || type === "svap_accepted" || type === "swap_accepted" || type === "swap_partner_checkout_completed" || type === "svap_rejected" || type === "swap_rejected" || type === "swap_cancelled" || type === "svap_unavailable")
     return <FiRepeat size={16} />;
   if (type === "order_update") return <FiShoppingBag size={16} />;
+  if (type === "product_question" || type === "product_answer") return <FiMessageCircle size={16} />;
   return <FiBell size={16} />;
 };
 
@@ -30,6 +31,7 @@ const colorMap = (type: NotifType) => {
   if (type === "svap_accepted" || type === "swap_accepted" || type === "swap_partner_checkout_completed") return "#22c55e";
   if (type === "svap_rejected" || type === "swap_rejected" || type === "swap_cancelled" || type === "svap_unavailable") return "#ef4444";
   if (type === "order_update") return "#E45821";
+  if (type === "product_question" || type === "product_answer") return "#0ea5e9";
   return "#8b5cf6";
 };
 
@@ -104,7 +106,7 @@ const NotificationsPage = () => {
     if (activeTab === "unread") return !n.is_read;
     if (activeTab === "Svap") return n.type.startsWith("svap") || n.type.startsWith("swap_");
     if (activeTab === "orders") return n.type === "order_update";
-    if (activeTab === "Q&A") return n.type === "system";
+    if (activeTab === "Q&A") return n.type === "system" || n.type === "product_question" || n.type === "product_answer";
     return true;
   });
 

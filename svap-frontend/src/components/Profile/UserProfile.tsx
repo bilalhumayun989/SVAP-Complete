@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiMapPin, FiGrid, FiCalendar, FiBox, FiRepeat} from "react-icons/fi";
+import { FiArrowLeft, FiMapPin, FiGrid, FiCalendar,FiInfo, FiBox,FiStar, FiRepeat} from "react-icons/fi";
 import { HiCheckBadge } from "react-icons/hi2";
 import { api } from "../../services/api";
 
@@ -156,14 +156,14 @@ const UserProfile = () => {
           </div>
 
           <div className="up-stats-card">
-            {/* <div className="up-stat-item">
+            <div className="up-stat-item">
               <div className="up-stat-icon" style={{color: '#E45821'}}><FiStar size={14} /></div>
               <div className="up-stat-val">
                 {Number(user.swap_score ?? 0).toFixed(1)}<span className="up-stat-val-sub">/5</span>
                 <FiInfo size={10} className="up-stat-info-icon" />
               </div>
               <div className="up-stat-label">Swap Score</div>
-            </div> */}
+            </div>
             <div className="up-stat-divider" />
             <div className="up-stat-item">
               <div className="up-stat-icon" style={{color: '#E45821'}}><FiBox size={14} /></div>

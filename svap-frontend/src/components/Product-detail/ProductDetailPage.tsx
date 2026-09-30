@@ -1,12 +1,23 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   FiArrowLeft,
-  FiEye, FiCheck, FiBookmark, FiPackage
+  FiEye, FiCheck, FiBookmark, FiPackage, FiMessageCircle, FiSend
 } from 'react-icons/fi'
 import { api } from '../../services/api'
+import { supabase } from '../../services/supabase'
 
 const SWAP_COOLDOWN_MESSAGE = 'You already have an active request for this item.';
+
+interface ProductQuestion {
+  id: string;
+  product_id: string;
+  user_id: string;
+  question: string;
+  answer: string | null;
+  created_at: string;
+  profiles?: { username?: string | null; full_name?: string | null; avatar_url?: string | null } | null;
+}
 
 interface DetailProduct {
   id: string
@@ -43,9 +54,84 @@ const ProductDetailPage = () => {
   const [isSaved, setIsSaved] = useState(false)
   const [saveLoading, setSaveLoading] = useState(false)
 
+  const [questions, setQuestions] = useState<ProductQuestion[]>([])
+  const [questionsLoading, setQuestionsLoading] = useState(true)
+  const [questionDraft, setQuestionDraft] = useState('')
+  const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({})
+  const [questionSubmitting, setQuestionSubmitting] = useState(false)
+  const [answeringId, setAnsweringId] = useState<string | null>(null)
+  const [questionError, setQuestionError] = useState('')
   // Current logged-in user id from localStorage
   const myUserId = (() => { try { return JSON.parse(localStorage.getItem('sz_user') || '{}').id; } catch { return null; } })()
 
+  const loadQuestions = useCallback(async (showLoading = true) => {
+    if (!id) return;
+    if (showLoading) setQuestionsLoading(true);
+    try {
+      const result = await api.getProductQuestions(id);
+      if (result.error) throw new Error(result.error);
+      setQuestions(Array.isArray(result.data) ? result.data : []);
+      setQuestionError('');
+    } catch (error: any) {
+      setQuestionError(error.message || 'Could not load questions.');
+    } finally {
+      if (showLoading) setQuestionsLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void loadQuestions();
+    if (!id) return;
+    const channel = supabase
+      .channel('product-questions-' + id)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'product_questions', filter: 'product_id=eq.' + id,
+      }, () => { void loadQuestions(false); })
+      .subscribe();
+    const pollId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void loadQuestions(false);
+    }, 5000);
+    return () => {
+      window.clearInterval(pollId);
+      void supabase.removeChannel(channel);
+    };
+  }, [id, loadQuestions]);
+
+  const submitQuestion = async () => {
+    if (!id || !myUserId) { navigate('/login'); return; }
+    const text = questionDraft.trim();
+    if (!text || questionSubmitting) return;
+    setQuestionSubmitting(true);
+    setQuestionError('');
+    try {
+      const result = await api.createProductQuestion(id, myUserId, text);
+      if (result.error) throw new Error(result.error);
+      if (result.data) setQuestions((current) => [result.data, ...current]);
+      setQuestionDraft('');
+    } catch (error: any) {
+      setQuestionError(error.message || 'Could not submit your question.');
+    } finally {
+      setQuestionSubmitting(false);
+    }
+  };
+
+  const submitAnswer = async (questionId: string) => {
+    if (!id || !myUserId) return;
+    const text = (answerDrafts[questionId] || '').trim();
+    if (!text || answeringId) return;
+    setAnsweringId(questionId);
+    setQuestionError('');
+    try {
+      const result = await api.answerProductQuestion(id, questionId, myUserId, text);
+      if (result.error) throw new Error(result.error);
+      if (result.data) setQuestions((current) => current.map((question) => question.id === questionId ? result.data : question));
+      setAnswerDrafts((current) => ({ ...current, [questionId]: '' }));
+    } catch (error: any) {
+      setQuestionError(error.message || 'Could not post your answer.');
+    } finally {
+      setAnsweringId(null);
+    }
+  };
   useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true);
@@ -199,14 +285,14 @@ const ProductDetailPage = () => {
           <div className="pdp-skel pdp-skel-back" />
         </div>
         <div className="pdp-main">
-          {/* Left — image skeleton */}
+          {/* Left â€” image skeleton */}
           <div className="pdp-left">
             <div className="pdp-skel pdp-skel-img" />
             <div className="pdp-thumbs" style={{ marginTop: 10 }}>
               {[1, 2, 3].map(i => <div key={i} className="pdp-skel pdp-skel-thumb" />)}
             </div>
           </div>
-          {/* Right — content skeleton */}
+          {/* Right â€” content skeleton */}
           <div className="pdp-right">
             <div className="pdp-skel pdp-skel-title" />
             <div className="pdp-skel pdp-skel-line" />
@@ -256,7 +342,7 @@ const ProductDetailPage = () => {
   return (
     <div className="pdp-root">
 
-      {/* ── Back ── */}
+      {/* â”€â”€ Back â”€â”€ */}
       <div className="pdp-back-wrap">
         <button className="pdp-back" onClick={() => navigate(-1)}>
           <FiArrowLeft />
@@ -264,17 +350,17 @@ const ProductDetailPage = () => {
         </button>
       </div>
 
-      {/* ══ Main two-column ══ */}
+      {/* â•â• Main two-column â•â• */}
       <div className="pdp-main">
 
-        {/* LEFT — image gallery */}
+        {/* LEFT â€” image gallery */}
         <div className="pdp-left">
           {/* Main image */}
           <div className="pdp-img-card">
             <img src={product.images[activeImg]} alt={product.title} className="pdp-img" />
           </div>
 
-          {/* Thumbnails — only show if more than 1 image */}
+          {/* Thumbnails â€” only show if more than 1 image */}
           {product.images.length > 1 && (
             <div className="pdp-thumbs">
               {product.images.map((img, i) => (
@@ -297,7 +383,7 @@ const ProductDetailPage = () => {
           </div>
         </div>
 
-        {/* RIGHT — content */}
+        {/* RIGHT â€” content */}
         <div className="pdp-right">
 
           <h1 className="pdp-title">{product.title}</h1>
@@ -328,7 +414,7 @@ const ProductDetailPage = () => {
                 </p>
               </div>
             </div>
-            <span className="pdp-seller-arrow">›</span>
+            <span className="pdp-seller-arrow">â€º</span>
           </div>
 
           {product.swapFor && (
@@ -343,7 +429,7 @@ const ProductDetailPage = () => {
             </>
           )}
 
-          {/* CTA — only show Svap button if this is NOT the user's own product */}
+          {/* CTA â€” only show Svap button if this is NOT the user's own product */}
           {myUserId !== product.owner_id && (
             <>
               <div className="pdp-cta-row">
@@ -397,7 +483,7 @@ const ProductDetailPage = () => {
             </>
           )}
 
-          {/* If it's the user's own product — show Edit button instead */}
+          {/* If it's the user's own product â€” show Edit button instead */}
           {myUserId && myUserId === product.owner_id && (
             <div className="pdp-cta-row">
               <button
@@ -412,7 +498,7 @@ const ProductDetailPage = () => {
                 className="pdp-cta pdp-cta-edit"
                 onClick={() => navigate(`/edit-product/${product.id}`)}
               >
-                ✏️ Edit Listing
+                âœï¸ Edit Listing
               </button>
             </div>
           )}
@@ -434,7 +520,76 @@ const ProductDetailPage = () => {
         </section>
       )}
 
-      {/* ══ Related products ══ */}
+      {/* â•â• Related products â•â• */}
+      <section className="pdp-qa-section" aria-labelledby="pdp-qa-title">
+        <div className="pdp-qa-header">
+          <div>
+            <h2 id="pdp-qa-title">Questions &amp; Answers</h2>
+          </div>
+          <span className="pdp-qa-count"><FiMessageCircle size={15} /> {questions.length}</span>
+        </div>
+
+        {myUserId && myUserId !== product.owner_id ? (
+          <div className="pdp-qa-compose">
+            <textarea
+              value={questionDraft}
+              onChange={(event) => setQuestionDraft(event.target.value.slice(0, 1000))}
+              placeholder="Write a question about this item..."
+              maxLength={1000}
+              rows={3}
+              aria-label="Your question"
+            />
+            <div className="pdp-qa-compose-footer">
+              <span>{questionDraft.length}/1000</span>
+              <button type="button" onClick={submitQuestion} disabled={!questionDraft.trim() || questionSubmitting}>
+                <FiSend size={15} /> {questionSubmitting ? 'Sending...' : 'Ask question'}
+              </button>
+            </div>
+          </div>
+        ) : !myUserId ? (
+          <button type="button" className="pdp-qa-login" onClick={() => navigate('/login')}>Log in to ask a question</button>
+        ) : null}
+
+        {questionError && <p className="pdp-qa-error" role="alert">{questionError}</p>}
+        {questionsLoading ? (
+          <p className="pdp-qa-empty">Loading questions...</p>
+        ) : questions.length === 0 ? (
+          <p className="pdp-qa-empty">No questions yet. Be the first to ask.</p>
+        ) : (
+          <div className="pdp-qa-list">
+            {questions.map((item) => {
+              const author = item.profiles?.username || item.profiles?.full_name || 'Svap user';
+              return (
+                <article className="pdp-qa-item" key={item.id}>
+                  <div className="pdp-qa-question-head">
+                    <strong>@{author}</strong>
+                    <time dateTime={item.created_at}>{new Date(item.created_at).toLocaleDateString()}</time>
+                  </div>
+                  <p className="pdp-qa-question">{item.question}</p>
+                  {item.answer ? (
+                    <div className="pdp-qa-answer"><strong>@{product.user.name}</strong><p>{item.answer}</p></div>
+                  ) : myUserId === product.owner_id ? (
+                    <div className="pdp-qa-answer-form">
+                      <textarea
+                        value={answerDrafts[item.id] || ''}
+                        onChange={(event) => setAnswerDrafts((current) => ({ ...current, [item.id]: event.target.value.slice(0, 1000) }))}
+                        placeholder="Write your answer..."
+                        maxLength={1000}
+                        rows={2}
+                        aria-label={`Answer question from ${author}`}
+                      />
+                      <button type="button" onClick={() => submitAnswer(item.id)} disabled={!(answerDrafts[item.id] || '').trim() || answeringId === item.id}>
+                        {answeringId === item.id ? 'Posting...' : 'Post answer'}
+                      </button>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       <div className="pdp-related-wrap">
         <h2 className="pdp-related-title">More Listings</h2>
         <div className="pdp-related-grid">
@@ -459,7 +614,7 @@ const ProductDetailPage = () => {
         </div>
       </div>
 
-      {/* ══ Svap Request Modal ══ */}
+      {/* â•â• Svap Request Modal â•â• */}
       {showSwapModal && (
         <div
           className="pdp-modal-overlay"
@@ -656,7 +811,7 @@ const ProductDetailPage = () => {
           font-size: 0.95rem;
         }
 
-        /* ── Back ── */
+        /* â”€â”€ Back â”€â”€ */
         .pdp-back-wrap {
           max-width: 2400px;
           margin: 0 auto;
@@ -678,7 +833,7 @@ const ProductDetailPage = () => {
         .pdp-back:hover { color: var(--text-dark); }
         .pdp-back:focus-visible { outline: 2px solid var(--svap-blue); outline-offset: 4px; }
 
-        /* ══ Main ══ */
+        /* â•â• Main â•â• */
         .pdp-main {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -774,7 +929,7 @@ const ProductDetailPage = () => {
           font-size: 0.78rem;
         }
 
-        /* ── Thumbnail strip ── */
+        /* â”€â”€ Thumbnail strip â”€â”€ */
         .pdp-thumbs {
           display: flex;
           gap: 8px;
@@ -1073,6 +1228,38 @@ const ProductDetailPage = () => {
           color: #000;
         }
 
+        .pdp-qa-section {
+          width: min(100% - 64px, 1440px);
+          margin: 40px auto 0;
+          padding: 26px;
+          border: 1px solid var(--border-light);
+          border-radius: 18px;
+          background: var(--card-bg);
+          box-sizing: border-box;
+        }
+        .pdp-qa-header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; }
+        .pdp-qa-header h2 { margin:0; color:var(--text-dark); font-size:1.25rem; font-weight:800; }
+        .pdp-qa-header p { margin:4px 0 0; color:var(--text-muted); font-size:.85rem; }
+        .pdp-qa-count { display:flex; align-items:center; gap:6px; color:var(--text-muted); font-size:.85rem; }
+        .pdp-qa-compose, .pdp-qa-answer-form { display:flex; flex-direction:column; gap:10px; }
+        .pdp-qa-compose textarea, .pdp-qa-answer-form textarea { width:100%; box-sizing:border-box; resize:vertical; padding:12px 14px; border:1px solid var(--border-light); border-radius:12px; background:var(--bg); color:var(--text-dark); font:inherit; }
+        .pdp-qa-compose-footer { display:flex; justify-content:space-between; align-items:center; color:var(--text-muted); font-size:.75rem; }
+        .pdp-qa-compose-footer button, .pdp-qa-answer-form button, .pdp-qa-login { display:inline-flex; align-items:center; justify-content:center; gap:7px; align-self:flex-start; border:0; border-radius:10px; padding:10px 15px; background:var(--btn-swap,#e45821); color:#fff; font:inherit; font-size:.82rem; font-weight:700; cursor:pointer; }
+        .pdp-qa-compose-footer button:disabled, .pdp-qa-answer-form button:disabled { opacity:.55; cursor:not-allowed; }
+        .pdp-qa-error { color:#dc2626; font-size:.84rem; }
+        .pdp-qa-empty { color:var(--text-muted); font-size:.9rem; }
+        .pdp-qa-list { display:flex; flex-direction:column; margin-top:20px; }
+        .pdp-qa-item { padding:18px 0; border-top:1px solid var(--border-light); }
+        .pdp-qa-question-head { display:flex; justify-content:space-between; gap:12px; color:var(--text-dark); font-size:.82rem; }
+        .pdp-qa-question-head time { color:var(--text-muted); font-size:.75rem; }
+        .pdp-qa-question { margin:9px 0 0; color:var(--text-dark); white-space:pre-wrap; overflow-wrap:anywhere; }
+        .pdp-qa-answer { margin:14px 0 0 14px; padding:12px 14px; border-left:3px solid var(--btn-swap,#e45821); border-radius:0 10px 10px 0; background:var(--bg); }
+        .pdp-qa-answer strong { font-size:.8rem; color:var(--text-dark); }
+        .pdp-qa-answer p { margin:6px 0 0; color:var(--text-muted); white-space:pre-wrap; overflow-wrap:anywhere; }
+        .pdp-qa-answer-form { margin:14px 0 0 14px; }
+        .pdp-qa-answer-form button { align-self:flex-end; }
+        @media (max-width: 768px) { .pdp-qa-section { width:calc(100% - 32px); margin-top:28px; padding:18px; } }
+
         .pdp-related-wrap {
           max-width: 2400px;
           margin: 0 auto;
@@ -1173,9 +1360,9 @@ const ProductDetailPage = () => {
           .pdp-related-grid { grid-template-columns: repeat(4, 1fr); }
         }
         
-        /* ──────────────────────────────────────
+        /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
            TABLET/MEDIUM SCREENS (780px-1300px)
-        ────────────────────────────────────── */
+        â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
         @media (min-width: 768px) and (max-width: 1300px) {
           .pdp-main { 
             grid-template-columns: 1fr 1fr; 
@@ -1282,7 +1469,7 @@ const ProductDetailPage = () => {
           .pdp-related-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
         }
 
-        /* ── Svap Request Modal ── */
+        /* â”€â”€ Svap Request Modal â”€â”€ */
         .pdp-modal-overlay {
           position: fixed;
           inset: 0;
@@ -1563,3 +1750,4 @@ const ProductDetailPage = () => {
 }
 
 export default ProductDetailPage
+

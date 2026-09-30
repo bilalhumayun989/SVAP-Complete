@@ -122,6 +122,24 @@ export const api = {
     const res = await fetch(`${API_URL}/products/${id}`);
     return res.json();
   },
+  getProductQuestions: async (productId: string) => {
+    const res = await fetch(API_URL + '/products/' + encodeURIComponent(productId) + '/questions');
+    return res.json();
+  },
+  createProductQuestion: async (productId: string, userId: string, question: string) => {
+    const res = await fetch(API_URL + '/products/' + encodeURIComponent(productId) + '/questions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, question }),
+    });
+    return res.json();
+  },
+  answerProductQuestion: async (productId: string, questionId: string, userId: string, answer: string) => {
+    const res = await fetch(API_URL + '/products/' + encodeURIComponent(productId) + '/questions/' + encodeURIComponent(questionId) + '/answer', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, answer }),
+    });
+    return res.json();
+  },
   getProductsByUser: async (userId: string, activeOnly = false) => {
     const query = activeOnly ? '?active=true' : '';
     const res = await fetch(`${API_URL}/products/user/${encodeURIComponent(userId)}${query}`);
