@@ -69,9 +69,13 @@ const ProductCard = ({ product, initialSaved = false }: ProductCardProps) => {
       className="product-card flex flex-col overflow-hidden rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 shadow-md hover:shadow-xl"
     >
       {/* USER HEADER */}
-      <div
-        className="flex items-center px-3.5 py-3 cursor-pointer"
-        onClick={go}
+      <button
+        type="button"
+        className="flex w-full items-center px-3.5 py-3 text-left bg-transparent border-0"
+        style={{ cursor: product.userId ? "pointer" : "default" }}
+        onClick={() => product.userId && navigate(`/user/${product.userId}`)}
+        disabled={!product.userId}
+        aria-label={product.userId ? `View @${product.user.name}'s store` : undefined}
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <img
@@ -87,7 +91,7 @@ const ProductCard = ({ product, initialSaved = false }: ProductCardProps) => {
             @{product.user.name}
           </p>
         </div>
-      </div>
+      </button>
 
       {/* IMAGE CONTAINER */}
       <div

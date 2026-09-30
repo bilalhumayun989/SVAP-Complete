@@ -53,6 +53,7 @@ const ProductGrid = () => {
             
             return {
               id: p.id,
+              userId: p.user_id,
               user: {
                 name: username,
                 email: profile.email || "",

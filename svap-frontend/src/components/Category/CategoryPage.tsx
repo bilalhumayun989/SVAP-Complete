@@ -33,6 +33,7 @@ const CategoryPage = () => {
         if (response.data) {
           const mapped: Product[] = response.data.map((p: any) => ({
             id: p.id,
+            userId: p.user_id,
             title: p.title,
             description: p.description || "",
             image: p.image_urls?.[0] || "https://placehold.co/600x400?text=No+Image",

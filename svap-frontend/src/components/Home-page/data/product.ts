@@ -6,6 +6,7 @@ export interface ProductUser {
 
 export interface Product {
   id: string
+  userId?: string
   user: ProductUser
   image: string
   title: string

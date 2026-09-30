@@ -31,6 +31,7 @@ const AllProductGrid = () => {
         if (prodRes.data) {
           setProducts(prodRes.data.map((p: any) => ({
             id: p.id,
+            userId: p.user_id,
             user: {
               name: p.profiles?.username || p.profiles?.full_name || "Unknown",
               email: p.profiles?.email || "",
