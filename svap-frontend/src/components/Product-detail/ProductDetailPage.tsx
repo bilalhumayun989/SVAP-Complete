@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom'
+﻿import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import {
   FiArrowLeft,
@@ -414,7 +414,6 @@ const ProductDetailPage = () => {
                 </p>
               </div>
             </div>
-            <span className="pdp-seller-arrow">â€º</span>
           </div>
 
           {product.swapFor && (
@@ -498,7 +497,7 @@ const ProductDetailPage = () => {
                 className="pdp-cta pdp-cta-edit"
                 onClick={() => navigate(`/edit-product/${product.id}`)}
               >
-                âœï¸ Edit Listing
+                Edit Listing
               </button>
             </div>
           )}
@@ -1012,16 +1011,8 @@ const ProductDetailPage = () => {
           background: rgba(228,88,33,0.04);
           transform: translateY(-1px);
         }
-        .pdp-seller-arrow {
-          font-size: 1.4rem;
-          color: var(--text-muted);
-          flex-shrink: 0;
-          transition: color 0.18s, transform 0.18s;
-        }
-        .pdp-seller--clickable:hover .pdp-seller-arrow {
-          color: #E45821;
-          transform: translateX(3px);
-        }
+      
+      
         .pdp-seller-info {
           display: flex;
           align-items: center;

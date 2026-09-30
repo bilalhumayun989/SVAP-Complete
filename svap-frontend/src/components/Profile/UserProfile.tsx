@@ -162,7 +162,7 @@ const UserProfile = () => {
                 {Number(user.swap_score ?? 0).toFixed(1)}<span className="up-stat-val-sub">/5</span>
                 <FiInfo size={10} className="up-stat-info-icon" />
               </div>
-              <div className="up-stat-label">Swap Score</div>
+              <div className="up-stat-label">Svap Score</div>
             </div>
             <div className="up-stat-divider" />
             <div className="up-stat-item">

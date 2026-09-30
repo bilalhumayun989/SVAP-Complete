@@ -405,7 +405,7 @@ const Profile = () => {
                   <div className="pf-stat-val">
                     {Number(profileUser.swap_score ?? 0).toFixed(1)}<span className="pf-stat-val-sub">/5</span>
                   </div>
-                  <div className="pf-stat-label">Swap Score</div>
+                  <div className="pf-stat-label">Svap Score</div>
                 </div>
                 <div className="pf-stat-divider" />
                 <div className="pf-stat-item">
