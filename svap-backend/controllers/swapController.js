@@ -231,6 +231,19 @@ exports.updateSwapRequestStatus = async (req, res) => {
       }
     }
 
+    if (status === 'accepted') {
+      const productIds = [...new Set([current.offered_product_id, current.requested_product_id].filter(Boolean))];
+      const { data: products, error: productsError } = await supabaseAdmin
+        .from('products')
+        .select('id, status')
+        .in('id', productIds);
+
+      if (productsError) return res.status(500).json({ error: 'Could not verify product availability' });
+      if ((products || []).length !== productIds.length || products.some((product) => product.status !== 'active')) {
+        return res.status(409).json({ error: 'A product in this SVAP is no longer available' });
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from('swap_requests')
       .update({ status })

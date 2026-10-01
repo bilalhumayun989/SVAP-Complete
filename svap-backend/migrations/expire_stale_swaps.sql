@@ -57,7 +57,6 @@ DECLARE
   checkout_user uuid;
   remaining_commitments integer;
 BEGIN
-  -- Acceptance commits both swap participants exactly once per status transition.
   IF NEW.status = 'accepted' AND OLD.status IS DISTINCT FROM 'accepted' THEN
     UPDATE public.profiles
     SET committed_swaps = COALESCE(committed_swaps, 0) + 1,
@@ -68,7 +67,6 @@ BEGIN
     WHERE id IN (NEW.from_user_id, NEW.to_user_id);
   END IF;
 
-  -- Completion records one successful swap for each participant.
   IF NEW.status = 'completed' AND OLD.status IS DISTINCT FROM 'completed' THEN
     UPDATE public.profiles
     SET total_swaps = COALESCE(total_swaps, 0) + 1,
@@ -82,13 +80,9 @@ BEGIN
         )), 1)
     WHERE id IN (NEW.from_user_id, NEW.to_user_id);
 
-    UPDATE public.products
-    SET status = 'swapped'
-    WHERE id IN (NEW.offered_product_id, NEW.requested_product_id);
+    -- Products remain reserved until both orders are delivered.
   END IF;
 
-  -- On timeout, a participant who checked out is not penalized; keep the
-  -- commitment only for the participant who did not complete checkout.
   IF NEW.status = 'cancelled'
     AND OLD.status IN ('accepted', 'completed')
     AND NEW.expires_at <= now() THEN
