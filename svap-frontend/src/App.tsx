@@ -167,7 +167,7 @@ function AppInner() {
   const isResetPassword = pathname === '/reset-password'
   const isRequestsPage = pathname === '/requests'
   const isCheckoutPage = pathname.startsWith('/checkout')
-  const hideTopBar = isListProductPage || isSearchPage || isForgotPassword || isResetPassword || isRequestsPage || isCheckoutPage
+  const hideTopBar = isProductRoute || isListProductPage || isSearchPage || isForgotPassword || isResetPassword || isRequestsPage || isCheckoutPage
 
   // Check for existing session on app load and route change
   useEffect(() => {
