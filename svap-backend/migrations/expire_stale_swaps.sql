@@ -20,8 +20,8 @@ BEGIN
   INSERT INTO public.notifications (user_id, type, title, body, route)
   VALUES (
     NEW.to_user_id,
-    'order_update',
     'Order placed for your SVAP',
+    'order_update',
     '@' || COALESCE(buyer_username, 'A user') || ' has placed an order. Prepare your item for shipping. Order ID: ' || NEW.id::text,
     '/orders'
   );

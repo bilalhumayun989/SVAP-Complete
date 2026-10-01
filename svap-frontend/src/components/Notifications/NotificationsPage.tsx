@@ -46,7 +46,10 @@ function timeAgo(dateStr: string): string {
   return `${d}d ago`;
 }
 
-type FilterTab = "all" | "unread" | "Svap" | "orders" | "Q&A";
+type FilterTab = "all" | "svaps" | "system";
+
+const isSvapNotification = (type: NotifType) =>
+  type.startsWith("svap_") || type.startsWith("swap_");
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
@@ -103,10 +106,8 @@ const NotificationsPage = () => {
   const unreadCount = notifs.filter(n => !n.is_read).length;
 
   const filtered = notifs.filter(n => {
-    if (activeTab === "unread") return !n.is_read;
-    if (activeTab === "Svap") return n.type.startsWith("svap") || n.type.startsWith("swap_");
-    if (activeTab === "orders") return n.type === "order_update";
-    if (activeTab === "Q&A") return n.type === "system" || n.type === "product_question" || n.type === "product_answer";
+    if (activeTab === "svaps") return isSvapNotification(n.type);
+    if (activeTab === "system") return !isSvapNotification(n.type);
     return true;
   });
 
@@ -161,16 +162,13 @@ const NotificationsPage = () => {
 
       {/* Filter tabs */}
       <div className="np-tabs">
-        {(["all", "unread", "Svap", "orders", "Q&A"] as FilterTab[]).map(tab => (
+        {(["all", "svaps", "system"] as FilterTab[]).map(tab => (
           <button
             key={tab}
             className={`np-tab ${activeTab === tab ? "np-tab--active" : ""}`}
             onClick={() => setActiveTab(tab)}
           >
-            {tab === "Q&A" ? "Q&A" : tab.charAt(0).toUpperCase() + tab.slice(1)}
-            {tab === "unread" && unreadCount > 0 && (
-              <span className="np-tab-count">{unreadCount}</span>
-            )}
+            {tab === "all" ? "All" : tab === "svaps" ? "Svaps" : "System"}
           </button>
         ))}
       </div>
