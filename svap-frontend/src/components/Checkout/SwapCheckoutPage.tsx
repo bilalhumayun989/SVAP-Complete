@@ -227,7 +227,7 @@ export const SwapCheckoutPage = () => {
         delivery_address: fullAddress,
         delivery_city: form.city.trim(),
         payment_method: 'Bank Transfer / EasyPaisa / JazzCash',
-        shipping_cost: BANK_DETAILS.deliveryFee,
+        shipping_cost: deliveryCharge,
         discount: 0,
         total: totalToTransfer,
         transaction_ref: screenshotUrl,
@@ -261,9 +261,12 @@ export const SwapCheckoutPage = () => {
   const isSender = swapInfo?.from_user_id === currentUserId;
   const cashTopUpAmount = Number(swapInfo?.premium_amount || 0);
   const isCashOnlyOffer = !swapInfo?.offered_product_id || !swapInfo.offered;
-  // Item-swap cash is handed over at delivery, not included in bank transfer.
-  const cashOnlyTransferAmount = isCashOnlyOffer && isSender ? cashTopUpAmount : 0;
-  const totalToTransfer = BANK_DETAILS.deliveryFee + cashOnlyTransferAmount;
+  const isCashOnlyOfferPayer = isCashOnlyOffer && isSender;
+  // The cash-only offerer transfers only the offered amount. The recipient
+  // keeps the normal delivery checkout; cash from item offers is added to the offerer transfer.
+  const deliveryCharge = isCashOnlyOfferPayer ? 0 : BANK_DETAILS.deliveryFee;
+  const cashOfferTransferAmount = isSender && !isCashOnlyOffer ? cashTopUpAmount : (isCashOnlyOfferPayer ? cashTopUpAmount : 0);
+  const totalToTransfer = deliveryCharge + cashOfferTransferAmount;
   const myItem = isCashOnlyOffer ? (isSender ? null : swapInfo?.requested) : (isSender ? swapInfo?.offered : swapInfo?.requested);
   const theirItem = isCashOnlyOffer ? (isSender ? swapInfo?.requested : null) : (isSender ? swapInfo?.requested : swapInfo?.offered);
 
@@ -288,7 +291,7 @@ export const SwapCheckoutPage = () => {
         </div>
         <div className="order-status-summary">
           <div className="status-summary-row"><span>Status</span><span className="status-summary-badge">Pending Verification</span></div>
-          <div className="status-summary-row"><span>Delivery Fee</span><span>PKR {BANK_DETAILS.deliveryFee.toLocaleString()}</span></div>
+          <div className="status-summary-row"><span>Delivery Fee</span><span>{deliveryCharge === 0 ? 'No delivery charge' : `PKR ${deliveryCharge.toLocaleString()}`}</span></div>
           {summaryCashAmount > 0 && (
             <div className="status-summary-row status-summary-row--cash">
               <span>{isCashOnlyOffer ? 'Cash Offer' : (isSender ? 'Cash you offer' : 'Cash you receive')}</span>
@@ -299,7 +302,7 @@ export const SwapCheckoutPage = () => {
         {summaryCashAmount > 0 && !isCashOnlyOffer && (
           <div className="cash-boost-note" role="note">
             <strong>{isSender ? `You are offering PKR ${summaryCashAmount.toLocaleString()} extra.` : `You will receive PKR ${summaryCashAmount.toLocaleString()} extra.`}</strong>
-            <span>This cash is exchanged with the rider at delivery. It is not part of the bank transfer.</span>
+            <span>{isSender ? "This amount is included in your bank transfer." : "This amount is included in the offerer bank transfer."}</span>
           </div>
         )}
         <p className="status-summary-note">Our team will verify your payment and confirm your order shortly. You’ll see the status update in your Orders tab.</p>
@@ -413,8 +416,8 @@ export const SwapCheckoutPage = () => {
             ? `You are offering PKR ${cashTopUpAmount.toLocaleString()} extra with your item.`
             : `You will receive PKR ${cashTopUpAmount.toLocaleString()} extra in this svap.`}</strong>
           <span>{isSender
-            ? "Give this cash to the rider at delivery. It is not included in the bank transfer."
-            : "The rider will hand you this cash at delivery. It is not part of the bank transfer."}</span>
+            ? "This cash offer is included in your bank transfer, together with delivery."
+            : "This cash offer is included in the offerer bank transfer."}</span>
         </div>
       )}
       {/* Form Inputs */}
@@ -509,10 +512,10 @@ export const SwapCheckoutPage = () => {
             <div className="delivery-days">3-5 days</div>
           </div>
         </div>
-        <div className="delivery-price">PKR {BANK_DETAILS.deliveryFee}</div>
+        <div className="delivery-price">{deliveryCharge === 0 ? 'No delivery charge' : `PKR ${deliveryCharge.toLocaleString()}`}</div>
       </div>
       <div className="info-note muted-text">
-        <FiInfo size={13} /> PKR {BANK_DETAILS.deliveryFee} covers pickup from your location, delivery of the svaped item to you, and a PKR 100 item inspection fee.
+        <FiInfo size={13} /> {isCashOnlyOfferPayer ? `No delivery charge applies to this cash offer payment. You only transfer PKR ${cashTopUpAmount.toLocaleString()}.` : `PKR ${deliveryCharge} covers pickup from your location, delivery of the svaped item to you, and a PKR 100 item inspection fee.`}
       </div>
 
       {/* Bank & Wallets */}
@@ -611,19 +614,20 @@ export const SwapCheckoutPage = () => {
       <div className="summary-card">
         <div className="summary-card-title">Order Summary</div>
         
-        <div className="summary-row">
+        {!isCashOnlyOfferPayer && <div className="summary-row">
           <div>
             <div className="summary-label">Delivery (Standard)</div>
             <div className="summary-sublabel">Includes pickup, delivery & PKR 100 inspection fee.</div>
           </div>
-          <div className="summary-val">PKR {BANK_DETAILS.deliveryFee}</div>
-        </div>
+          <div className="summary-val">PKR {deliveryCharge.toLocaleString()}</div>
+        </div>}
 
         {cashTopUpAmount > 0 && (
           <div className="summary-row">
             <div>
-              <div className="summary-label">{isCashOnlyOffer ? "Cash Offer" : (isSender ? "Cash you offer" : "Cash you receive")}</div>
-              {!isCashOnlyOffer && <div className="summary-sublabel">Exchanged with rider at delivery; not a bank transfer.</div>}
+              <div className="summary-label">{isCashOnlyOffer ? (isSender ? "Cash offer payment" : "Cash offered") : (isSender ? "Cash you offer" : "Cash you receive")}</div>
+              {!isCashOnlyOffer && <div className="summary-sublabel">{isSender ? "Included in your bank transfer." : "Included in the offerer bank transfer."}</div>}
+              {isCashOnlyOfferPayer && <div className="summary-sublabel">No delivery charge is added to this payment.</div>}
             </div>
             <div className="summary-val">PKR {cashTopUpAmount.toLocaleString()}</div>
           </div>
@@ -633,7 +637,7 @@ export const SwapCheckoutPage = () => {
 
         <div className="summary-row total-row">
           <div className="total-label">Total to Transfer</div>
-          <div className="total-val">PKR {totalToTransfer}</div>
+          <div className="total-val">PKR {totalToTransfer.toLocaleString()}</div>
         </div>
       </div>
 

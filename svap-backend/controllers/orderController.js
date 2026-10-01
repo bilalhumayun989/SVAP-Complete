@@ -1,5 +1,7 @@
 ﻿const { supabaseAdmin } = require('../config/supabase');
 
+const CASH_ONLY_RECIPIENT_DELIVERY_FEE = 500;
+
 exports.createOrder = async (req, res) => {
   try {
     const { 
@@ -24,13 +26,33 @@ exports.createOrder = async (req, res) => {
     if (swap_request_id) {
       const { data: swapBeforeOrder, error: swapLookupError } = await supabaseAdmin
         .from('swap_requests')
-        .select('id, status, from_user_id, to_user_id, expires_at')
+        .select('id, status, from_user_id, to_user_id, offered_product_id, premium_amount, expires_at')
         .eq('id', swap_request_id)
         .single();
       if (swapLookupError || !swapBeforeOrder) return res.status(404).json({ error: 'Svap request not found' });
       if (!['accepted', 'completed'].includes(swapBeforeOrder.status)) return res.status(409).json({ error: 'This svap is no longer available for checkout' });
       if (![swapBeforeOrder.from_user_id, swapBeforeOrder.to_user_id].includes(from_user_id)) return res.status(403).json({ error: 'Only a svap participant can checkout this request' });
       if (new Date(swapBeforeOrder.expires_at).getTime() <= Date.now()) return res.status(409).json({ error: 'This svap expired after 48 hours and was cancelled' });
+      const cashOfferAmount = Number(swapBeforeOrder.premium_amount || 0);
+      if (!Number.isFinite(cashOfferAmount) || cashOfferAmount < 0) {
+        return res.status(409).json({ error: 'This cash offer has an invalid amount' });
+      }
+      const isCashOnlyOffer = !swapBeforeOrder.offered_product_id;
+      const isCashOfferPayer = from_user_id === swapBeforeOrder.from_user_id;
+      if (isCashOnlyOffer && isCashOfferPayer && cashOfferAmount <= 0) {
+        return res.status(409).json({ error: 'This cash offer has no valid amount to pay' });
+      }
+      req.checkoutPricing = isCashOnlyOffer
+        ? {
+            shippingCost: isCashOfferPayer ? 0 : CASH_ONLY_RECIPIENT_DELIVERY_FEE,
+            total: isCashOfferPayer ? cashOfferAmount : CASH_ONLY_RECIPIENT_DELIVERY_FEE,
+            premiumAmount: cashOfferAmount,
+          }
+        : {
+            shippingCost: CASH_ONLY_RECIPIENT_DELIVERY_FEE,
+            total: CASH_ONLY_RECIPIENT_DELIVERY_FEE + (isCashOfferPayer ? cashOfferAmount : 0),
+            premiumAmount: cashOfferAmount,
+          };
       if (swapBeforeOrder.status === 'completed') {
         const { count: ownOrderCount, error: ownOrderError } = await supabaseAdmin
           .from('orders')
@@ -55,11 +77,12 @@ exports.createOrder = async (req, res) => {
         delivery_address,
         delivery_city,
         payment_method,
-        shipping_cost,
+        shipping_cost: req.checkoutPricing?.shippingCost ?? shipping_cost,
         discount: discount || 0,
-        total,
+        total: req.checkoutPricing?.total ?? total,
         tracking_number: tracking_number || null,
         transaction_ref: transaction_ref || null,
+        premium_amount: req.checkoutPricing?.premiumAmount ?? 0,
         status: orderStatus,
       })
       .select()
