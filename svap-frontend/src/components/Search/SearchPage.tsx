@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Search, SlidersHorizontal, Bookmark, X } from "lucide-react";
+import { ArrowLeft, Search, SlidersHorizontal, Bookmark } from "lucide-react";
 import { supabase } from "../../services/supabase";
 import { api } from "../../services/api";
 
@@ -15,6 +15,7 @@ interface Product {
   created_at: string;
   city: string | null;
   status: string;
+  estimated_value: number | null;
 }
 
 const CATEGORIES = [
@@ -34,13 +35,14 @@ export default function SearchPage() {
   const initialQuery = searchParams.get("q") || "";
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [sortBy, setSortBy] = useState<"newest" | "a-z" | "top-rated">("newest");
+  const [sortBy, setSortBy] = useState<"newest" | "low-high" | "high-low">("newest");
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [savedProductIds, setSavedProductIds] = useState<Set<string>>(new Set());
   const [savingProductId, setSavingProductId] = useState<string | null>(null);
+
   const userId = (() => {
     try { return JSON.parse(localStorage.getItem("sz_user") || "{}").id || null; }
     catch { return null; }
@@ -62,6 +64,7 @@ export default function SearchPage() {
 
     return () => { cancelled = true; };
   }, [userId]);
+
   // Dynamic Theme State Sync
   const [isDark, setIsDark] = useState<boolean>(() => {
     const savedTheme = localStorage.getItem("sz_theme");
@@ -100,7 +103,7 @@ export default function SearchPage() {
     };
   }, []);
 
-  // Fetch Active Products from Supabase
+  // Fetch Active Products from Supabase using estimated_value
   useEffect(() => {
     async function fetchProducts() {
       setLoading(true);
@@ -120,12 +123,13 @@ export default function SearchPage() {
           );
         }
 
+        // Sorting based on DB schema
         if (sortBy === "newest") {
           query = query.order("created_at", { ascending: false });
-        } else if (sortBy === "a-z") {
-          query = query.order("title", { ascending: true });
-        } else if (sortBy === "top-rated") {
-          query = query.order("saved_count", { ascending: false });
+        } else if (sortBy === "low-high") {
+          query = query.order("estimated_value", { ascending: true, nullsFirst: false });
+        } else if (sortBy === "high-low") {
+          query = query.order("estimated_value", { ascending: false, nullsFirst: false });
         }
 
         const { data, error } = await query;
@@ -169,7 +173,7 @@ export default function SearchPage() {
       setSavingProductId(null);
     }
   };
-  // Update URL search query
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -231,13 +235,8 @@ export default function SearchPage() {
       {/* HORIZONTAL SCROLLABLE CATEGORIES */}
       <div className="categories-scroll flex items-center gap-2 overflow-x-auto my-5 pb-1">
         <style>{`
-          .categories-scroll::-webkit-scrollbar {
-            display: none;
-          }
-          .categories-scroll {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-          }
+          .categories-scroll::-webkit-scrollbar { display: none; }
+          .categories-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         `}</style>
         {CATEGORIES.map((cat) => {
           const isActive = selectedCategory === cat;
@@ -318,25 +317,16 @@ export default function SearchPage() {
                     disabled={savingProductId === item.id}
                     aria-label={savedProductIds.has(item.id) ? "Remove from saved" : "Save product"}
                     aria-pressed={savedProductIds.has(item.id)}
-                    title={savedProductIds.has(item.id) ? "Remove from saved" : "Save product"}
                   >
                     <Bookmark size={13} fill={savedProductIds.has(item.id) ? "currentColor" : "none"} />
                   </button>
                 </div>
 
                 <div className="p-2.5">
-                  <h3
-                    className={`text-xs font-semibold truncate ${
-                      isDark ? "text-white" : "text-gray-900"
-                    }`}
-                  >
+                  <h3 className={`text-xs font-semibold truncate ${isDark ? "text-white" : "text-gray-900"}`}>
                     {item.title}
                   </h3>
-                  <p
-                    className={`text-[11px] capitalize mt-0.5 ${
-                      isDark ? "text-white/60" : "text-gray-500"
-                    }`}
-                  >
+                  <p className={`text-[11px] capitalize mt-0.5 ${isDark ? "text-white/60" : "text-gray-500"}`}>
                     {item.condition || "Like New"}
                   </p>
                 </div>
@@ -346,66 +336,62 @@ export default function SearchPage() {
         </div>
       )}
 
-      {/* FILTER BOTTOM SHEET MODAL */}
+      {/* FILTER BOTTOM SHEET MODAL (SAME AS IMAGE) */}
       {isFilterOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-xs">
+        <div 
+          onClick={() => setIsFilterOpen(false)}
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-[2px]"
+        >
           <div
-            className={`w-full max-w-md border-t rounded-t-3xl p-5 animate-in slide-in-from-bottom duration-200 ${
-              isDark
-                ? "bg-[#141414] border-white/10 text-white"
-                : "bg-white border-gray-200 text-gray-900 shadow-2xl"
-            }`}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-[#181818] text-white rounded-t-[28px] pt-7 pb-10 px-6 shadow-2xl animate-in slide-in-from-bottom duration-200"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold">Sort by</h3>
-              <button
-                onClick={() => setIsFilterOpen(false)}
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                  isDark
-                    ? "bg-[#222] text-white/70 hover:bg-[#333]"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                <X size={16} />
-              </button>
-            </div>
+            {/* Title */}
+            <h3 className="text-base font-bold text-white mb-6 tracking-wide">
+              Sort by
+            </h3>
 
-            <div className="space-y-4">
+            {/* Options List */}
+            <div className="space-y-6">
               {[
                 { label: "Newest", value: "newest" },
-                { label: "A–Z", value: "a-z" },
-                { label: "Top Rated", value: "top-rated" },
-              ].map((option) => (
-                <label
-                  key={option.value}
-                  onClick={() => {
-                    setSortBy(option.value as any);
-                    setIsFilterOpen(false);
-                  }}
-                  className="flex items-center justify-between py-2 cursor-pointer"
-                >
-                  <span
-                    className={`text-sm font-medium ${
-                      isDark ? "text-white/90" : "text-gray-800"
-                    }`}
+                { label: "Low → High", value: "low-high" },
+                { label: "High → Low", value: "high-low" },
+              ].map((option) => {
+                const isSelected = sortBy === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      setSortBy(option.value as any);
+                      setIsFilterOpen(false);
+                    }}
+                    className="w-full flex items-center gap-5 text-left group focus:outline-none"
                   >
-                    {option.label}
-                  </span>
-                  <div
-                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                      sortBy === option.value
-                        ? "border-[#D9501E]"
-                        : isDark
-                        ? "border-white/30"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    {sortBy === option.value && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#D9501E]" />
-                    )}
-                  </div>
-                </label>
-              ))}
+                    {/* Custom Image-like Radio Button */}
+                    <div
+                      className={`w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-colors ${
+                        isSelected
+                          ? "border-[#E85222]"
+                          : "border-white/40 group-hover:border-white/70"
+                      }`}
+                    >
+                      {isSelected && (
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#E85222]" />
+                      )}
+                    </div>
+
+                    {/* Label */}
+                    <span
+                      className={`text-[14px] font-medium tracking-wide ${
+                        isSelected ? "text-white" : "text-white/80 group-hover:text-white"
+                      }`}
+                    >
+                      {option.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

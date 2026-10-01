@@ -2,11 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, Bell, Settings } from "lucide-react";
 import SettingsDrawer from "../Profile/SettingsDrawer";
+import { supabase } from "../../services/supabase"; // Ensure path matches your project structure
 
 export default function TopNavbar() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [user, setUser] = useState<any>(null);
 
   const [isDark, setIsDark] = useState<boolean>(() => {
     const savedTheme = localStorage.getItem("sz_theme");
@@ -38,6 +41,79 @@ export default function TopNavbar() {
   const lastScrollY = useRef(0);
   const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Sync auth state
+  useEffect(() => {
+    const syncUser = () => {
+      const raw = localStorage.getItem("sz_user");
+      setUser(raw ? JSON.parse(raw) : null);
+    };
+    syncUser();
+    window.addEventListener("sz_auth_change", syncUser);
+    return () => window.removeEventListener("sz_auth_change", syncUser);
+  }, []);
+
+  // Fetch Unread Notifications Count from public.notifications table
+  const fetchUnreadCount = async () => {
+    if (!user?.id) {
+      setUnreadCount(0);
+      return;
+    }
+
+    try {
+      const { count, error } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("is_read", false);
+
+      if (error) throw error;
+      setUnreadCount(count || 0);
+    } catch (err) {
+      console.error("[TopNavbar] Failed to fetch unread notifications count:", err);
+      setUnreadCount(0);
+    }
+  };
+
+  // Realtime subscription & Custom Event Listeners
+  useEffect(() => {
+    if (!user?.id) return;
+
+    fetchUnreadCount();
+
+    // Supabase Realtime Listener for Instant Updates
+    const channel = supabase
+      .channel(`realtime:topnav:notifications:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchUnreadCount();
+        }
+      )
+      .subscribe();
+
+    // Custom window event listener for manual trigger
+    const handleNotificationSync = () => fetchUnreadCount();
+    window.addEventListener("sz_notifications_change", handleNotificationSync);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) fetchUnreadCount();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener("sz_notifications_change", handleNotificationSync);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [user?.id]);
+
+  // Scroll visibility management
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -141,10 +217,10 @@ export default function TopNavbar() {
 
         {/* ACTION ICONS */}
         <div className="flex items-center gap-2">
-          {/* NOTIFICATION BUTTON */}
+          {/* NOTIFICATION BUTTON WITH BADGE */}
           <button
             onClick={() => navigate("/notifications")}
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${
+            className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${
               isDark
                 ? "bg-[#1A1A1A] border border-white/10 text-white hover:bg-[#262626]"
                 : "bg-[#F3F3F5] border border-black/10 text-gray-900 hover:bg-[#E5E5EA]"
@@ -152,6 +228,17 @@ export default function TopNavbar() {
             aria-label="Notifications"
           >
             <Bell size={17} />
+
+            {/* Dynamic Notification Badge Number */}
+            {unreadCount > 0 && (
+              <span
+                className={`absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-[#D9501E] rounded-full border-2 ${
+                  isDark ? "border-[#0A0A0A]" : "border-white"
+                } shadow-sm animate-in zoom-in duration-200`}
+              >
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
           </button>
 
           {/* SEARCH BUTTON */}

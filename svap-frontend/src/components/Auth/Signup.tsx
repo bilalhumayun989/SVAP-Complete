@@ -96,6 +96,7 @@ const Signup = () => {
       } catch (err) {
         console.error("[Signup] Username check error:", err);
         setUsernameStatus("idle");
+        setUsernameError("Could not verify username availability. Please try again.");
       }
     }, 500);
 
@@ -167,7 +168,9 @@ const Signup = () => {
     if (!form.username.trim()) return setError("Username is required");
     if (usernameStatus === "taken") return setError(usernameError);
     if (usernameStatus === "checking") return setError("Please wait while we check username availability");
-    if (usernameStatus !== "available") return setError("Please enter a valid username");
+    if (usernameStatus !== "available") {
+      return setError(usernameError || "Please wait while we check username availability");
+    }
     
     if (!form.phone.trim()) return setError("Phone number is required");
     if (form.phone.length !== 11) return setError("Phone number must be exactly 11 digits");
@@ -509,14 +512,7 @@ const Signup = () => {
                 <button 
                   type="submit" 
                   className="dark-primary-btn" 
-                  disabled={
-                    loading || 
-                    !!emailError ||
-                    usernameStatus !== "available" || 
-                    !!phoneError || 
-                    !passwordValidation.minLength || 
-                    !passwordValidation.hasSpecialChar
-                  }
+                  disabled={loading}
                 >
                   {loading ? (
                     <span className="dark-spinner" />

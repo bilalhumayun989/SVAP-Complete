@@ -103,7 +103,7 @@ export const useCheckoutState = (navigationData?: NavigationData) => {
               name: request.offered?.title || 'Offered Product',
               image: request.offered?.image_urls?.[0] || '/1.png',
               swapValue: 0,
-              condition: 'Swap item',
+              condition: 'Svap item',
               seller: isSender ? 'You' : `@${request.from_profile?.username || 'Deleted User'}`,
               role: isSender ? 'giving' : 'receiving',
             };
@@ -112,7 +112,7 @@ export const useCheckoutState = (navigationData?: NavigationData) => {
               name: request.requested?.title || 'Requested Product',
               image: request.requested?.image_urls?.[0] || '/2.png',
               swapValue: 0,
-              condition: 'Swap item',
+              condition: 'Svap item',
               seller: isSender ? `@${request.to_profile?.username || 'Deleted User'}` : 'You',
               role: isSender ? 'receiving' : 'giving',
             };

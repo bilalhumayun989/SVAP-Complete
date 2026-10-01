@@ -92,7 +92,7 @@ function GlobalToasts() {
             🔔
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p className="toast-title" style={{ margin: '0 0 3px', fontSize: '0.82rem', fontWeight: 700, color: '#fff', fontFamily: "'Poppins', sans-serif" }}>New Swap Request</p>
+            <p className="toast-title" style={{ margin: '0 0 3px', fontSize: '0.82rem', fontWeight: 700, color: '#fff', fontFamily: "'Poppins', sans-serif" }}>New Svap Request</p>
             <p className="toast-body" style={{ margin: 0, fontSize: '0.76rem', color: 'rgba(255,255,255,0.7)', fontFamily: "'Poppins', sans-serif", lineHeight: 1.4 }}>{t.body}</p>
           </div>
           <button

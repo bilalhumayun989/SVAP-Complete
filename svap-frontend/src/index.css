@@ -20,7 +20,7 @@
   --navbar-bg:       #ffffff;   /* navbar background */
   --border:          #E45821;   /* borders */
   --border-light:    #e0e0e0;   /* light borders */
-  --btn-swap:        #E45821;   /* Swap button (orange) */
+  --btn-swap:        #E45821;   /* Svap button (orange) */
   --btn-cart:        #313C5C;   /* Buy Now button (dark blue) */
   --text-dark:       #000000;   /* primary text on light bg */
   --text-mid:        #000000;   /* secondary text */
@@ -45,7 +45,7 @@ html[data-theme='dark'] {
   --navbar-bg:       #0f0f0f;   /* navbar background */
   --border:          #2a2a2a;   /* borders */
   --border-light:    #2a2a2a;   /* light borders */
-  --btn-swap:        #E45821;   /* Swap button (keep orange) */
+  --btn-swap:        #E45821;   /* Svap button (keep orange) */
   --btn-cart:        #4a5a7a;   /* Buy Now button (lighter blue for dark) */
   --text-dark:       #f5f5f5;   /* primary text on dark bg */
   --text-mid:        #d0d0d0;   /* secondary text */

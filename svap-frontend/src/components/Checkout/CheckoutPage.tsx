@@ -121,10 +121,10 @@ const CheckoutPage = () => {
           <p className="checkout-subtitle">
             {state.items.length} item{state.items.length !== 1 ? 's' : ''} • {' '}
             <span className="transaction-type">
-              {state.transactionType === 'svap' ? 'Swap Transaction' : 'Purchase'}
+              {state.transactionType === 'svap' ? 'Svap Transaction' : 'Purchase'}
             </span>
           </p>
-          {/* If came from swap, show "check requests later" note */}
+          {/* If came from svap, show "check requests later" note */}
           {(navigationData?.entrySource === 'swap' || navigationData?.entrySource === 'svap') && (
             <div className="checkout-swap-note">
               ✅ Svap request accepted! Fill in delivery details below, or{' '}

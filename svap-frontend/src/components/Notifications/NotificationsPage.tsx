@@ -126,7 +126,11 @@ const NotificationsPage = () => {
     }
 
     if (targetRoute) {
-      navigate(targetRoute);
+      const isProductQuestionNotification = n.type === "product_question" || n.type === "product_answer";
+      const route = isProductQuestionNotification
+        ? `${targetRoute.split("#")[0]}#product-questions`
+        : targetRoute;
+      navigate(route);
     } else {
       console.error(`[Notification] Missing route for type: ${n.type}, id: ${n.id}`);
       navigate("/requests");

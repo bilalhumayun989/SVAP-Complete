@@ -1,4 +1,4 @@
-const { supabase, supabaseAdmin } = require('../config/supabase');
+﻿const { supabase, supabaseAdmin } = require('../config/supabase');
 
 const PROFILE_FALLBACK = { username: null, avatar_url: null };
 const ACTIVE_REQUEST_MESSAGE = 'You already have an active request for this item.';
@@ -192,7 +192,7 @@ exports.updateSwapRequestStatus = async (req, res) => {
     const { status, updated_by } = req.body;
 
     if (!['accepted', 'rejected', 'cancelled'].includes(status)) {
-      return res.status(400).json({ error: 'Unsupported swap request status' });
+      return res.status(400).json({ error: 'Unsupported svap request status' });
     }
 
     const { data: current, error: fetchError } = await supabaseAdmin
@@ -201,7 +201,7 @@ exports.updateSwapRequestStatus = async (req, res) => {
       .eq('id', id)
       .single();
 
-    if (fetchError || !current) return res.status(404).json({ error: 'Swap request not found' });
+    if (fetchError || !current) return res.status(404).json({ error: 'Svap request not found' });
 
     if (status === 'cancelled') {
       const isParticipant = updated_by === current.from_user_id || updated_by === current.to_user_id;
@@ -247,7 +247,7 @@ exports.updateSwapRequestStatus = async (req, res) => {
         user_id: hydrated.from_user_id,
         type: 'swap_rejected',
         title: 'Request Rejected',
-        body: 'Your svap request has been rejected',
+        body: 'Your SVAP request has been rejected',
         route: '/requests',
         is_read: false,
       });
@@ -259,8 +259,8 @@ exports.updateSwapRequestStatus = async (req, res) => {
         participantIds.map((user_id) => ({
           user_id,
           type: 'swap_cancelled',
-          title: 'Svap Cancelled',
-          body: 'This svap is canceled',
+          title: 'SVAP Cancelled',
+          body: 'This SVAP has been cancelled.',
           route: '/requests',
           is_read: false,
         }))

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { PlayCircle, Plus, User } from "lucide-react";
 import { api } from "../../services/api";
 import { getAllRequests } from "../../hooks/useSwapRequests";
+import { supabase } from "../../services/supabase"; // Path according to your project structure
 
 // ─── Local PNG Icon Wrapper (Home, Requests, etc.) ─────────────────────────────
 const LocalNavIcon = ({
@@ -64,7 +65,7 @@ export default function MobileNavbar() {
   const [user, setUser] = useState<any>(null);
   const [requestCount, setRequestCount] = useState(0);
 
-  // Sync auth
+  // Sync auth state
   useEffect(() => {
     const sync = () => {
       const raw = localStorage.getItem("sz_user");
@@ -75,7 +76,7 @@ export default function MobileNavbar() {
     return () => window.removeEventListener("sz_auth_change", sync);
   }, []);
 
-  // Fetch request count
+  // Fetch request count for incoming, outgoing, and active checkouts
   const fetchRequestCount = async () => {
     if (!user?.id) {
       setRequestCount(0);
@@ -100,19 +101,20 @@ export default function MobileNavbar() {
       );
       const isCheckoutRequest = (request: { id: string; status: string }) =>
         checkoutRequestIds.has(request.id) || ["accepted", "completed"].includes(request.status);
+
       const incoming = allRequests.filter(
-        request => request.direction === "received" && !isCheckoutRequest(request)
+        (request) => request.direction === "received" && !isCheckoutRequest(request)
       );
       const outgoing = allRequests.filter(
-        request => request.direction === "sent" && !isCheckoutRequest(request)
+        (request) => request.direction === "sent" && !isCheckoutRequest(request)
       );
       const checkout = allRequests.filter(
-        request => isCheckoutRequest(request) && !currentUserCheckoutRequestIds.has(request.id)
+        (request) => isCheckoutRequest(request) && !currentUserCheckoutRequestIds.has(request.id)
       );
 
       setRequestCount(incoming.length + outgoing.length + checkout.length);
     } catch (error) {
-      console.error('[MobileNav] Failed to fetch request count:', error);
+      console.error("[MobileNav] Failed to fetch request count:", error);
       setRequestCount(0);
     }
   };
@@ -121,22 +123,56 @@ export default function MobileNavbar() {
     fetchRequestCount();
   }, [user?.id]);
 
+  // Realtime Subscriptions & Window Event Listeners
   useEffect(() => {
-    const handleRequestsChange = () => fetchRequestCount();
+    if (!user?.id) return;
 
+    // 1. Supabase Realtime Channels for Instant Updates
+    const requestsChannel = supabase
+      .channel(`realtime:mobilenav:swap_requests:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "swap_requests",
+        },
+        () => fetchRequestCount()
+      )
+      .subscribe();
+
+    const ordersChannel = supabase
+      .channel(`realtime:mobilenav:orders:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+        },
+        () => fetchRequestCount()
+      )
+      .subscribe();
+
+    // 2. Custom & Window Event Listeners
+    const handleRequestsChange = () => fetchRequestCount();
     window.addEventListener("sz_requests_change", handleRequestsChange);
+
     const handleVisibilityChange = () => {
       if (!document.hidden) fetchRequestCount();
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
+
     const interval = setInterval(fetchRequestCount, 30000);
 
     return () => {
+      supabase.removeChannel(requestsChannel);
+      supabase.removeChannel(ordersChannel);
       window.removeEventListener("sz_requests_change", handleRequestsChange);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearInterval(interval);
     };
-  }, []);
+  }, [user?.id]);
 
   const NAV_ITEMS: NavItem[] = [
     { path: "/", customImgSrc: "/home.png", alt: "Home" },
@@ -208,9 +244,9 @@ export default function MobileNavbar() {
             <button
               key={item.path}
               onClick={() => {
-                const protectedRoutes = ['/profile', '/requests', '/list-product'];
+                const protectedRoutes = ["/profile", "/requests", "/list-product"];
                 if (!user && protectedRoutes.includes(item.path)) {
-                  navigate('/login', { state: { returnUrl: item.path } });
+                  navigate("/login", { state: { returnUrl: item.path } });
                 } else {
                   navigate(item.path);
                 }
@@ -255,10 +291,14 @@ export default function MobileNavbar() {
                 )}
               </div>
 
-              {/* Notification Badge */}
+              {/* Dynamic Notification Badge */}
               {item.badgeCount && item.badgeCount > 0 ? (
-                <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-red-600 rounded-full border-2 border-[#18181b] shadow-sm">
-                  {item.badgeCount}
+                <span
+                  className={`absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-[#D9501E] rounded-full border-2 ${
+                    isDark ? "border-[#18181b]" : "border-white"
+                  } shadow-sm animate-in zoom-in duration-200`}
+                >
+                  {item.badgeCount > 99 ? "99+" : item.badgeCount}
                 </span>
               ) : null}
             </button>

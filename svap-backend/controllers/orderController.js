@@ -1,4 +1,4 @@
-const { supabaseAdmin } = require('../config/supabase');
+﻿const { supabaseAdmin } = require('../config/supabase');
 
 exports.createOrder = async (req, res) => {
   try {
@@ -20,16 +20,16 @@ exports.createOrder = async (req, res) => {
     } = req.body;
 
     // Every newly submitted checkout starts in the payment verification state.
-    // Validate the swap before accepting a checkout submission.
+    // Validate the svap before accepting a checkout submission.
     if (swap_request_id) {
       const { data: swapBeforeOrder, error: swapLookupError } = await supabaseAdmin
         .from('swap_requests')
         .select('id, status, from_user_id, to_user_id, expires_at')
         .eq('id', swap_request_id)
         .single();
-      if (swapLookupError || !swapBeforeOrder) return res.status(404).json({ error: 'Swap request not found' });
+      if (swapLookupError || !swapBeforeOrder) return res.status(404).json({ error: 'Svap request not found' });
       if (!['accepted', 'completed'].includes(swapBeforeOrder.status)) return res.status(409).json({ error: 'This svap is no longer available for checkout' });
-      if (![swapBeforeOrder.from_user_id, swapBeforeOrder.to_user_id].includes(from_user_id)) return res.status(403).json({ error: 'Only a swap participant can checkout this request' });
+      if (![swapBeforeOrder.from_user_id, swapBeforeOrder.to_user_id].includes(from_user_id)) return res.status(403).json({ error: 'Only a svap participant can checkout this request' });
       if (new Date(swapBeforeOrder.expires_at).getTime() <= Date.now()) return res.status(409).json({ error: 'This svap expired after 48 hours and was cancelled' });
       if (swapBeforeOrder.status === 'completed') {
         const { count: ownOrderCount, error: ownOrderError } = await supabaseAdmin
@@ -82,8 +82,8 @@ exports.createOrder = async (req, res) => {
       }
     }
 
-    // Once a product is checked out, competing pending swap requests for it
-    // are no longer actionable, whether checkout started from a swap or a listing.
+    // Once a product is checked out, competing pending svap requests for it
+    // are no longer actionable, whether checkout started from a svap or a listing.
     if (swap_request_id || product_id) {
       let requestedProductId = product_id;
       let offeredProductId = null;
@@ -101,8 +101,8 @@ exports.createOrder = async (req, res) => {
           await supabaseAdmin.from('notifications').insert({
             user_id: swapRequest.from_user_id,
             type: 'swap_partner_checkout_completed',
-            title: 'Swap Partner Checked Out',
-            body: 'Your svap partner has completed checkout. Complete your own checkout to continue.',
+            title: 'SVAP Partner Checked Out',
+            body: 'Your SVAP partner has completed checkout. Complete your own checkout to continue. Order ID: ' + data.id,
             route: '/requests',
             is_read: false,
           });
@@ -125,7 +125,7 @@ exports.createOrder = async (req, res) => {
           return res.status(500).json({ error: 'Could not verify the other participant checkout' });
         }
 
-        console.log(`[createOrder] Swap ${swap_request_id}:`, {
+        console.log(`[createOrder] Svap ${swap_request_id}:`, {
           currentUser: from_user_id,
           otherUserOrdersCount,
           otherParticipantId,
@@ -162,8 +162,8 @@ exports.createOrder = async (req, res) => {
               supabaseAdmin.from('notifications').insert({
                 user_id: request.from_user_id,
                 type: 'swap_unavailable',
-                title: 'Product Already Svapped',
-                body: 'This product has already been svapped with another user.',
+                title: 'Product Is In Another SVAP',
+                body: 'This product is now part of another SVAP. Order ID: ' + data.id,
                 route: '/requests',
                 is_read: false,
               })
@@ -190,8 +190,8 @@ exports.createOrder = async (req, res) => {
               supabaseAdmin.from('notifications').insert({
                 user_id: request.from_user_id,
                 type: 'swap_unavailable',
-                title: 'Product Already Svapped',
-                body: 'This product has already been svapped with another user.',
+                title: 'Product Is In Another SVAP',
+                body: 'This product is now part of another SVAP. Order ID: ' + data.id,
                 route: '/requests',
                 is_read: false,
               })

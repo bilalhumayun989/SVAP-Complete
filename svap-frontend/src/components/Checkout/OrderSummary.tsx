@@ -15,7 +15,7 @@ export const OrderSummary = ({
   
   const getSummaryTitle = () => {
     if (transactionType === 'svap') {
-      return 'Swap Summary';
+      return 'Svap Summary';
     }
     return 'Order Summary';
   };

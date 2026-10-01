@@ -321,7 +321,7 @@ export default function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
               <div className="sd-row sd-row--setting">
                 <span className="sd-row-icon"><ArrowLeftRight size={18} /></span>
                 <span className="sd-row-text"><span>Svap Requests</span><small>New requests and updates</small></span>
-                <button className={`sd-toggle${swapNotifications ? " sd-toggle--active" : ""}`} onClick={() => setSwapNotifications(value => !value)} aria-label="Toggle swap request notifications">
+                <button className={`sd-toggle${swapNotifications ? " sd-toggle--active" : ""}`} onClick={() => setSwapNotifications(value => !value)} aria-label="Toggle svap request notifications">
                   <span />
                 </button>
               </div>

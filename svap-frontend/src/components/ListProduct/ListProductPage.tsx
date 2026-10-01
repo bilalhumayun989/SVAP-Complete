@@ -59,7 +59,7 @@ const ListProductPage = () => {
     if (!title.trim()) newErrors.title = "Enter item title";
     if (!description.trim()) newErrors.description = "Enter description";
     if (!condition) newErrors.condition = "Select condition";
-    if (!swapFor.trim()) newErrors.swapFor = "Enter what you want to swap for";
+    if (!swapFor.trim()) newErrors.swapFor = "Enter what you want to svap for";
     if (!estimatedValue || !Number.isSafeInteger(Number(estimatedValue)) || Number(estimatedValue) <= 0 || Number(estimatedValue) > 2147483647) newErrors.estimatedValue = "Enter an estimated value greater than PKR 0";
     setErrors(newErrors);
 
@@ -378,7 +378,7 @@ const ListProductPage = () => {
                 maxLength={80}
               />
             </div>
-            <p className="lp-field-hint">A clear, short title gets more swap offers.</p>
+            <p className="lp-field-hint">A clear, short title gets more svap offers.</p>
             {errors.title && (
               <p className="lp-error">
                 <FiAlertCircle size={12} />
@@ -463,7 +463,7 @@ const ListProductPage = () => {
             )}
           </div>
 
-          {/* What would you swap for? */}
+          {/* What would you svap for? */}
           <div className="lp-section" data-list-field="swapFor">
             <div className="lp-field-header">
               <span className="lp-label">What would you svap for? <span className="lp-req">Required</span></span>

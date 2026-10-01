@@ -283,7 +283,7 @@ export const SwapCheckoutPage = () => {
           <div className="success-icon-wrapper">
             <div className="success-icon-bg"><FiCheck size={34} strokeWidth={2.5} /></div>
           </div>
-          <h2 className="success-title">Order Placed!</h2>
+          <h2 className="success-title">aced!</h2>
           <p className="success-subtitle">Payment Pending Verification</p>
         </div>
         <div className="order-status-summary">

@@ -216,7 +216,7 @@ const CartPage = () => {
                       </button>
                     </div>
 
-                    {/* Swap picker — rendered BELOW the top row, no z-index clash */}
+                    {/* Svap picker — rendered BELOW the top row, no z-index clash */}
                     <div className="cp-card-picker">
                       <SwapPicker
                         cartItemId={item.id}
@@ -442,7 +442,7 @@ const CartPage = () => {
         }
 
         /* ════════════════════════
-           SWAP PICKER COMPONENT
+           SVAP PICKER COMPONENT
         ════════════════════════ */
         .sp-wrap { position:relative; }
 

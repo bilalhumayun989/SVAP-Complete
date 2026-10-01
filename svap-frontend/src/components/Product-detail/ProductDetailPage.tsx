@@ -1,4 +1,4 @@
-﻿import { useParams, useNavigate } from 'react-router-dom'
+﻿import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import {
   FiArrowLeft,
@@ -37,6 +37,7 @@ interface DetailProduct {
 const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const [requested, setRequested] = useState(false)
   const [toast, setToast] = useState(false)
   const [product, setProduct] = useState<DetailProduct | null>(null)
@@ -96,6 +97,14 @@ const ProductDetailPage = () => {
       void supabase.removeChannel(channel);
     };
   }, [id, loadQuestions]);
+
+  useEffect(() => {
+    if (location.hash !== '#product-questions' || loading) return;
+    const timer = window.setTimeout(() => {
+      document.getElementById('product-questions')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [location.hash, loading, questionsLoading]);
 
   const submitQuestion = async () => {
     if (!id || !myUserId) { navigate('/login'); return; }
@@ -432,14 +441,7 @@ const ProductDetailPage = () => {
           {myUserId !== product.owner_id && (
             <>
               <div className="pdp-cta-row">
-                <button
-                  className={`pdp-save-btn${isSaved ? ' pdp-save-btn--active' : ''}`}
-                  onClick={toggleSaved}
-                  disabled={saveLoading}
-                  aria-label={isSaved ? 'Remove from saved' : 'Save product'}
-                >
-                  <FiBookmark size={17} fill={isSaved ? 'currentColor' : 'none'} />
-                </button>
+
                 <button
                   className={`pdp-cta pdp-cta-swap ${requested ? 'pdp-cta-requested' : ''} ${!canSendSwap ? 'pdp-cta-disabled' : ''}`}
                   disabled={!canSendSwap && !requested}
@@ -477,7 +479,17 @@ const ProductDetailPage = () => {
                       />
                       Send Svap Request
                     </>
-                  )}                </button>
+                  )}
+                </button>
+
+                <button
+                  className={`pdp-save-btn${isSaved ? ' pdp-save-btn--active' : ''}`}
+                  onClick={toggleSaved}
+                  disabled={saveLoading}
+                  aria-label={isSaved ? 'Remove from saved' : 'Save product'}
+                >
+                  <FiBookmark size={17} fill={isSaved ? 'currentColor' : 'none'} />
+                </button>
               </div>
             </>
           )}
@@ -520,30 +532,34 @@ const ProductDetailPage = () => {
       )}
 
       {/* â•â• Related products â•â• */}
-      <section className="pdp-qa-section" aria-labelledby="pdp-qa-title">
+      <section id="product-questions" className="pdp-qa-section" aria-labelledby="pdp-qa-title">
         <div className="pdp-qa-header">
           <div>
-            <h2 id="pdp-qa-title">Questions &amp; Answers</h2>
+            <h2 id="pdp-qa-title">Questions ({questions.length})</h2>
           </div>
           <span className="pdp-qa-count"><FiMessageCircle size={15} /> {questions.length}</span>
         </div>
 
         {myUserId && myUserId !== product.owner_id ? (
           <div className="pdp-qa-compose">
-            <textarea
+            <input
               value={questionDraft}
               onChange={(event) => setQuestionDraft(event.target.value.slice(0, 1000))}
-              placeholder="Write a question about this item..."
+              onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void submitQuestion(); } }}
+              placeholder="Ask about this item..."
               maxLength={1000}
-              rows={3}
-              aria-label="Your question"
+              aria-label="Ask a question about this item"
             />
-            <div className="pdp-qa-compose-footer">
-              <span>{questionDraft.length}/1000</span>
-              <button type="button" onClick={submitQuestion} disabled={!questionDraft.trim() || questionSubmitting}>
-                <FiSend size={15} /> {questionSubmitting ? 'Sending...' : 'Ask question'}
-              </button>
-            </div>
+            <button
+              type="button"
+              className="pdp-qa-send"
+              onClick={submitQuestion}
+              disabled={!questionDraft.trim() || questionSubmitting}
+              aria-label="Send question"
+              title={questionSubmitting ? 'Sending question' : 'Send question'}
+            >
+              <FiSend size={17} />
+            </button>
           </div>
         ) : !myUserId ? (
           <button type="button" className="pdp-qa-login" onClick={() => navigate('/login')}>Log in to ask a question</button>
@@ -553,7 +569,7 @@ const ProductDetailPage = () => {
         {questionsLoading ? (
           <p className="pdp-qa-empty">Loading questions...</p>
         ) : questions.length === 0 ? (
-          <p className="pdp-qa-empty">No questions yet. Be the first to ask.</p>
+          <p className="pdp-qa-empty"></p>
         ) : (
           <div className="pdp-qa-list">
             {questions.map((item) => {
@@ -1223,20 +1239,23 @@ const ProductDetailPage = () => {
           width: min(100% - 64px, 1440px);
           margin: 40px auto 0;
           padding: 26px;
-          border: 1px solid var(--border-light);
           border-radius: 18px;
-          background: var(--card-bg);
           box-sizing: border-box;
         }
         .pdp-qa-header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; }
         .pdp-qa-header h2 { margin:0; color:var(--text-dark); font-size:1.25rem; font-weight:800; }
         .pdp-qa-header p { margin:4px 0 0; color:var(--text-muted); font-size:.85rem; }
         .pdp-qa-count { display:flex; align-items:center; gap:6px; color:var(--text-muted); font-size:.85rem; }
-        .pdp-qa-compose, .pdp-qa-answer-form { display:flex; flex-direction:column; gap:10px; }
-        .pdp-qa-compose textarea, .pdp-qa-answer-form textarea { width:100%; box-sizing:border-box; resize:vertical; padding:12px 14px; border:1px solid var(--border-light); border-radius:12px; background:var(--bg); color:var(--text-dark); font:inherit; }
-        .pdp-qa-compose-footer { display:flex; justify-content:space-between; align-items:center; color:var(--text-muted); font-size:.75rem; }
-        .pdp-qa-compose-footer button, .pdp-qa-answer-form button, .pdp-qa-login { display:inline-flex; align-items:center; justify-content:center; gap:7px; align-self:flex-start; border:0; border-radius:10px; padding:10px 15px; background:var(--btn-swap,#e45821); color:#fff; font:inherit; font-size:.82rem; font-weight:700; cursor:pointer; }
-        .pdp-qa-compose-footer button:disabled, .pdp-qa-answer-form button:disabled { opacity:.55; cursor:not-allowed; }
+        .pdp-qa-compose { display:flex; align-items:center; gap:8px; padding:13px 6px 13px 12px; border:1px solid var(--border-light); border-radius:9px; background:var(--bg); }
+        .pdp-qa-compose input { width:100%; min-width:0; border:0; outline:0; background:transparent; color:var(--text-dark); font:inherit; font-size:.85rem; }
+        .pdp-qa-compose input::placeholder { color:var(--text-muted); }
+        .pdp-qa-answer-form { display:flex; flex-direction:column; gap:10px; }
+        .pdp-qa-answer-form textarea { width:100%; box-sizing:border-box; resize:vertical; padding:12px 14px; border:1px solid var(--border-light); border-radius:12px; background:var(--bg); color:var(--text-dark); font:inherit; }
+        .pdp-qa-send, .pdp-qa-answer-form button, .pdp-qa-login { display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center; gap:7px; border:0; border-radius:999px; padding:10px 15px; background:var(--btn-swap,#e45821); color:#fff; font:inherit; font-size:.82rem; font-weight:700; cursor:pointer; }
+        .pdp-qa-send { width:40px; height:40px; padding:0; }
+        .pdp-qa-send:disabled, .pdp-qa-answer-form button:disabled { opacity:.55; cursor:not-allowed; }
+        #product-questions { scroll-margin-top:24px; }
+
         .pdp-qa-error { color:#dc2626; font-size:.84rem; }
         .pdp-qa-empty { color:var(--text-muted); font-size:.9rem; }
         .pdp-qa-list { display:flex; flex-direction:column; margin-top:20px; }

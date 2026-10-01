@@ -56,7 +56,7 @@ const GridCard = ({ item, badge, onDelete, onEdit }: { item: { id: number; image
     <div className="pf-grid-info">
       <span className="pf-grid-name">{item.name}</span>
       {badge === "price" && <span className="pf-grid-price">{item.price}</span>}
-      {badge === "swap" && <span className="pf-grid-price pf-grid-price--swap">Swap for {item.swapFor}</span>}
+      {badge === "swap" && <span className="pf-grid-price pf-grid-price--swap">Svap for {item.swapFor}</span>}
     </div>
   </div>
 );
@@ -553,7 +553,7 @@ const Profile = () => {
             {activeTab === "swaps" && (
               <div className="pf-swaps-list">
                 {swapRequests.length === 0 && (
-                  <div className="pf-empty">No swap history yet.</div>
+                  <div className="pf-empty">No svap history yet.</div>
                 )}
                 {swapRequests.map(swap => {
                   const isComplete = swap.status === 'completed' || swap.status === 'accepted';

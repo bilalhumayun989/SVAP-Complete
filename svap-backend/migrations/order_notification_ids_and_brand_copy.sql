@@ -1,8 +1,6 @@
--- Swap request timeout: request creation starts the 48-hour deadline (expires_at).
--- Run this migration in Supabase SQL Editor before deploying the backend.
+-- Adds the exact public.orders.id to notifications generated for order events.
+-- Safe to run without changing any triggers or constraints.
 
--- Prevent the first checkout order from marking a swap completed.
--- It becomes completed only after both participants have an order.
 CREATE OR REPLACE FUNCTION public.handle_order_placed()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -46,90 +44,6 @@ BEGIN
 END;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.update_swap_counts()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $function$
-DECLARE
-  checkout_count integer;
-  checkout_user uuid;
-  remaining_commitments integer;
-BEGIN
-  -- Acceptance commits both swap participants exactly once per status transition.
-  IF NEW.status = 'accepted' AND OLD.status IS DISTINCT FROM 'accepted' THEN
-    UPDATE public.profiles
-    SET committed_swaps = COALESCE(committed_swaps, 0) + 1,
-        swap_score = ROUND(LEAST(5::numeric, GREATEST(0::numeric,
-          COALESCE(completed_swaps, 0)::numeric * 5 /
-          NULLIF(COALESCE(committed_swaps, 0) + 1, 0)
-        )), 1)
-    WHERE id IN (NEW.from_user_id, NEW.to_user_id);
-  END IF;
-
-  -- Completion records one successful swap for each participant.
-  IF NEW.status = 'completed' AND OLD.status IS DISTINCT FROM 'completed' THEN
-    UPDATE public.profiles
-    SET total_swaps = COALESCE(total_swaps, 0) + 1,
-        completed_swaps = COALESCE(completed_swaps, 0) + 1,
-        swap_score = ROUND(LEAST(5::numeric, GREATEST(0::numeric,
-          COALESCE(
-            (COALESCE(completed_swaps, 0) + 1)::numeric * 5 /
-              NULLIF(COALESCE(committed_swaps, 0), 0),
-            0::numeric
-          )
-        )), 1)
-    WHERE id IN (NEW.from_user_id, NEW.to_user_id);
-
-    UPDATE public.products
-    SET status = 'swapped'
-    WHERE id IN (NEW.offered_product_id, NEW.requested_product_id);
-  END IF;
-
-  -- On timeout, a participant who checked out is not penalized; keep the
-  -- commitment only for the participant who did not complete checkout.
-  IF NEW.status = 'cancelled'
-    AND OLD.status IN ('accepted', 'completed')
-    AND NEW.expires_at <= now() THEN
-    SELECT count(DISTINCT o.from_user_id)
-      INTO checkout_count
-    FROM public.orders o
-    WHERE o.swap_request_id = NEW.id
-      AND o.from_user_id IN (NEW.from_user_id, NEW.to_user_id);
-
-    IF checkout_count = 1 THEN
-      SELECT o.from_user_id
-        INTO checkout_user
-      FROM public.orders o
-      WHERE o.swap_request_id = NEW.id
-        AND o.from_user_id IN (NEW.from_user_id, NEW.to_user_id)
-      ORDER BY o.created_at
-      LIMIT 1;
-
-      UPDATE public.profiles
-      SET committed_swaps = GREATEST(COALESCE(committed_swaps, 0) - 1, 0)
-      WHERE id = checkout_user
-      RETURNING committed_swaps INTO remaining_commitments;
-
-      UPDATE public.profiles
-      SET swap_score = ROUND(LEAST(5::numeric, GREATEST(0::numeric,
-        COALESCE(
-          COALESCE(completed_swaps, 0)::numeric * 5 /
-            NULLIF(remaining_commitments, 0),
-          0::numeric
-        )
-      )), 1)
-      WHERE id = checkout_user;
-    END IF;
-  END IF;
-
-  RETURN NEW;
-END;
-$function$;
-
--- Notify the order owner about their own status. If a partner order is cancelled
--- after this user has paid, tell them to contact support about their refund.
 CREATE OR REPLACE FUNCTION public.notify_order_status_change()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -256,22 +170,6 @@ BEGIN
 END;
 $function$;
 
--- Exclude only timeout-cancelled orders from the existing generic notification trigger.
--- The expiry function inserts the specific timeout/refund notifications instead.
-DROP TRIGGER IF EXISTS on_order_status_change ON public.orders;
-CREATE TRIGGER on_order_status_change
-AFTER UPDATE OF status ON public.orders
-FOR EACH ROW
-WHEN (
-  NEW.status <> 'cancelled'
-  OR COALESCE(NEW.admin_notes, '') NOT LIKE
-    'Auto-cancelled: partner did not checkout in time.%'
-)
-EXECUTE FUNCTION public.notify_order_status_change();
-
--- This function is safe to invoke repeatedly: it changes request status before
--- creating notifications, so only the transaction that cancels the request
--- can emit its timeout notifications.
 CREATE OR REPLACE FUNCTION public.expire_stale_swaps()
 RETURNS integer
 LANGUAGE plpgsql
@@ -386,7 +284,10 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.expire_stale_swaps() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.expire_stale_swaps() TO service_role;
-
--- Backend node-cron invokes public.expire_stale_swaps() every five minutes.
--- No pg_cron extension or database-side schedule is required.
-
+-- Clean up older notification wording. This does not modify notification types
+-- or attempt to infer IDs for historical orders.
+UPDATE public.notifications
+SET title = CASE WHEN title ILIKE '%swap%' THEN regexp_replace(title, '\mswap\M', 'SVAP', 'gi') ELSE title END,
+    body = CASE WHEN body ILIKE '%swap%' THEN regexp_replace(body, '\mswap\M', 'SVAP', 'gi') ELSE body END
+WHERE title ILIKE '%swap%'
+   OR body ILIKE '%swap%';
