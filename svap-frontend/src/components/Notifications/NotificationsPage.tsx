@@ -120,6 +120,32 @@ const NotificationsPage = () => {
       refreshCount();
     }
     
+    // Accepted requests should open checkout directly instead of the default Requests tab.
+    if ((n.type === "svap_accepted" || n.type === "swap_accepted") && userId) {
+      try {
+        const response = await api.getSwapRequestsByUser(userId);
+        const acceptedRequests = (response.data || []).filter((request: any) =>
+          request.from_user_id === userId && ["accepted", "completed"].includes(request.status)
+        );
+        const notificationBody = (n.body || "").toLocaleLowerCase();
+        const matchingRequests = acceptedRequests.filter((request: any) =>
+          [request.requested?.title, request.offered?.title]
+            .filter(Boolean)
+            .some((title: string) => notificationBody.includes(title.toLocaleLowerCase()))
+        );
+        const candidates = matchingRequests.length ? matchingRequests : acceptedRequests;
+        const targetRequest = candidates.length === 1
+          ? candidates[0]
+          : candidates.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+
+        if (targetRequest) {
+          navigate(`/checkout/${targetRequest.id}`);
+          return;
+        }
+      } catch (error) {
+        console.error("[Notification] Could not resolve accepted SVAP checkout:", error);
+      }
+    }
     // Some older notifications might have /swaps which is now /orders or /requests
     let targetRoute = n.route;
     if (targetRoute === "/swaps") {
