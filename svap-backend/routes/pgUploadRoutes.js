@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 const root = require('../config/uploadRoot');
+const publicBase = String(process.env.API_BASE_URL || '').replace(/\/+$/, '');
 const allowed = new Set(['products', 'avatars', 'videos']);
 const filename = (_req, file, cb) => cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${path.extname(file.originalname).toLowerCase()}`);
 const storage = multer.diskStorage({
@@ -35,11 +36,11 @@ const paymentScreenshotUpload = multer({
 
 router.post('/image', requireAuth, (req, res, next) => { req.params.folder = 'products'; next(); }, upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No image file provided' });
-  res.json({ url: `${process.env.API_BASE_URL || ''}/uploads/products/${req.file.filename}` });
+  res.json({ url: `${publicBase}/uploads/products/${req.file.filename}` });
 });
 router.post('/video', requireAuth, (req, res, next) => { req.params.folder = 'videos'; next(); }, upload.single('video'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No video file provided' });
-  res.json({ url: `${process.env.API_BASE_URL || ''}/uploads/videos/${req.file.filename}` });
+  res.json({ url: `${publicBase}/uploads/videos/${req.file.filename}` });
 });
 router.post('/payment-screenshot', requireAuth, (req, res, next) => {
   req.params.folder = 'payment-screenshots';
@@ -47,7 +48,7 @@ router.post('/payment-screenshot', requireAuth, (req, res, next) => {
 }, paymentScreenshotUpload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No payment screenshot uploaded' });
   res.json({
-    url: `${process.env.API_BASE_URL || ''}/uploads/payment-screenshots/${req.file.filename}`,
+    url: `${publicBase}/uploads/payment-screenshots/${req.file.filename}`,
     path: `payment-screenshots/${req.file.filename}`,
   });
 });
@@ -57,7 +58,7 @@ router.post('/:folder', requireAuth, (req, res, next) => {
 }, upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   res.json({
-    url: `${process.env.API_BASE_URL || ''}/uploads/${req.params.folder}/${req.file.filename}`,
+    url: `${publicBase}/uploads/${req.params.folder}/${req.file.filename}`,
     path: `${req.params.folder}/${req.file.filename}`,
   });
 });

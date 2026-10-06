@@ -1,16 +1,6 @@
 const pool = require('../db');
-const { supabase, supabaseAdmin } = require('../config/supabase');
+const { supabase } = require('../config/supabase');
 const profiles = require('./pgProfileController');
-
-async function findAuthUser(email) {
-  for (let page = 1; ; page += 1) {
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw error;
-    const user = data?.users?.find((candidate) => candidate.email?.toLowerCase() === email.toLowerCase());
-    if (user) return user;
-    if (!data?.users?.length || data.users.length < 1000) return null;
-  }
-}
 
 exports.checkUsernameAvailability = async (req, res) => {
   const username = String(req.query.username || '').trim();
@@ -34,19 +24,16 @@ exports.signup = async (req, res) => {
     const { email: rawEmail, username, phone } = req.body || {};
     const email = String(rawEmail || '').trim().toLowerCase();
     if (!email || !username) return res.status(400).json({ error: 'Username and email are required' });
+    const user = req.authUser;
+    if (!user?.id || user.email?.toLowerCase() !== email) {
+      return res.status(403).json({ error: 'Verify this email before completing signup' });
+    }
     if (username.length < 3 || username.length > 20 || !/^[a-zA-Z0-9_]+$/.test(username)) {
       return res.status(400).json({ error: 'Username must be 3-20 letters, numbers or underscores' });
     }
     if (phone && !/^03\d{9}$/.test(String(phone).replace(/\D/g, ''))) {
       return res.status(400).json({ error: 'Invalid Pakistani phone number' });
     }
-    const { rows: otpRows } = await pool.query(
-      'SELECT 1 FROM otp_verifications WHERE email=$1 AND verified=true AND expires_at>now()',
-      [email],
-    );
-    if (!otpRows.length) return res.status(401).json({ error: 'Please verify your email first' });
-    const user = await findAuthUser(email);
-    if (!user) return res.status(401).json({ error: 'Please verify your email first' });
     const { rows: used } = await pool.query(
       'SELECT id FROM profiles WHERE lower(username)=lower($1) AND id<>$2', [username, user.id],
     );
@@ -56,8 +43,7 @@ exports.signup = async (req, res) => {
       'UPDATE profiles SET username=$1,full_name=$1,phone=$2 WHERE id=$3 RETURNING *',
       [username, phone || null, user.id],
     );
-    await pool.query('DELETE FROM otp_verifications WHERE email=$1', [email]);
-    res.json({ data: { user: { id: user.id, email: user.email }, profile: rows[0] }, message: 'Profile saved. Sign in to continue.' });
+    res.json({ data: { user: { id: user.id, email: user.email }, profile: { ...rows[0], completed_swaps: Number(rows[0].total_swaps || 0) } }, message: 'Profile saved. Sign in to continue.' });
   } catch (error) {
     console.error('[pg signup]', error.message);
     res.status(500).json({ error: 'Could not save profile' });

@@ -12,6 +12,7 @@ import Homemain from './components/Home-page/Homemain'
 import ProductDetailPage from './components/Product-detail/ProductDetailPage.tsx'
 import Login from './components/Auth/Login'
 import Signup from './components/Auth/Signup'
+import EmailConfirmationPage from './components/Auth/EmailConfirmationPage'
 import ForgotPassword from './components/Auth/ForgotPassword'
 import ResetPassword from './components/Auth/ResetPassword'
 import Profile from './components/Profile/Profile'
@@ -153,7 +154,7 @@ function ScrollToTop() {
 }
 
 // Pages that should NOT have sidebar offset (full-screen)
-const FULL_SCREEN_ROUTES = ['/reels', '/reel', '/reel-upload', '/create-reel', '/login', '/signup', '/forgot-password', '/reset-password']
+const FULL_SCREEN_ROUTES = ['/reels', '/reel', '/reel-upload', '/create-reel', '/login', '/signup', '/forgot-password', '/reset-password', '/auth/confirm']
 
 function AppInner() {
   const lenisInstanceRef = useRef<Lenis | null>(null)
@@ -173,6 +174,7 @@ function AppInner() {
   useEffect(() => {
     const checkExistingSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      if (pathname === '/auth/confirm') return;
 
       if (!session) {
         // No session: clear any dummy/old user data
@@ -239,6 +241,7 @@ function AppInner() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
+        if (pathname === '/auth/confirm') return;
         if (event === 'SIGNED_IN' && session?.user) {
           const user = session.user;
           const metadata = user.user_metadata || {};
@@ -338,7 +341,7 @@ function AppInner() {
         } else if (event === 'SIGNED_OUT') {
           localStorage.removeItem("sz_user");
           window.dispatchEvent(new Event("sz_auth_change"));
-          navigate('/login', { replace: true });
+          if (pathname !== '/auth/confirm') navigate('/login', { replace: true });
         }
       }
     );
@@ -386,6 +389,7 @@ function AppInner() {
             <Route path="/create-reel" element={<CreateReelPage />} />
             <Route path="/login"       element={<Login />} />
             <Route path="/signup"      element={<Signup />} />
+            <Route path="/auth/confirm" element={<EmailConfirmationPage />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
           </Routes>

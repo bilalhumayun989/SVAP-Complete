@@ -1,12 +1,12 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FiEye, FiEyeOff, FiMail, FiArrowRight, FiArrowLeft, FiCheck, FiX } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiArrowRight, FiArrowLeft, FiCheck, FiX } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { api } from "../../services/api";
 import { supabase } from "../../services/supabase";
 import disposableDomains from "disposable-email-domains";
 
-type Step = "form" | "otp";
+const PENDING_SIGNUP_KEY = "svap_pending_signup";
 
 // Additional common disposable domains not in the main package
 const additionalDisposableDomains = [
@@ -27,14 +27,11 @@ const isDisposableEmail = (email: string): boolean => {
 
 const Signup = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>("form");
+  const [confirmationSent, setConfirmationSent] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [resendTimer, setResendTimer] = useState(0);
-  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   
   const [form, setForm] = useState({
     username: "",
@@ -57,18 +54,12 @@ const Signup = () => {
   });
   const usernameCheckTimeout = useRef<number | null>(null);
 
-  useEffect(() => {
-    if (resendTimer <= 0) return;
-    const t = setTimeout(() => setResendTimer((v) => v - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendTimer]);
-
   // Check username uniqueness against PostgreSQL with a debounce.
   useEffect(() => {
     const username = form.username.trim();
     let cancelled = false;
 
-    if (step !== "form" || !username) {
+    if (confirmationSent || !username) {
       setUsernameStatus("idle");
       setUsernameError("");
       return;
@@ -109,7 +100,7 @@ const Signup = () => {
       cancelled = true;
       if (usernameCheckTimeout.current) clearTimeout(usernameCheckTimeout.current);
     };
-  }, [form.username, step]);
+  }, [form.username, confirmationSent]);
   // Password validation
   useEffect(() => {
     setPasswordValidation({
@@ -156,145 +147,24 @@ const Signup = () => {
   const isDuplicateEmailError = (message = "") => /already registered|Google se registered/i.test(message);
   const goToLogin = () => navigate('/login');
 
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    // Validate all fields
-    if (!form.email.trim()) return setError("Email is required");
-    if (emailError) return setError(emailError);
-    
-    if (isDisposableEmail(form.email)) {
-      return setError("Temporary/disposable email addresses allowed nahi hain. Please apna asal email use karein.");
-    }
-    
-    if (!form.username.trim()) return setError("Username is required");
-    if (usernameStatus === "taken") return setError(usernameError);
-    if (usernameStatus === "checking") return setError("Please wait while we check username availability");
-    if (usernameStatus !== "available") {
-      return setError(usernameError || "Please wait while we check username availability");
-    }
-    
-    if (!form.phone.trim()) return setError("Phone number is required");
-    if (form.phone.length !== 11) return setError("Phone number must be exactly 11 digits");
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault(); setError("");
+    if (!form.email.trim()) return setError("Email is required"); if (emailError) return setError(emailError);
+    if (isDisposableEmail(form.email)) return setError("Temporary/disposable email addresses allowed nahi hain. Please apna asal email use karein.");
+    if (!form.username.trim()) return setError("Username is required"); if (usernameStatus === "taken") return setError(usernameError);
+    if (usernameStatus !== "available") return setError(usernameError || "Please wait while we check username availability");
+    if (!form.phone.trim()) return setError("Phone number is required"); if (form.phone.length !== 11) return setError("Phone number must be exactly 11 digits");
     if (!/^03\d{9}$/.test(form.phone)) return setError("Sahi Pakistani phone number likhein (jaisay 03001234567)");
-    
     if (form.password.length < 6) return setError("Password must be at least 6 characters");
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(form.password)) {
-      return setError("Password kam az kam 6 characters ka ho aur ek special character (!@#$% wagera) shamil karein");
-    }
-    if (form.password !== form.confirmPassword) return setError("Passwords do not match");
-
-    setLoading(true);
+    if (!/[!@#$%^&*(),.?\":{}|<>]/.test(form.password)) return setError("Password kam az kam 6 characters ka ho aur ek special character (!@#$% wagera) shamil karein");
+    if (form.password !== form.confirmPassword) return setError("Passwords do not match"); setLoading(true);
     try {
-      const res = await api.sendOtp(form.email);
-      if (res.error) throw new Error(res.error);
-      setStep("otp");
-      setResendTimer(60);
-      setOtpDigits(["", "", "", "", "", ""]);
-      setTimeout(() => otpRefs.current[0]?.focus(), 100);
-    } catch (err: any) {
-      const message = err.message || "Failed to send OTP";
-      setError(message);
-      setShowLoginRedirect(isDuplicateEmailError(message));
-      if (!isDuplicateEmailError(message)) {
-        setStep("form");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
-    const next = [...otpDigits];
-    next[index] = value.slice(-1);
-    setOtpDigits(next);
-    setError("");
-    if (value && index < 5) otpRefs.current[index + 1]?.focus();
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pasted.length === 6) {
-      setOtpDigits(pasted.split(""));
-      otpRefs.current[5]?.focus();
-    }
-  };
-
-  const handleVerifyAndSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    const otp = otpDigits.join("");
-    if (otp.length < 6) return setError("Please enter the complete 6-digit OTP");
-
-    setLoading(true);
-    try {
-      // Step 1: Verify OTP
-      const otpRes = await api.verifyOtp(form.email, otp);
-      if (otpRes.error) throw new Error(otpRes.error);
-
-      const userId = otpRes.user?.id;
-      const userEmail = form.email;
-
-      if (!userId) throw new Error("Verification failed. Please try again.");
-
-      // Set a temporary session to set the verified account password.
-      if (!otpRes.session?.access_token || !otpRes.session?.refresh_token) {
-        throw new Error("Could not establish a signup session. Please try again.");
-      }
-
-      {
-        const { supabase: sb } = await import("../../services/supabase");
-        const { error: sessionError } = await sb.auth.setSession({
-          access_token: otpRes.session.access_token,
-          refresh_token: otpRes.session.refresh_token,
-        });
-        if (sessionError) throw new Error(sessionError.message);
-        // Step 3: IMPORTANT - Set user password in Supabase
-        const { error: passwordError } = await sb.auth.updateUser({
-          password: form.password,
-        });
-
-        if (passwordError) {
-          throw new Error(`Failed to set password: ${passwordError.message}`);
-        }
-
-        // Save the profile through PostgreSQL using the verified OTP record.
-        const signupRes = await api.signup({
-          email: userEmail,
-          username: form.username,
-          phone: form.phone,
-        });
-        if (signupRes.error) throw new Error(signupRes.error);
-
-        // Do not auto-login after account creation.
-        await sb.auth.signOut();
-      }
-      // Step 7: Clear any stored user data
-      localStorage.removeItem("sz_user");
-      
-      // Step 8: Redirect to login page with success message
-      navigate("/login", { 
-        state: { 
-          message: "Account created successfully! Please login with your credentials.",
-          email: userEmail 
-        },
-        replace: true
-      });
-    } catch (err: any) {
-      console.error('[Signup] Verification error:', err);
-      setError(err.message || "Verification failed");
-    } finally {
-      setLoading(false);
-    }
+      localStorage.setItem(PENDING_SIGNUP_KEY, JSON.stringify({ email: form.email.trim().toLowerCase(), username: form.username.trim(), phone: form.phone }));
+      const { data, error } = await supabase.auth.signUp({ email: form.email.trim(), password: form.password, options: { emailRedirectTo: window.location.origin + "/auth/confirm", data: { username: form.username.trim(), full_name: form.username.trim(), phone: form.phone } } });
+      if (error) throw new Error(error.message);
+      if (data.session) { const saved=await api.signup({email:form.email,username:form.username,phone:form.phone}); if(saved.error)throw new Error(saved.error); localStorage.removeItem(PENDING_SIGNUP_KEY); await supabase.auth.signOut(); navigate("/login",{state:{message:"Account created successfully! Please login with your credentials.",email:form.email},replace:true}); return; }
+      setConfirmationSent(true);
+    } catch(err:any) { localStorage.removeItem(PENDING_SIGNUP_KEY); const message=err.message||"Could not create account"; setError(message); setShowLoginRedirect(isDuplicateEmailError(message)); } finally { setLoading(false); }
   };
 
   const handleGoogleSignup = async () => {
@@ -321,32 +191,19 @@ const Signup = () => {
     }
   };
 
-  const handleResend = async () => {
-    if (resendTimer > 0) return;
-    setError("");
-    setLoading(true);
-    try {
-      const res = await api.sendOtp(form.email);
-      if (res.error) throw new Error(res.error);
-      setOtpDigits(["", "", "", "", "", ""]);
-      setResendTimer(60);
-      setTimeout(() => otpRefs.current[0]?.focus(), 100);
-    } catch (err: any) {
-      const message = err.message || "Failed to resend OTP";
-      setError(message);
-      setShowLoginRedirect(isDuplicateEmailError(message));
-      if (!isDuplicateEmailError(message)) {
-        setStep("form");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="dark-auth-page">
       <div className="dark-auth-card">
-        {step === "form" && (
+        {confirmationSent ? (
+          <div className="dark-confirm-container">
+            <div className="dark-confirm-icon"><FiCheck size={24} /></div>
+            <h1 className="dark-auth-title">Check Your Email</h1>
+            <p className="dark-auth-subtitle">We sent a verification link to<br /><strong style={{ color: "var(--text-dark)" }}>{form.email}</strong></p>
+            <p className="dark-auth-subtitle">Open the link in this browser to verify your email and finish creating your account.</p>
+            {error && <p className="dark-error">{error}</p>}
+            <button type="button" className="dark-primary-btn" onClick={goToLogin}>Go to Login</button>
+          </div>
+        ) : (
           <>
             <div>
               <button 
@@ -362,7 +219,7 @@ const Signup = () => {
               <p className="dark-auth-subtitle">Join the Svap Community</p>
             </div>
 
-            <form onSubmit={handleSendOtp} className="dark-auth-form" noValidate>
+            <form onSubmit={handleSignup} className="dark-auth-form" noValidate>
               <div className="dark-field">
                 <div className="dark-input-wrap">
                   <input
@@ -545,65 +402,7 @@ const Signup = () => {
           </>
         )}
 
-        {step === "otp" && (
-          <div className="dark-otp-container">
-            <div>
-              <button className="dark-back-btn" onClick={() => { setStep("form"); setError(""); }}>
-                <FiArrowLeft size={18} style={{ marginRight: "6px" }} /> Back
-              </button>
 
-              <div className="dark-otp-icon">
-                <FiMail size={24} />
-              </div>
-              <h1 className="dark-auth-title">Verify Email</h1>
-              <p className="dark-auth-subtitle">
-                We sent a 6-digit code to<br />
-                <strong style={{ color: "#fff" }}>{form.email}</strong>
-              </p>
-            </div>
-
-            <form onSubmit={handleVerifyAndSignup} className="dark-auth-form" noValidate>
-              <div className="dark-otp-row" onPaste={handleOtpPaste}>
-                {otpDigits.map((digit, i) => (
-                  <input
-                    key={i}
-                    ref={(el) => { otpRefs.current[i] = el; }}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(i, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                    className={`dark-otp-box ${digit ? "filled" : ""}`}
-                  />
-                ))}
-              </div>
-
-              {error && <p className="dark-error">{error}</p>}
-
-              <button type="submit" className="dark-primary-btn" disabled={loading}>
-                {loading ? (
-                  <span className="dark-spinner" />
-                ) : (
-                  <>
-                    <span className="btn-icon-wrap"><FiArrowRight /></span>
-                    <span>Verify &amp; Create Account</span>
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="dark-resend">
-              {resendTimer > 0 ? (
-                <span className="dark-resend-timer">Resend code in {resendTimer}s</span>
-              ) : (
-                <button className="dark-resend-btn" onClick={handleResend} disabled={loading}>
-                  Resend Code
-                </button>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       <style>{`
@@ -1003,107 +802,9 @@ const Signup = () => {
           background: rgba(211, 47, 47, 0.1);
         }
 
-        /* OTP View Styling */
-        .dark-otp-container {
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          min-height: calc(100dvh - 48px);
-          width: 100%;
-        }
+        .dark-confirm-container { display:flex; flex-direction:column; justify-content:center; min-height:calc(100dvh - 48px); width:100%; gap:12px; }
 
-        .dark-back-btn {
-          background: none;
-          border: none;
-          color: #8e8e93;
-          font-size: 0.9rem;
-          font-weight: 600;
-          cursor: pointer;
-          padding: 0;
-          margin-bottom: 20px;
-          align-self: flex-start;
-          display: inline-flex;
-          align-items: center;
-        }
-
-        html:not([data-theme='dark']) .dark-back-btn {
-          color: #666666;
-        }
-
-        .dark-otp-icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 50%;
-          background: rgba(242, 101, 57, 0.15);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #f26539;
-          margin-bottom: 16px;
-        }
-
-        .dark-otp-row {
-          display: flex;
-          gap: 10px;
-          justify-content: center;
-          margin: 16px 0;
-        }
-
-        .dark-otp-box {
-          width: 48px;
-          height: 56px;
-          text-align: center;
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #ffffff;
-          background: #1c1c1e;
-          border: 1px solid transparent;
-          border-radius: 14px;
-          outline: none;
-        }
-
-        html:not([data-theme='dark']) .dark-otp-box {
-          color: #1a1a1a;
-          background: #f5f5f5;
-          border: 1px solid #e0e0e0;
-        }
-
-        .dark-otp-box:focus {
-          border-color: #f26539;
-        }
-
-        .dark-otp-box.filled {
-          border-color: #f26539;
-          background: rgba(242, 101, 57, 0.1);
-        }
-
-        html:not([data-theme='dark']) .dark-otp-box.filled {
-          background: rgba(242, 101, 57, 0.15);
-        }
-
-        .dark-resend {
-          text-align: center;
-          margin-top: auto;
-          padding-top: 20px;
-        }
-
-        .dark-resend-timer {
-          font-size: 0.85rem;
-          color: #8e8e93;
-        }
-
-        html:not([data-theme='dark']) .dark-resend-timer {
-          color: #888888;
-        }
-
-        .dark-resend-btn {
-          background: none;
-          border: none;
-          color: #f26539;
-          font-size: 0.85rem;
-          font-weight: 700;
-          cursor: pointer;
-        }
+        .dark-confirm-icon { width:52px; height:52px; border-radius:50%; background:rgba(242,101,57,.15); display:grid; place-items:center; color:#f26539; margin-bottom:8px; }
 
         .dark-spinner, .dark-spinner-small {
           width: 18px;
@@ -1120,7 +821,6 @@ const Signup = () => {
 
         @media (max-width: 480px) {
           .dark-auth-title { font-size: 1.75rem; }
-          .dark-otp-box { width: 42px; height: 50px; }
         }
       `}</style>
     </div>

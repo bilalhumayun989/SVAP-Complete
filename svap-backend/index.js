@@ -45,34 +45,14 @@ const runSwapExpirySweep = async () => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { rows } = await client.query(`SELECT * FROM swap_requests WHERE expires_at <= now() AND status IN ('pending','accepted','completed') ORDER BY expires_at FOR UPDATE SKIP LOCKED`);
+    const { rows } = await client.query(`SELECT * FROM swap_requests WHERE expires_at <= now() AND status IN ('pending','accepted') ORDER BY expires_at FOR UPDATE SKIP LOCKED`);
     let expired = 0;
     for (const sr of rows) {
       const { rows: checkedOutUsers } = await client.query(`SELECT DISTINCT from_user_id FROM orders WHERE swap_request_id=$1 AND from_user_id IN ($2,$3)`, [sr.id,sr.from_user_id,sr.to_user_id]);
       const participantCount=checkedOutUsers.length;
-      if ((sr.status === 'accepted' || sr.status === 'completed') && participantCount >= 2) continue;
+      if (sr.status === 'accepted' && participantCount >= 2) continue;
       const changed=await client.query(`UPDATE swap_requests SET status='cancelled' WHERE id=$1 AND status=$2 RETURNING id`,[sr.id,sr.status]);
       if (!changed.rowCount) continue;
-      if (participantCount === 1) {
-        const readyUserId=checkedOutUsers[0].from_user_id;
-        await client.query(`UPDATE profiles
-          SET committed_swaps=GREATEST(COALESCE(committed_swaps,0)-1,0),
-              swap_score=ROUND(LEAST(5::numeric,GREATEST(0::numeric,
-                COALESCE(completed_swaps,0)::numeric*5 /
-                NULLIF(GREATEST(COALESCE(committed_swaps,0)-1,0),0)
-              )),1)
-          WHERE id=$1`,[readyUserId]);
-      }
-      if (sr.status === 'completed') {
-        await client.query(`UPDATE profiles
-          SET completed_swaps=GREATEST(COALESCE(completed_swaps,0)-1,0),
-              total_swaps=GREATEST(COALESCE(total_swaps,0)-1,0),
-              swap_score=ROUND(LEAST(5::numeric,GREATEST(0::numeric,
-                COALESCE(GREATEST(COALESCE(completed_swaps,0)-1,0)::numeric*5 /
-                  NULLIF(COALESCE(committed_swaps,0),0),0::numeric)
-              )),1)
-          WHERE id=ANY($1)`,[[sr.from_user_id,sr.to_user_id]]);
-      }
       await client.query(`UPDATE orders SET status='cancelled',admin_notes=concat_ws(E'\\n',NULLIF(admin_notes,''),'Auto-cancelled: SVAP checkout deadline expired. Refund review required.') WHERE swap_request_id=$1 AND status<>'cancelled'`,[sr.id]);
       await client.query(`UPDATE products SET status='active' WHERE id=ANY($1) AND status='in_swap'`,[[sr.offered_product_id,sr.requested_product_id].filter(Boolean)]);
       const {rows:orderRows}=await client.query('SELECT id FROM orders WHERE swap_request_id=$1 ORDER BY created_at LIMIT 1',[sr.id]);
@@ -87,8 +67,10 @@ const runSwapExpirySweep = async () => {
   finally { client.release(); }
 };
 // Use backend node-cron so no pg_cron extension is required.
-cron.schedule('*/5 * * * *', () => { void runSwapExpirySweep(); });
-setTimeout(() => { void runSwapExpirySweep(); }, 10_000);
+if (process.env.ENABLE_SWAP_SWEEP === 'true') {
+  cron.schedule('*/5 * * * *', () => { void runSwapExpirySweep(); });
+  setTimeout(() => { void runSwapExpirySweep(); }, 10_000);
+}
 
 app.listen(port, '0.0.0.0', () => {  console.log(`✅ SwapZone Backend running on http://localhost:${port}`);
   console.log('Routes:');
