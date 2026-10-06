@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { PlayCircle, Plus, User } from "lucide-react";
 import { api } from "../../services/api";
 import { getAllRequests } from "../../hooks/useSwapRequests";
-import { supabase } from "../../services/supabase";
+import { getRequestNavigationCount } from "../../utils/requestNavigationCount";
 
 // ─── Local PNG Icon Wrapper (Home, Requests, etc.) ─────────────────────────────
 const LocalNavIcon = ({
@@ -103,31 +103,8 @@ export default function MobileNavbar() {
         getAllRequests(user.id),
         api.getOrders(user.id),
       ]);
-      const checkoutOrders = Array.isArray(ordersResponse)
-        ? ordersResponse.filter((order: any) => order.swap_request_id)
-        : [];
-      const checkoutRequestIds = new Set(
-        checkoutOrders.map((order: any) => order.swap_request_id)
-      );
-      const currentUserCheckoutRequestIds = new Set(
-        checkoutOrders
-          .filter((order: any) => order.from_user_id === user.id)
-          .map((order: any) => order.swap_request_id)
-      );
-      const isCheckoutRequest = (request: { id: string; status: string }) =>
-        checkoutRequestIds.has(request.id) || ["accepted", "completed"].includes(request.status);
-
-      const incoming = allRequests.filter(
-        (request) => request.direction === "received" && !isCheckoutRequest(request)
-      );
-      const outgoing = allRequests.filter(
-        (request) => request.direction === "sent" && !isCheckoutRequest(request)
-      );
-      const checkout = allRequests.filter(
-        (request) => isCheckoutRequest(request) && !currentUserCheckoutRequestIds.has(request.id)
-      );
-
-      setRequestCount(incoming.length + outgoing.length + checkout.length);
+      const checkoutOrders = Array.isArray(ordersResponse) ? ordersResponse : [];
+      setRequestCount(getRequestNavigationCount(allRequests, checkoutOrders, user.id));
     } catch (error) {
       console.error("[MobileNav] Failed to fetch request count:", error);
       setRequestCount(0);
@@ -138,41 +115,17 @@ export default function MobileNavbar() {
     fetchRequestCount();
   }, [user?.id]);
 
-  // Realtime Subscriptions
+  // Refresh request badges from the PostgreSQL API.
   useEffect(() => {
     if (!user?.id) return;
-
-    const requestsChannel = supabase
-      .channel(`realtime:mobilenav:swap_requests:${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "swap_requests" },
-        () => fetchRequestCount()
-      )
-      .subscribe();
-
-    const ordersChannel = supabase
-      .channel(`realtime:mobilenav:orders:${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "orders" },
-        () => fetchRequestCount()
-      )
-      .subscribe();
-
     const handleRequestsChange = () => fetchRequestCount();
     window.addEventListener("sz_requests_change", handleRequestsChange);
-
     const handleVisibilityChange = () => {
       if (!document.hidden) fetchRequestCount();
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
-
     const interval = setInterval(fetchRequestCount, 30000);
-
     return () => {
-      supabase.removeChannel(requestsChannel);
-      supabase.removeChannel(ordersChannel);
       window.removeEventListener("sz_requests_change", handleRequestsChange);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearInterval(interval);

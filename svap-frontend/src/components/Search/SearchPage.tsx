@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Search, SlidersHorizontal, Bookmark } from "lucide-react";
-import { supabase } from "../../services/supabase";
 import { api } from "../../services/api";
 
 interface Product {
@@ -103,40 +102,17 @@ export default function SearchPage() {
     };
   }, []);
 
-  // Fetch Active Products from Supabase using estimated_value
+  // Fetch active listings through the PostgreSQL API
   useEffect(() => {
     async function fetchProducts() {
       setLoading(true);
       try {
-        let query = supabase
-          .from("products")
-          .select("*")
-          .eq("status", "active");
-
-        if (selectedCategory !== "All") {
-          query = query.ilike("category", `%${selectedCategory}%`);
-        }
-
-        if (searchQuery.trim()) {
-          query = query.or(
-            `title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%`
-          );
-        }
-
-        // Sorting based on DB schema
-        if (sortBy === "newest") {
-          query = query.order("created_at", { ascending: false });
-        } else if (sortBy === "low-high") {
-          query = query.order("estimated_value", { ascending: true, nullsFirst: false });
-        } else if (sortBy === "high-low") {
-          query = query.order("estimated_value", { ascending: false, nullsFirst: false });
-        }
-
-        const { data, error } = await query;
-        if (error) throw error;
-        setProducts(data || []);
+        const result = await api.getProducts({ category: selectedCategory, search: searchQuery.trim(), sort: sortBy });
+        if (result?.error) throw new Error(result.error);
+        setProducts(Array.isArray(result?.data) ? result.data : []);
       } catch (err) {
         console.error("Error fetching search products:", err);
+        setProducts([]);
       } finally {
         setLoading(false);
       }

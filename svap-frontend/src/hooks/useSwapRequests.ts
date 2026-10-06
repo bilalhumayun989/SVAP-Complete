@@ -52,6 +52,7 @@ export async function updateRequestStatus(
     const res = await api.updateSwapRequestStatus(id, status, updated_by);
     if (res.error) throw new Error(res.error);
     window.dispatchEvent(new Event("sz_requests_change"));
+    window.dispatchEvent(new Event("sz_notifications_change"));
   } catch (err) {
     console.error('[updateRequestStatus]', err);
   }

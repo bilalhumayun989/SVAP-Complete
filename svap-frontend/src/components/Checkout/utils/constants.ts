@@ -7,7 +7,7 @@ export const DELIVERY_METHODS: DeliveryMethod[] = [
     name: 'Standard',
     description: '3-5 days',
     estimatedDays: '3-5 business days',
-    cost: 500,
+    cost: 479,
     isRecommended: true,
   }
 ];
@@ -55,6 +55,6 @@ export const VALIDATION_RULES = {
 
 // UI Constants
 export const UI_CONSTANTS = {
-  COST_UPDATE_DELAY: 500, // ms delay for cost calculations
+  COST_UPDATE_DELAY: 479, // ms delay for cost calculations
   FORM_DEBOUNCE_DELAY: 300, // ms delay for form validation
 };

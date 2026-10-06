@@ -16,7 +16,6 @@ import {
   FiGlobe
 } from 'react-icons/fi';
 import { api } from '../../services/api';
-import { supabase } from '../../services/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SwapInfo {
@@ -42,8 +41,11 @@ interface FormData {
 type FormErrors = Partial<Record<keyof FormData | 'paymentScreenshot', string>>;
 
 // ─── Bank & Delivery Config ──────────────────────────────────────────────────
+const CASH_ONLY_DELIVERY_FEE = 300;
+const CASH_OFFER_PLATFORM_FEE_RATE = 0.08;
+
 const BANK_DETAILS = {
-  deliveryFee: 500,
+  deliveryFee: 479,
   bankName: 'Habib Bank (HBL)',
   accountTitle: 'MUHAMMAD NOORH',
   accountNumber: '50227900512303',
@@ -198,17 +200,11 @@ export const SwapCheckoutPage = () => {
     try {
       let screenshotUrl = '';
       if (paymentScreenshot) {
-        const fileExt = paymentScreenshot.name.split('.').pop();
-        const fileName = `${userId}_${Date.now()}.${fileExt}`;
-        const filePath = `payment-screenshots/${fileName}`;
-        const { error: uploadError } = await supabase.storage
-          .from('payment-screenshots')
-          .upload(filePath, paymentScreenshot, { cacheControl: '3600', upsert: false });
-        if (uploadError) throw new Error(`Screenshot upload failed: ${uploadError.message}`);
-        const { data: urlData } = await supabase.storage
-          .from('payment-screenshots')
-          .getPublicUrl(filePath);
-        screenshotUrl = urlData.publicUrl;
+        const formData = new FormData();
+        formData.append('file', paymentScreenshot);
+        const uploaded = await api.uploadPaymentScreenshot(formData);
+        if (uploaded.error || !uploaded.url) throw new Error(uploaded.error || 'Screenshot upload failed.');
+        screenshotUrl = uploaded.url;
       }
       setUploadingScreenshot(false);
 
@@ -260,13 +256,16 @@ export const SwapCheckoutPage = () => {
   const currentUserId = (() => { try { return JSON.parse(localStorage.getItem('sz_user') || '{}').id; } catch { return null; } })();
   const isSender = swapInfo?.from_user_id === currentUserId;
   const cashTopUpAmount = Number(swapInfo?.premium_amount || 0);
-  const isCashOnlyOffer = !swapInfo?.offered_product_id || !swapInfo.offered;
+  // Cash plus an offered item is a regular item swap; only a missing offered product is cash-only.
+  const isCashOnlyOffer = Boolean(swapInfo && !swapInfo.offered_product_id);
   const isCashOnlyOfferPayer = isCashOnlyOffer && isSender;
-  // The cash-only offerer transfers only the offered amount. The recipient
-  // keeps the normal delivery checkout; cash from item offers is added to the offerer transfer.
-  const deliveryCharge = isCashOnlyOfferPayer ? 0 : BANK_DETAILS.deliveryFee;
+  const isCashOfferAcceptor = isCashOnlyOffer && swapInfo?.to_user_id === currentUserId && cashTopUpAmount > 0;
+  const platformFee = isCashOfferAcceptor ? Math.round(cashTopUpAmount * CASH_OFFER_PLATFORM_FEE_RATE) : 0;
+  // Cash-only offerers pay PKR 300 for pickup, inspection, and delivery.
+  // Other participants keep the standard PKR 479 delivery checkout.
+  const deliveryCharge = isCashOfferAcceptor ? 0 : isCashOnlyOfferPayer ? CASH_ONLY_DELIVERY_FEE : BANK_DETAILS.deliveryFee;
   const cashOfferTransferAmount = isSender && !isCashOnlyOffer ? cashTopUpAmount : (isCashOnlyOfferPayer ? cashTopUpAmount : 0);
-  const totalToTransfer = deliveryCharge + cashOfferTransferAmount;
+  const totalToTransfer = deliveryCharge + cashOfferTransferAmount + platformFee;
   const myItem = isCashOnlyOffer ? (isSender ? null : swapInfo?.requested) : (isSender ? swapInfo?.offered : swapInfo?.requested);
   const theirItem = isCashOnlyOffer ? (isSender ? swapInfo?.requested : null) : (isSender ? swapInfo?.requested : swapInfo?.offered);
 
@@ -292,12 +291,14 @@ export const SwapCheckoutPage = () => {
         <div className="order-status-summary">
           <div className="status-summary-row"><span>Status</span><span className="status-summary-badge">Pending Verification</span></div>
           <div className="status-summary-row"><span>Delivery Fee</span><span>{deliveryCharge === 0 ? 'No delivery charge' : `PKR ${deliveryCharge.toLocaleString()}`}</span></div>
+          {platformFee > 0 && <div className="status-summary-row"><span>Platform fee (8%)</span><span>PKR {platformFee.toLocaleString()}</span></div>}
           {summaryCashAmount > 0 && (
             <div className="status-summary-row status-summary-row--cash">
               <span>{isCashOnlyOffer ? 'Cash Offer' : (isSender ? 'Cash you offer' : 'Cash you receive')}</span>
               <strong>PKR {summaryCashAmount.toLocaleString()}{isCashOnlyOffer ? ' (cash only)' : ''}</strong>
             </div>
           )}
+          <div className="status-summary-row"><span>Total to Transfer</span><strong>PKR {totalToTransfer.toLocaleString()}</strong></div>
         </div>
         {summaryCashAmount > 0 && !isCashOnlyOffer && (
           <div className="cash-boost-note" role="note">
@@ -515,7 +516,7 @@ export const SwapCheckoutPage = () => {
         <div className="delivery-price">{deliveryCharge === 0 ? 'No delivery charge' : `PKR ${deliveryCharge.toLocaleString()}`}</div>
       </div>
       <div className="info-note muted-text">
-        <FiInfo size={13} /> {isCashOnlyOfferPayer ? `No delivery charge applies to this cash offer payment. You only transfer PKR ${cashTopUpAmount.toLocaleString()}.` : `PKR ${deliveryCharge} covers pickup from your location, delivery of the svaped item to you, and a PKR 100 item inspection fee.`}
+        <FiInfo size={13} /> {isCashOfferAcceptor ? `No delivery charge applies. You only pay the 8% platform fee of PKR ${platformFee.toLocaleString()}.` : isCashOnlyOfferPayer ? `PKR ${CASH_ONLY_DELIVERY_FEE} covers pickup from the other person, item inspection, and delivery to you.` : `PKR ${deliveryCharge} covers pickup from your location, delivery of the svaped item to you, and a PKR 100 item inspection fee.`}
       </div>
 
       {/* Bank & Wallets */}
@@ -614,10 +615,10 @@ export const SwapCheckoutPage = () => {
       <div className="summary-card">
         <div className="summary-card-title">Order Summary</div>
         
-        {!isCashOnlyOfferPayer && <div className="summary-row">
+        {deliveryCharge > 0 && <div className="summary-row">
           <div>
-            <div className="summary-label">Delivery (Standard)</div>
-            <div className="summary-sublabel">Includes pickup, delivery & PKR 100 inspection fee.</div>
+            <div className="summary-label">{isCashOnlyOfferPayer ? "Pickup, inspection & delivery" : "Delivery (Standard)"}</div>
+            <div className="summary-sublabel">{isCashOnlyOfferPayer ? "Cash-only offer delivery service." : "Includes pickup, delivery & PKR 100 inspection fee."}</div>
           </div>
           <div className="summary-val">PKR {deliveryCharge.toLocaleString()}</div>
         </div>}
@@ -625,14 +626,19 @@ export const SwapCheckoutPage = () => {
         {cashTopUpAmount > 0 && (
           <div className="summary-row">
             <div>
-              <div className="summary-label">{isCashOnlyOffer ? (isSender ? "Cash offer payment" : "Cash offered") : (isSender ? "Cash you offer" : "Cash you receive")}</div>
+              <div className="summary-label">{isCashOnlyOffer ? (isSender ? "Cash offer payment" : "Cash offer amount") : (isSender ? "Cash you offer" : "Cash you receive")}</div>
               {!isCashOnlyOffer && <div className="summary-sublabel">{isSender ? "Included in your bank transfer." : "Included in the offerer bank transfer."}</div>}
-              {isCashOnlyOfferPayer && <div className="summary-sublabel">No delivery charge is added to this payment.</div>}
+              {isCashOnlyOfferPayer && <div className="summary-sublabel">PKR 300 delivery service is added to this cash offer.</div>}
+              {isCashOfferAcceptor && <div className="summary-sublabel">8% platform fee applies to this cash offer.</div>}
             </div>
             <div className="summary-val">PKR {cashTopUpAmount.toLocaleString()}</div>
           </div>
         )}
 
+        {platformFee > 0 && <div className="summary-row">
+          <div><div className="summary-label">Platform fee (8%)</div><div className="summary-sublabel">8% of the cash offer.</div></div>
+          <div className="summary-val">PKR {platformFee.toLocaleString()}</div>
+        </div>}
         <div className="summary-divider" />
 
         <div className="summary-row total-row">

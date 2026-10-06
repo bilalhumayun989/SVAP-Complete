@@ -16,8 +16,7 @@
 // } from "../../hooks/useSwapRequests";
 // import { useNotifications } from "../../context/NotificationContext";
 // import { api } from "../../services/api";
-// import { supabase } from "../../services/supabase";
-
+//
 // type Tab = "incoming" | "outgoing" | "checkout";
 
 // type CheckoutOrder = {
@@ -56,8 +55,7 @@
 //   const [requests, setRequests] = useState<SwapRequest[]>([]);
 //   const [checkoutOrders, setCheckoutOrders] = useState<CheckoutOrder[]>([]);
 //   const [loading, setLoading] = useState(true);
-//   const [tick, setTick] = useState(0);
-//   const [cancellingRequestId, setCancellingRequestId] = useState<string | null>(null);
+// //   const [cancellingRequestId, setCancellingRequestId] = useState<string | null>(null);
 
 //   const userId = (() => {
 //     try {
@@ -186,7 +184,7 @@
 
 //     // A stale "completed" status must not hide checkout from a participant
 //     // who has not placed their own order yet.
-//     return isCheckoutRequest(request) && !bothParticipantsCheckedOut;
+//     return isCheckoutRequest(request) && (!bothParticipantsCheckedOut || request.status === "cancelled");
 //   });
 //   const active =
 //     tab === "incoming" ? incoming : tab === "outgoing" ? outgoing : checkout;
@@ -334,8 +332,7 @@
 //                 req.direction === "received"
 //                   ? req.from_profile
 //                   : req.to_profile;
-//               const hasAnyCheckoutOrder = checkoutOrders.some((order) => order.swap_request_id === req.id && !order.is_checkout_pending && !String(order.id || "").startsWith("checkout-"));
-//               const canCancelAcceptedSwap = tab === "checkout" && req.status === "accepted" && !hasAnyCheckoutOrder;
+// //               const canCancelAcceptedSwap = tab === "checkout" && req.status === "accepted";
 //               const ownOrder = checkoutOrderByRequest.get(req.id);
 //               const partnerOrder = checkoutOrders.find((order) => order.swap_request_id === req.id && order.from_user_id !== userId && !order.is_checkout_pending && !String(order.id || "").startsWith("checkout-"));
 //               const partnerHasOrder = Boolean(partnerOrder);
@@ -451,7 +448,7 @@
 //                   )}
 
 //                   {isCancelled ? (
-//                     <div className="req-cancelled-label" role="status">Cancelled</div>
+//                     <div className="req-cancelled-label" role="status">{localStorage.getItem(`sz_cancelled_by_${req.id}`) === userId ? "You have cancelled this SVAP offer." : "Your SVAP request has been rejected."}{ownOrder && " You will be contacted by support team for refund."}</div>
 //                   ) : (
 //                     <div
 //                       className={`req-timer-box ${isExpired ? "req-timer-box--expired" : ""
@@ -526,14 +523,14 @@
 //                       {orderStageIndex(ownOrder.status) >= 0 && <div className="req-order-stages">{ORDER_STAGES.map((stage, index) => <div key={stage.value} className={"req-order-stage " + (index <= orderStageIndex(ownOrder.status) ? "is-done " : "") + (index === orderStageIndex(ownOrder.status) ? "is-current" : "")}><span className="req-order-stage-dot" /><span>{stage.label}</span></div>)}</div>}
 //                     </div>
 //                   )}
-//                   {tab === "checkout" && partnerHasOrder && partnerPaymentVerified && ownPaymentNotVerified && (
+//                   {tab === "checkout" && !isCancelled && partnerHasOrder && partnerPaymentVerified && ownPaymentNotVerified && (
 //                     <div className="req-partner-checkout-note" role="status">Your svap partner's payment is verified by us. Now the item will be inspected</div>
 //                   )}
-//                   {tab === "checkout" && !ownOrder && partnerHasOrder && !partnerPaymentVerified && (
+//                   {tab === "checkout" && !isCancelled && !ownOrder && partnerHasOrder && !partnerPaymentVerified && (
 //                     <div className="req-partner-checkout-note" role="status">Your svap partner has completed checkout. Complete your own checkout to continue.</div>
 //                   )}
 
-//                   {tab === "checkout" && (
+//                   {tab === "checkout" && !isCancelled && (
 //                     <div className="req-checkout-actions">
 //                       {canCancelAcceptedSwap && (
 //                         <button className="req-btn req-btn--reject" disabled={cancellingRequestId === req.id} onClick={() => handleCancelAcceptedSwap(req.id)}>
@@ -1014,7 +1011,6 @@ import {
 } from "../../hooks/useSwapRequests";
 import { useNotifications } from "../../context/NotificationContext";
 import { api } from "../../services/api";
-import { supabase } from "../../services/supabase";
 
 type Tab = "incoming" | "outgoing" | "checkout";
 
@@ -1054,7 +1050,6 @@ const Requests = () => {
   const [requests, setRequests] = useState<SwapRequest[]>([]);
   const [checkoutOrders, setCheckoutOrders] = useState<CheckoutOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tick, setTick] = useState(0);
   const [cancellingRequestId, setCancellingRequestId] = useState<string | null>(null);
   
   // Notification Unread Count State
@@ -1075,14 +1070,8 @@ const Requests = () => {
       return;
     }
     try {
-      const { count, error } = await supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("is_read", false);
-
-      if (error) throw error;
-      setUnreadNotifCount(count || 0);
+      const result = await api.getUnreadNotificationCount(userId);
+      setUnreadNotifCount(Number(result.count) || 0);
     } catch (err) {
       console.error("[Requests] Failed to fetch unread notifications count:", err);
     }
@@ -1140,36 +1129,16 @@ const Requests = () => {
     return () => window.removeEventListener("sz_requests_change", refresh);
   }, [refresh, fetchUnreadNotifCount]);
 
-  // Realtime listener for swap requests & notifications badge
+  // PostgreSQL data is polled because it is no longer stored in Supabase.
   useEffect(() => {
     if (!userId) return;
-    
-    // Channel for Swap Requests
-    const channel = supabase.channel("swap-requests-user-" + userId)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "swap_requests", filter: "from_user_id=eq." + userId }, () => refresh())
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "swap_requests", filter: "to_user_id=eq." + userId }, () => refresh())
-      .subscribe();
-
-    // Channel for Realtime Header Notification Badge
-    const notifChannel = supabase.channel("requests-header-notifs-" + userId)
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: "user_id=eq." + userId }, () => fetchUnreadNotifCount())
-      .subscribe();
-
-    return () => { 
-      supabase.removeChannel(channel); 
-      supabase.removeChannel(notifChannel);
+    const dataPoll = window.setInterval(() => { void refresh(); }, 30000);
+    const notifPoll = window.setInterval(() => { void fetchUnreadNotifCount(); }, 20000);
+    return () => {
+      window.clearInterval(dataPoll);
+      window.clearInterval(notifPoll);
     };
   }, [userId, refresh, fetchUnreadNotifCount]);
-
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 60_000);
-    return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    refresh();
-  }, [tick, refresh]);
-
   const checkoutRequestIds = new Set(
     checkoutOrders
       .filter(
@@ -1189,8 +1158,9 @@ const Requests = () => {
     const hasUserOrder = checkoutRequestIds.has(request.id);
     const isAccepted = request.status === "accepted";
     const isCompleted = request.status === "completed";
+    const isCancelled = request.status === "cancelled";
 
-    return hasRelatedOrder || hasUserOrder || isAccepted || isCompleted;
+    return hasRelatedOrder || hasUserOrder || isAccepted || isCompleted || isCancelled;
   };
   
   const incoming = requests.filter(
@@ -1218,7 +1188,7 @@ const Requests = () => {
     );
     const bothParticipantsCheckedOut = hasOwnOrder && hasOtherParticipantOrder;
 
-    return isCheckoutRequest(request) && !bothParticipantsCheckedOut;
+    return isCheckoutRequest(request) && (!bothParticipantsCheckedOut || request.status === "cancelled");
   });
   
   const active =
@@ -1242,6 +1212,7 @@ const Requests = () => {
     try {
       const result = await api.updateSwapRequestStatus(requestId, "cancelled", userId);
       if (result.error) throw new Error(result.error);
+      localStorage.setItem(`sz_cancelled_by_${requestId}`, userId);
       await refresh();
       window.dispatchEvent(new Event("sz_requests_change"));
     } catch (error: any) {
@@ -1369,8 +1340,7 @@ const Requests = () => {
                 req.direction === "received"
                   ? req.from_profile
                   : req.to_profile;
-              const hasAnyCheckoutOrder = checkoutOrders.some((order) => order.swap_request_id === req.id && !order.is_checkout_pending && !String(order.id || "").startsWith("checkout-"));
-              const canCancelAcceptedSwap = tab === "checkout" && req.status === "accepted" && !hasAnyCheckoutOrder;
+              const canCancelAcceptedSwap = tab === "checkout" && req.status === "accepted";
               const ownOrder = checkoutOrderByRequest.get(req.id);
               const partnerOrder = checkoutOrders.find((order) => order.swap_request_id === req.id && order.from_user_id !== userId && !order.is_checkout_pending && !String(order.id || "").startsWith("checkout-"));
               const partnerHasOrder = Boolean(partnerOrder);
@@ -1485,7 +1455,7 @@ const Requests = () => {
                   )}
 
                   {isCancelled ? (
-                    <div className="req-cancelled-label" role="status">Cancelled</div>
+                    <div className="req-cancelled-label" role="status">{localStorage.getItem(`sz_cancelled_by_${req.id}`) === userId ? "You have cancelled this SVAP offer." : "Your SVAP request has been rejected."}{ownOrder && " You will be contacted by support team for refund."}</div>
                   ) : (
                     <div
                       className={`req-timer-box ${isExpired ? "req-timer-box--expired" : ""}`}
@@ -1557,14 +1527,14 @@ const Requests = () => {
                       {orderStageIndex(ownOrder.status) >= 0 && <div className="req-order-stages">{ORDER_STAGES.map((stage, index) => <div key={stage.value} className={"req-order-stage " + (index <= orderStageIndex(ownOrder.status) ? "is-done " : "") + (index === orderStageIndex(ownOrder.status) ? "is-current" : "")}><span className="req-order-stage-dot" /><span>{stage.label}</span></div>)}</div>}
                     </div>
                   )}
-                  {tab === "checkout" && partnerHasOrder && partnerPaymentVerified && ownPaymentNotVerified && (
+                  {tab === "checkout" && !isCancelled && partnerHasOrder && partnerPaymentVerified && ownPaymentNotVerified && (
                     <div className="req-partner-checkout-note" role="status">Your svap partner's payment is verified by us. Now the item will be inspected</div>
                   )}
-                  {tab === "checkout" && !ownOrder && partnerHasOrder && !partnerPaymentVerified && (
+                  {tab === "checkout" && !isCancelled && !ownOrder && partnerHasOrder && !partnerPaymentVerified && (
                     <div className="req-partner-checkout-note" role="status">Your svap partner has completed checkout. Complete your own checkout to continue.</div>
                   )}
 
-                  {tab === "checkout" && (
+                  {tab === "checkout" && !isCancelled && (
                     <div className="req-checkout-actions">
                       {canCancelAcceptedSwap && (
                         <button className="req-btn req-btn--reject" disabled={cancellingRequestId === req.id} onClick={() => handleCancelAcceptedSwap(req.id)}>

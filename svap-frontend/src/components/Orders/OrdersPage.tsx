@@ -4,8 +4,7 @@ import {
   FiPackage, FiClock, FiCheckCircle, FiMapPin,
   FiTruck, FiXCircle, FiAlertCircle, FiRefreshCw,
 } from "react-icons/fi";
-import { API_URL } from "../../services/api";
-import { supabase } from "../../services/supabase";
+import { api } from "../../services/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type OrderStatus =
@@ -159,8 +158,7 @@ const OrdersPage = () => {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/orders?user_id=${userId}`);
-      const data = await res.json();
+      const data = await api.getOrders(userId);
       if (Array.isArray(data))
         setOrders(
           data.filter(
@@ -180,47 +178,14 @@ const OrdersPage = () => {
   }, [fetchOrders]);
 
   // ── Supabase Realtime subscription ────────────────────────────────────────────
+  // Refresh order statuses from the PostgreSQL API.
   useEffect(() => {
     if (!userId) return;
-
-    const channel = supabase
-      .channel(`orders-user-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "orders",
-          filter: `from_user_id=eq.${userId}`,
-        },
-        (payload: any) => {
-          if (payload.eventType === "UPDATE") {
-            setOrders((prev) =>
-              prev.map((o) =>
-                o.id === (payload.new as RealOrder).id
-                  ? { ...o, ...(payload.new as Partial<RealOrder>) }
-                  : o
-              )
-            );
-          } else if (payload.eventType === "INSERT") {
-            const insertedOrder = payload.new as RealOrder;
-            if (insertedOrder.from_user_id === userId)
-              setOrders((prev) => [insertedOrder, ...prev]);
-          } else if (payload.eventType === "DELETE") {
-            setOrders((prev) =>
-              prev.filter((o) => o.id !== (payload.old as RealOrder).id)
-            );
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId]);
-
-  // ── Derived values ────────────────────────────────────────────────────────────
+    const poll = window.setInterval(() => {
+      if (document.visibilityState === "visible") void fetchOrders();
+    }, 30000);
+    return () => window.clearInterval(poll);
+  }, [userId, fetchOrders]);
   const pendingCount = orders.filter((o) =>
     ["pending", "payment_verification"].includes(
       o.status

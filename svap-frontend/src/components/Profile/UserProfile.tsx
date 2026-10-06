@@ -8,7 +8,6 @@ interface UserData {
   id: string;
   username: string;
   full_name: string;
-  bio?: string;
   city?: string;
   avatar_url?: string;
   created_at?: string;
@@ -141,7 +140,6 @@ const UserProfile = () => {
             <h1 className="up-name">{user.full_name || user.username}</h1>
           </div>
           <p className="up-username">@{user.username}</p>
-          {user.bio && <p className="up-bio">{user.bio}</p>}
           <div className="up-meta-row">
             {user.city && (
               <span className="up-meta-item">
@@ -226,7 +224,6 @@ const UserProfile = () => {
         .up-name-row { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
         .up-name { font-size:1.7rem; font-weight:700; margin:0; color:var(--text-dark); letter-spacing:-0.02em; }
         .up-username { font-size:0.9rem; color:var(--text-muted); margin:0 0 6px; font-weight:500; }
-        .up-bio { font-size:0.9rem; color:var(--text-mid); margin:0 0 8px; line-height:1.5; }
         .up-meta-row { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
         .up-meta-item { display:flex; align-items:center; gap:5px; font-size:0.82rem; color:var(--text-muted); }
         .up-stats-card {

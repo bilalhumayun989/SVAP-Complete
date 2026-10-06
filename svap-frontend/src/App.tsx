@@ -211,7 +211,6 @@ function AppInner() {
             avatar: profileData?.avatar_url || metadata.avatar_url || metadata.picture || null,
             provider: metadata.provider || 'email',
             phone: profileData?.phone || null,
-            bio: profileData?.bio || ""
           }));
           window.dispatchEvent(new Event("sz_auth_change"));
         } catch (error) {
@@ -305,7 +304,6 @@ function AppInner() {
               avatar: profileData?.avatar_url || metadata.avatar_url || metadata.picture || null,
               provider: metadata.provider || 'email',
               phone: profileData?.phone || null,
-              bio: profileData?.bio || ""
             };
             
             // Always update localStorage with fresh data

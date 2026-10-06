@@ -1,14 +1,3 @@
--- Fix profiles table - Add missing bio column only
--- Run this in your Supabase SQL Editor
-
--- Add bio column if it doesn't exist (this was causing the error)
-DO $$ 
-BEGIN
-  -- Check and add bio column only
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='bio') THEN
-    ALTER TABLE public.profiles ADD COLUMN bio TEXT DEFAULT '';
-  END IF;
-END $$;
 
 -- Update existing profiles without usernames to have proper usernames
 UPDATE public.profiles 
@@ -44,5 +33,4 @@ CREATE POLICY "profiles_update_self"
   FOR UPDATE
   USING (auth.uid() = id);
 
--- Refresh schema cache so the API recognizes the new bio column
 SELECT pg_notify('pgrst', 'reload schema');

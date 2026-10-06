@@ -2,21 +2,24 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cron = require('node-cron');
-const { supabaseAdmin } = require('./config/supabase');
+const pool = require('./db');
+const uploadRoot = require('./config/uploadRoot');
 
 const authRoutes = require('./routes/authRoutes');
-const productRoutes = require('./routes/productRoutes');
-const swapRoutes = require('./routes/swapRoutes');
-const notificationRoutes = require('./routes/notificationRoutes');
-const uploadRoutes = require('./routes/uploadRoutes');
-const orderRoutes = require('./routes/orderRoutes');
-const savedRoutes = require('./routes/savedRoutes');
+const productRoutes = require('./routes/pgProductRoutes');
+const swapRoutes = require('./routes/pgSwapRoutes');
+const notificationRoutes = require('./routes/pgNotificationRoutes');
+const uploadRoutes = require('./routes/pgUploadRoutes');
+const orderRoutes = require('./routes/pgOrderRoutes');
+const savedRoutes = require('./routes/pgSavedRoutes');
+const supportTicketRoutes = require('./routes/pgSupportTicketRoutes');
 
 const app = express();
 const port = process.env.PORT || 5004;
 
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(uploadRoot));
 
 // Health check
 app.get('/', (req, res) => {
@@ -31,6 +34,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/saved', savedRoutes);
+app.use('/api/support-tickets', supportTicketRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -38,23 +42,50 @@ app.use((req, res) => {
 });
 
 const runSwapExpirySweep = async () => {
-  if (!supabaseAdmin) {
-    console.error('[swap-expiry] Skipping expiry sweep: SUPABASE_SERVICE_ROLE_KEY is not configured');
-    return;
-  }
-
+  const client = await pool.connect();
   try {
-    const { data, error } = await supabaseAdmin.rpc('expire_stale_swaps');
-    if (error) {
-      console.error('[swap-expiry] Failed to expire stale swaps:', error.message);
-      return;
+    await client.query('BEGIN');
+    const { rows } = await client.query(`SELECT * FROM swap_requests WHERE expires_at <= now() AND status IN ('pending','accepted','completed') ORDER BY expires_at FOR UPDATE SKIP LOCKED`);
+    let expired = 0;
+    for (const sr of rows) {
+      const { rows: checkedOutUsers } = await client.query(`SELECT DISTINCT from_user_id FROM orders WHERE swap_request_id=$1 AND from_user_id IN ($2,$3)`, [sr.id,sr.from_user_id,sr.to_user_id]);
+      const participantCount=checkedOutUsers.length;
+      if ((sr.status === 'accepted' || sr.status === 'completed') && participantCount >= 2) continue;
+      const changed=await client.query(`UPDATE swap_requests SET status='cancelled' WHERE id=$1 AND status=$2 RETURNING id`,[sr.id,sr.status]);
+      if (!changed.rowCount) continue;
+      if (participantCount === 1) {
+        const readyUserId=checkedOutUsers[0].from_user_id;
+        await client.query(`UPDATE profiles
+          SET committed_swaps=GREATEST(COALESCE(committed_swaps,0)-1,0),
+              swap_score=ROUND(LEAST(5::numeric,GREATEST(0::numeric,
+                COALESCE(completed_swaps,0)::numeric*5 /
+                NULLIF(GREATEST(COALESCE(committed_swaps,0)-1,0),0)
+              )),1)
+          WHERE id=$1`,[readyUserId]);
+      }
+      if (sr.status === 'completed') {
+        await client.query(`UPDATE profiles
+          SET completed_swaps=GREATEST(COALESCE(completed_swaps,0)-1,0),
+              total_swaps=GREATEST(COALESCE(total_swaps,0)-1,0),
+              swap_score=ROUND(LEAST(5::numeric,GREATEST(0::numeric,
+                COALESCE(GREATEST(COALESCE(completed_swaps,0)-1,0)::numeric*5 /
+                  NULLIF(COALESCE(committed_swaps,0),0),0::numeric)
+              )),1)
+          WHERE id=ANY($1)`,[[sr.from_user_id,sr.to_user_id]]);
+      }
+      await client.query(`UPDATE orders SET status='cancelled',admin_notes=concat_ws(E'\\n',NULLIF(admin_notes,''),'Auto-cancelled: SVAP checkout deadline expired. Refund review required.') WHERE swap_request_id=$1 AND status<>'cancelled'`,[sr.id]);
+      await client.query(`UPDATE products SET status='active' WHERE id=ANY($1) AND status='in_swap'`,[[sr.offered_product_id,sr.requested_product_id].filter(Boolean)]);
+      const {rows:orderRows}=await client.query('SELECT id FROM orders WHERE swap_request_id=$1 ORDER BY created_at LIMIT 1',[sr.id]);
+      const orderSuffix=orderRows.length?` Order ID: ${orderRows[0].id}`:'';
+      const body=participantCount?`Your SVAP was cancelled because checkout was not completed within 48 hours. Support will contact the paying user about a refund.${orderSuffix}`:'Your SVAP request expired after 48 hours without acceptance.';
+      await client.query(`INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'swap_timeout','SVAP cancelled - timeout',$2,'/requests'),($3,'swap_timeout','SVAP cancelled - timeout',$2,'/requests')`,[sr.from_user_id,body,sr.to_user_id]);
+      expired++;
     }
-    if (data) console.log('[swap-expiry] Cancelled expired swaps:', data);
-  } catch (error) {
-    console.error('[swap-expiry] Expiry sweep failed:', error?.message || error);
-  }
+    await client.query('COMMIT');
+    if(expired) console.log('[swap-expiry] Cancelled expired SVAPs:',expired);
+  } catch (error) { await client.query('ROLLBACK'); console.error('[swap-expiry] Failed:',error.message); }
+  finally { client.release(); }
 };
-
 // Use backend node-cron so no pg_cron extension is required.
 cron.schedule('*/5 * * * *', () => { void runSwapExpirySweep(); });
 setTimeout(() => { void runSwapExpirySweep(); }, 10_000);

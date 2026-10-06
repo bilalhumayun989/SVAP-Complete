@@ -5,6 +5,7 @@ import { supabase } from "../../services/supabase";
 import { useNotifications } from "../../context/NotificationContext";
 import { api } from "../../services/api";
 import { getAllRequests } from "../../hooks/useSwapRequests";
+import { getRequestNavigationCount } from "../../utils/requestNavigationCount";
 
 // ─── Brand PNG Icon Component ─────────────────────────────────────────────────
 const BrandIcon = ({ src, alt, size = 24, className }: { src: string; alt: string; size?: number; className?: string }) => (
@@ -129,30 +130,8 @@ const Navbar = () => {
         getAllRequests(user.id),
         api.getOrders(user.id),
       ]);
-      const checkoutOrders = Array.isArray(ordersResponse)
-        ? ordersResponse.filter((order: any) => order.swap_request_id)
-        : [];
-      const checkoutRequestIds = new Set(
-        checkoutOrders.map((order: any) => order.swap_request_id)
-      );
-      const currentUserCheckoutRequestIds = new Set(
-        checkoutOrders
-          .filter((order: any) => order.from_user_id === user.id)
-          .map((order: any) => order.swap_request_id)
-      );
-      const isCheckoutRequest = (request: { id: string; status: string }) =>
-        checkoutRequestIds.has(request.id) || ["accepted", "completed"].includes(request.status);
-      const incoming = allRequests.filter(
-        request => request.direction === "received" && !isCheckoutRequest(request)
-      );
-      const outgoing = allRequests.filter(
-        request => request.direction === "sent" && !isCheckoutRequest(request)
-      );
-      const checkout = allRequests.filter(
-        request => isCheckoutRequest(request) && !currentUserCheckoutRequestIds.has(request.id)
-      );
-
-      setRequestCount(incoming.length + outgoing.length + checkout.length);
+      const checkoutOrders = Array.isArray(ordersResponse) ? ordersResponse : [];
+      setRequestCount(getRequestNavigationCount(allRequests, checkoutOrders, user.id));
     } catch (error) {
       console.error('[Navbar] Failed to fetch request count:', error);
       setRequestCount(0);

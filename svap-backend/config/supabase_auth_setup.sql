@@ -9,7 +9,6 @@ create table if not exists public.profiles (
   phone text,
   avatar_url text,
   city text,
-  bio text,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

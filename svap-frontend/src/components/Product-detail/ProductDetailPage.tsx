@@ -5,7 +5,6 @@ import {
   FiEye, FiCheck, FiBookmark, FiPackage, FiMessageCircle, FiSend
 } from 'react-icons/fi'
 import { api } from '../../services/api'
-import { supabase } from '../../services/supabase'
 
 const SWAP_COOLDOWN_MESSAGE = 'You already have an active request for this item.';
 
@@ -83,19 +82,10 @@ const ProductDetailPage = () => {
   useEffect(() => {
     void loadQuestions();
     if (!id) return;
-    const channel = supabase
-      .channel('product-questions-' + id)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'product_questions', filter: 'product_id=eq.' + id,
-      }, () => { void loadQuestions(false); })
-      .subscribe();
     const pollId = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void loadQuestions(false);
+      if (document.visibilityState === "visible") void loadQuestions(false);
     }, 5000);
-    return () => {
-      window.clearInterval(pollId);
-      void supabase.removeChannel(channel);
-    };
+    return () => window.clearInterval(pollId);
   }, [id, loadQuestions]);
 
   useEffect(() => {

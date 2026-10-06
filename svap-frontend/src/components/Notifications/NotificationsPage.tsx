@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiRepeat, FiShoppingBag, FiBell, FiCheck, FiMessageCircle } from "react-icons/fi";
 import { api } from "../../services/api";
-import { supabase } from "../../services/supabase";
 import { useNotifications } from "../../context/NotificationContext";
 import { getEnglishNotificationCopy } from "../../utils/notificationCopy";
 
@@ -71,12 +70,9 @@ const NotificationsPage = () => {
 
     // Fetch support tickets
     try {
-      const { data: tickets, error } = await supabase
-        .from('support_tickets')
-        .select('*')
-        .eq('user_id', userId);
-        
-      if (!error && tickets) {
+      const ticketResponse = await api.getSupportTickets(userId);
+      const tickets = ticketResponse.data;
+      if (!ticketResponse.error && tickets) {
         const ticketNotifs: Notif[] = tickets.map((t: any) => ({
           id: `ticket-${t.id}`,
           type: "system",
@@ -101,7 +97,16 @@ const NotificationsPage = () => {
     setLoading(false);
   }, [userId]);
 
-  useEffect(() => { fetchNotifs(); }, [fetchNotifs]);
+  useEffect(() => {
+    void fetchNotifs();
+    const poll = window.setInterval(() => { void fetchNotifs(); }, 15000);
+    const refresh = () => { void fetchNotifs(); };
+    window.addEventListener("sz_notifications_change", refresh);
+    return () => {
+      window.clearInterval(poll);
+      window.removeEventListener("sz_notifications_change", refresh);
+    };
+  }, [fetchNotifs]);
 
   const unreadCount = notifs.filter(n => !n.is_read).length;
 
@@ -387,3 +392,4 @@ const NotificationsPage = () => {
 };
 
 export default NotificationsPage;
+

@@ -1,6 +1,8 @@
 ﻿const { supabaseAdmin } = require('../config/supabase');
 
-const CASH_ONLY_RECIPIENT_DELIVERY_FEE = 500;
+const STANDARD_DELIVERY_FEE = 479;
+const CASH_ONLY_DELIVERY_FEE = 300;
+const CASH_OFFER_PLATFORM_FEE_RATE = 0.08;
 
 exports.createOrder = async (req, res) => {
   try {
@@ -39,18 +41,19 @@ exports.createOrder = async (req, res) => {
       }
       const isCashOnlyOffer = !swapBeforeOrder.offered_product_id;
       const isCashOfferPayer = from_user_id === swapBeforeOrder.from_user_id;
+      const platformFee = !isCashOfferPayer ? Math.round(cashOfferAmount * CASH_OFFER_PLATFORM_FEE_RATE) : 0;
       if (isCashOnlyOffer && isCashOfferPayer && cashOfferAmount <= 0) {
         return res.status(409).json({ error: 'This cash offer has no valid amount to pay' });
       }
       req.checkoutPricing = isCashOnlyOffer
         ? {
-            shippingCost: isCashOfferPayer ? 0 : CASH_ONLY_RECIPIENT_DELIVERY_FEE,
-            total: isCashOfferPayer ? cashOfferAmount : CASH_ONLY_RECIPIENT_DELIVERY_FEE,
+            shippingCost: isCashOfferPayer ? CASH_ONLY_DELIVERY_FEE : platformFee > 0 ? 0 : STANDARD_DELIVERY_FEE,
+            total: isCashOfferPayer ? cashOfferAmount + CASH_ONLY_DELIVERY_FEE : platformFee > 0 ? platformFee : STANDARD_DELIVERY_FEE,
             premiumAmount: cashOfferAmount,
           }
         : {
-            shippingCost: CASH_ONLY_RECIPIENT_DELIVERY_FEE,
-            total: CASH_ONLY_RECIPIENT_DELIVERY_FEE + (isCashOfferPayer ? cashOfferAmount : 0),
+            shippingCost: platformFee > 0 ? 0 : STANDARD_DELIVERY_FEE,
+            total: isCashOfferPayer ? STANDARD_DELIVERY_FEE + cashOfferAmount : platformFee > 0 ? platformFee : STANDARD_DELIVERY_FEE,
             premiumAmount: cashOfferAmount,
           };
       if (swapBeforeOrder.status === 'completed') {

@@ -165,7 +165,7 @@ const EditProductPage = () => {
       {showToast && (
         <div className="lp-toast">
           <FiCheck size={16} />
-          <span>Listing update ho gayi! Redirecting...</span>
+          <span>Listing update! Redirecting...</span>
         </div>
       )}
 

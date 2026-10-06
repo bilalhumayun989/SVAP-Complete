@@ -62,43 +62,27 @@ const CreateReelPage = () => {
       }
 
       const productsById = new Map<string, ProductOption>();
+      let requestFailed = false;
 
       for (const userId of userIds) {
         try {
           const response = await api.getProductsByUser(userId, true); // activeOnly = true
+          if (response?.error) throw new Error(response.error);
           const userProducts = response?.data || [];
           userProducts.forEach((product: ProductOption) => {
             if (product?.id) productsById.set(product.id, product);
           });
         } catch (apiError) {
+          requestFailed = true;
           console.error("Backend products fetch failed:", apiError);
         }
       }
 
-      if (productsById.size > 0) {
-        if (!ignore) {
-          setProducts(Array.from(productsById.values()));
-          setIsLoadingProducts(false);
-        }
-        return;
-      }
-
-      let query = supabase
-        .from("products")
-        .select("id,title,image_urls,video_url")
-        .eq("status", "active"); // Only active products
-      query = userIds.length === 1 ? query.eq("user_id", userIds[0]) : query.in("user_id", userIds);
-      const { data, error } = await query.order("created_at", { ascending: false });
-
       if (ignore) return;
-
-      if (error) {
-        setErrorMessage(error.message || "Could not load your products.");
-        setProducts([]);
-      } else {
-        setProducts(data || []);
+      setProducts(Array.from(productsById.values()));
+      if (productsById.size === 0 && requestFailed) {
+        setErrorMessage("Could not load your products from the SVAP server. Please try again.");
       }
-
       setIsLoadingProducts(false);
     };
 
@@ -189,7 +173,7 @@ const CreateReelPage = () => {
 
       if (response.error) throw new Error(response.error);
 
-      setMessage("✅ Reel successfully upload ho gayi!");
+      setMessage("✅ Reel successfully uploaded!");
       setTimeout(() => {
         setMessage("");
         navigate("/reels");

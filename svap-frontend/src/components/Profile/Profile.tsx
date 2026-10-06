@@ -86,11 +86,9 @@ const Profile = () => {
     name: "User",
     username: "@user",
     avatar: "",
-    bio: "",
     city: "",
     email: "",
     phone: "",
-    website: ""
   });
 
   useEffect(() => {
@@ -109,11 +107,9 @@ const Profile = () => {
           name: savedUser.name || "User",
           username: savedUser.username || "@user",
           avatar: savedUser.avatar || "",
-          bio: savedUser.bio || "",
           city: savedUser.city || "",
           email: savedUser.email || "",
           phone: savedUser.phone || "",
-          website: savedUser.website || "",
           swap_score: 0,
           total_swaps: 0,
           completed_swaps: 0,
@@ -396,8 +392,7 @@ const Profile = () => {
                 <HiCheckBadge size={18} className="pf-verified" />
               </div>
               <p className="pf-username">{displayUsername}</p>
-              {profileUser.bio && <p className="pf-bio">{profileUser.bio}</p>}
-              {profileUser.city && <p className="pf-city">{profileUser.city}</p>}
+              {profileUser.city && <p className="pf-city">karachi</p>}
 
               <div className="pf-stats-card">
                 <div className="pf-stat-item">
@@ -769,7 +764,6 @@ const Profile = () => {
         }
         .pf-verified { color: var(--pf-orange); flex-shrink: 0; }
         .pf-username { font-size: 0.8rem; color: var(--pf-muted); margin: 0 0 6px; font-weight: 500; }
-        .pf-bio { font-size: 0.82rem; color: var(--pf-ink-soft); margin: 0 0 4px; line-height: 1.5; }
         .pf-city { font-size: 0.74rem; color: var(--pf-muted); margin: 0 0 12px; }
 
         .pf-stats-card {
@@ -1542,7 +1536,6 @@ const Profile = () => {
           .pf-story-ring { width: 104px; height: 104px; }
           .pf-info { padding-top: 18px; width: 100%; }
           .pf-name { font-size: 1.32rem; }
-          .pf-bio { font-size: 0.85rem; }
           .pf-stats-card { margin: 20px 0 28px; }
           .pf-btns { flex-direction: column; gap: 10px; }
           .pf-btn { width: 100%; padding: 11px 18px; text-align: center; }
@@ -1569,7 +1562,6 @@ const Profile = () => {
           .pf-story-ring { width: 132px; height: 132px; }
           .pf-avatar-letter { font-size: 2.7rem; }
           .pf-rtext { font-size: 0.9rem; }
-          .pf-bio { font-size: 0.9rem; }
         }
 
         @media (min-width: 2200px) {
@@ -1598,9 +1590,6 @@ const Profile = () => {
           color: #999;
         }
 
-        html[data-theme='dark'] .pf-bio {
-          color: #d0d0d0;
-        }
 
         html[data-theme='dark'] .pf-city {
           color: #999;

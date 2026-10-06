@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiCamera, FiUser, FiMapPin, FiMail, FiPhone, FiLock } from "react-icons/fi";
+import { FiArrowLeft, FiCamera, FiUser, FiMail, FiPhone, FiLock } from "react-icons/fi";
 import { api } from "../../services/api";
 
 const EditProfilePage = () => {
@@ -11,20 +11,20 @@ const EditProfilePage = () => {
   const saved = raw ? JSON.parse(raw) : {};
 
   const [avatar, setAvatar] = useState<string>(saved.avatar || "");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [name, setName] = useState(saved.name || "");
   const [username, setUsername] = useState(
     (saved.username || "").replace(/^@/, "") // strip leading @ for editing
   );
-  const [bio, setBio] = useState(saved.bio || "");
-  const [city, setCity] = useState(saved.city || "");
+  const city = saved.city || "";
   const [phone, setPhone] = useState(saved.phone || "");
-  const website = saved.website || "";
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const handleAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setAvatarFile(file);
 
     // Convert to base64 so it persists across sessions (no blob: URL expiry)
     const reader = new FileReader();
@@ -43,14 +43,27 @@ const EditProfilePage = () => {
       const cleanUsername = username.replace(/^@/, "").trim();
       if (!cleanUsername) { setError("Username cannot be empty."); setSaving(false); return; }
 
-      // Update profiles table in Supabase via backend
+      let avatarUrl = avatar;
+      let fileToUpload = avatarFile;
+      if (!fileToUpload && avatar.startsWith("data:image/")) {
+        const blob = await (await fetch(avatar)).blob();
+        const extension = (blob.type.split("/")[1] || "png").replace("jpeg", "jpg");
+        fileToUpload = new File([blob], `avatar.${extension}`, { type: blob.type });
+      }
+      if (fileToUpload) {
+        const formData = new FormData();
+        formData.append("file", fileToUpload);
+        const uploaded = await api.uploadAvatar(formData);
+        if (uploaded.error || !uploaded.url) throw new Error(uploaded.error || "Avatar upload failed.");
+        avatarUrl = uploaded.url;
+      }
+
       const res = await api.updateProfile(saved.id, {
         username: cleanUsername,
         full_name: name,
-        bio,
         city,
         phone,
-        website,
+        avatar_url: avatarUrl || null,
       });
 
       if (res.error) throw new Error(res.error);
@@ -59,12 +72,8 @@ const EditProfilePage = () => {
       const updated = {
         ...saved,
         name,
-        username: `@${cleanUsername}`,
-        bio,
-        city,
-        phone,
-        website,
-        avatar,
+        username: `@${cleanUsername}`,        city,
+        phone,        avatar: avatarUrl,
       };
       localStorage.setItem("sz_user", JSON.stringify(updated));
       window.dispatchEvent(new Event("sz_auth_change"));
@@ -133,32 +142,16 @@ const EditProfilePage = () => {
             </div>
           </div>
 
-          <div className="ep-field ep-field--textarea">
-            <div className="ep-field-icon"><FiUser size={16} /></div>
-            <div className="ep-field-body">
-              <label className="ep-label">Bio</label>
-              <textarea
-                className="ep-textarea"
-                value={bio}
-                onChange={e => setBio(e.target.value)}
-                placeholder="Tell people about yourself..."
-                maxLength={150}
-                rows={3}
-              />
-              <span className="ep-char">{bio.length}/150</span>
-            </div>
-          </div>
-
           <div className="ep-divider" />
           <div className="ep-section-label">Contact &amp; Location</div>
 
-          <div className="ep-field">
+          {/* <div className="ep-field">
             <div className="ep-field-icon"><FiMapPin size={16} /></div>
             <div className="ep-field-body">
               <label className="ep-label">City</label>
               <input className="ep-input" value={city} onChange={e => setCity(e.target.value)} placeholder="e.g. Karachi" />
             </div>
-          </div>
+          </div> */}
 
           {/* Email — read-only, cannot be changed */}
           <div className="ep-field ep-field--disabled">
@@ -300,18 +293,12 @@ html[data-theme='dark'] .ep-label {
   color: var(--text-muted);
 }
 
-html[data-theme='dark'] .ep-input,
-html[data-theme='dark'] .ep-textarea {
+html[data-theme='dark'] .ep-input {
   color: var(--text-dark);
 }
 
-html[data-theme='dark'] .ep-input::placeholder,
-html[data-theme='dark'] .ep-textarea::placeholder {
+html[data-theme='dark'] .ep-input::placeholder {
   color: rgba(255,255,255,0.35);
-}
-
-html[data-theme='dark'] .ep-char {
-  color: rgba(255,255,255,0.45);
 }
 
 html[data-theme='dark'] .ep-avatar-overlay {
@@ -426,7 +413,6 @@ html[data-theme='dark'] .ep-change-label {
           padding: 14px 0;
           border-bottom: 1px solid #f5f5f5;
         }
-        .ep-field--textarea { align-items: flex-start; }
 
         .ep-field-icon {
           width: 36px;
@@ -475,30 +461,6 @@ html[data-theme='dark'] .ep-change-label {
         }
         .ep-input::placeholder { color: #ccc; }
         .ep-input:focus { border-bottom-color: #E45821; }
-
-        .ep-textarea {
-          background: none;
-          border: none;
-          outline: none;
-          font-size: 0.93rem;
-          color: #111;
-          font-family: inherit;
-          padding: 0;
-          width: 100%;
-          resize: none;
-          line-height: 1.5;
-          border-bottom: 1.5px solid transparent;
-          transition: border-color 0.18s;
-          padding-bottom: 4px;
-        }
-        .ep-textarea::placeholder { color: #ccc; }
-        .ep-textarea:focus { border-bottom-color: #E45821; }
-
-        .ep-char {
-          font-size: 0.65rem;
-          color: #ccc;
-          text-align: right;
-        }
 
         /* Disabled / locked fields */
         .ep-field--disabled { opacity: 0.65; }

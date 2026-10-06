@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Send, MessageCircle, Clock, CheckCircle, XCircle } from "lucide-react";
-import { supabase } from "../../services/supabase";
+import { api } from "../../services/api";
 
 interface SupportTicket {
   id: string;
@@ -77,14 +77,9 @@ export default function HelpSupport() {
   const fetchTickets = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("support_tickets")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setTickets(data || []);
+      const response = await api.getSupportTickets(userId);
+      if (response.error) throw new Error(response.error);
+      setTickets(response.data || []);
     } catch (err) {
       console.error("Error fetching tickets:", err);
     } finally {
@@ -107,14 +102,8 @@ export default function HelpSupport() {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("support_tickets").insert({
-        user_id: userId,
-        subject: subject.trim(),
-        message: message.trim(),
-        status: "open",
-      });
-
-      if (error) throw error;
+      const response = await api.createSupportTicket(subject.trim(), message.trim());
+      if (response.error) throw new Error(response.error);
 
       alert("✅ Support ticket submitted successfully!");
       setSubject("");

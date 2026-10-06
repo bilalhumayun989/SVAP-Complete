@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, Bell, Settings } from "lucide-react";
 import SettingsDrawer from "../Profile/SettingsDrawer";
-import { supabase } from "../../services/supabase"; // Ensure path matches your project structure
+import { api } from "../../services/api";
 
 export default function TopNavbar() {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -60,46 +60,22 @@ export default function TopNavbar() {
     }
 
     try {
-      const { count, error } = await supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("is_read", false);
-
-      if (error) throw error;
-      setUnreadCount(count || 0);
+      const result = await api.getUnreadNotificationCount(user.id);
+      setUnreadCount(Number(result.count) || 0);
     } catch (err) {
       console.error("[TopNavbar] Failed to fetch unread notifications count:", err);
       setUnreadCount(0);
     }
   };
 
-  // Realtime subscription & Custom Event Listeners
+  // PostgreSQL notifications refresh by polling and local change events.
   useEffect(() => {
     if (!user?.id) return;
 
     fetchUnreadCount();
-
-    // Supabase Realtime Listener for Instant Updates
-    const channel = supabase
-      .channel(`realtime:topnav:notifications:${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          fetchUnreadCount();
-        }
-      )
-      .subscribe();
-
-    // Custom window event listener for manual trigger
     const handleNotificationSync = () => fetchUnreadCount();
     window.addEventListener("sz_notifications_change", handleNotificationSync);
+    const poll = window.setInterval(handleNotificationSync, 20000);
 
     const handleVisibilityChange = () => {
       if (!document.hidden) fetchUnreadCount();
@@ -107,12 +83,11 @@ export default function TopNavbar() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      supabase.removeChannel(channel);
+      window.clearInterval(poll);
       window.removeEventListener("sz_notifications_change", handleNotificationSync);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [user?.id]);
-
   // Scroll visibility management
   useEffect(() => {
     const handleScroll = () => {

@@ -1,29 +1,6 @@
-const express = require('express');
-const router = express.Router();
-const authController = require('../controllers/authController');
-
-// POST /api/auth/send-otp
-router.post('/send-otp', authController.sendOtp);
-
-// POST /api/auth/verify-otp
-router.post('/verify-otp', authController.verifyOtp);
-
-// POST /api/auth/signup
-router.post('/signup', authController.signup);
-
-// POST /api/auth/login
-router.post('/login', authController.login);
-
-// POST /api/auth/create-google-profile
-router.post('/create-google-profile', authController.createGoogleProfile);
-
-// POST /api/auth/refresh-profile
-router.post('/refresh-profile', authController.refreshProfile);
-
-// GET /api/auth/profile/:userId
-router.get('/profile/:userId', authController.getProfile);
-
-// PUT /api/auth/profile/:userId
-router.put('/profile/:userId', authController.updateProfile);
-
-module.exports = router;
+const express=require('express');const router=express.Router();const otp=require('../controllers/pgOtpController');const pgAuth=require('../controllers/pgAuthController');const pg=require('../controllers/pgProfileController');const {requireAuth,optionalAuth}=require('../middleware/auth');
+router.post('/send-otp',otp.sendOtp);router.post('/verify-otp',otp.verifyOtp);router.get('/username-availability',pgAuth.checkUsernameAvailability);
+router.post('/signup',pgAuth.signup);router.post('/login',pgAuth.login);
+router.post('/create-google-profile',requireAuth,pg.createGoogleProfile);router.post('/refresh-profile',requireAuth,pg.refreshProfile);
+router.get('/profile/:userId',optionalAuth,pg.getProfile);router.put('/profile/:userId',requireAuth,pg.updateProfile);
+module.exports=router;

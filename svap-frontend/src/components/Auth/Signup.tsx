@@ -63,37 +63,42 @@ const Signup = () => {
     return () => clearTimeout(t);
   }, [resendTimer]);
 
-  // Username uniqueness check with debounce
+  // Check username uniqueness against PostgreSQL with a debounce.
   useEffect(() => {
-    if (step !== "form" || !form.username.trim()) {
+    const username = form.username.trim();
+    let cancelled = false;
+
+    if (step !== "form" || !username) {
       setUsernameStatus("idle");
       setUsernameError("");
       return;
     }
 
-    if (usernameCheckTimeout.current) {
-      clearTimeout(usernameCheckTimeout.current);
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+      setUsernameStatus("taken");
+      setUsernameError("Use 3-20 letters, numbers, or underscores.");
+      return;
     }
 
+    if (usernameCheckTimeout.current) clearTimeout(usernameCheckTimeout.current);
     setUsernameStatus("checking");
-    usernameCheckTimeout.current = setTimeout(async () => {
+    setUsernameError("");
+
+    usernameCheckTimeout.current = window.setTimeout(async () => {
       try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("username", form.username.trim())
-          .maybeSingle();
+        const result = await api.checkUsernameAvailability(username);
+        if (cancelled) return;
+        if (result.error) throw new Error(result.error);
 
-        if (error) throw error;
-
-        if (data) {
-          setUsernameStatus("taken");
-          setUsernameError("Username already taken");
-        } else {
+        if (result.available) {
           setUsernameStatus("available");
           setUsernameError("");
+        } else {
+          setUsernameStatus("taken");
+          setUsernameError("Username already taken");
         }
       } catch (err) {
+        if (cancelled) return;
         console.error("[Signup] Username check error:", err);
         setUsernameStatus("idle");
         setUsernameError("Could not verify username availability. Please try again.");
@@ -101,12 +106,10 @@ const Signup = () => {
     }, 500);
 
     return () => {
-      if (usernameCheckTimeout.current) {
-        clearTimeout(usernameCheckTimeout.current);
-      }
+      cancelled = true;
+      if (usernameCheckTimeout.current) clearTimeout(usernameCheckTimeout.current);
     };
   }, [form.username, step]);
-
   // Password validation
   useEffect(() => {
     setPasswordValidation({
@@ -243,14 +246,18 @@ const Signup = () => {
 
       if (!userId) throw new Error("Verification failed. Please try again.");
 
-      // Step 2: Set session temporarily (needed for updateUser)
-      if (otpRes.session?.access_token) {
+      // Set a temporary session to set the verified account password.
+      if (!otpRes.session?.access_token || !otpRes.session?.refresh_token) {
+        throw new Error("Could not establish a signup session. Please try again.");
+      }
+
+      {
         const { supabase: sb } = await import("../../services/supabase");
-        await sb.auth.setSession({
+        const { error: sessionError } = await sb.auth.setSession({
           access_token: otpRes.session.access_token,
           refresh_token: otpRes.session.refresh_token,
         });
-
+        if (sessionError) throw new Error(sessionError.message);
         // Step 3: IMPORTANT - Set user password in Supabase
         const { error: passwordError } = await sb.auth.updateUser({
           password: form.password,
@@ -260,37 +267,17 @@ const Signup = () => {
           throw new Error(`Failed to set password: ${passwordError.message}`);
         }
 
-        // Step 3.5: Fetch user avatar URL from Supabase auth metadata
-        const { data: { user } } = await sb.auth.getUser();
-        const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
-
-        // Step 4: Sign out (no auto-login)
-        await sb.auth.signOut();
-
-        // Step 5: Create profile via API (optional - may already exist)
-        await api.signup({
+        // Save the profile through PostgreSQL using the verified OTP record.
+        const signupRes = await api.signup({
           email: userEmail,
-          password: form.password,
           username: form.username,
           phone: form.phone,
-        }).catch(() => {
-          // Ignore errors - profile might already exist
         });
+        if (signupRes.error) throw new Error(signupRes.error);
 
-        // Step 6: Update profile details with avatar
-        try {
-          await api.updateProfile(userId, {
-            username: form.username,
-            phone: form.phone,
-            full_name: form.username,
-            avatar_url: avatarUrl, // Save avatar URL
-          });
-        } catch (err) {
-          console.error('[Signup] Profile update error:', err);
-          // Ignore profile update errors
-        }
+        // Do not auto-login after account creation.
+        await sb.auth.signOut();
       }
-
       // Step 7: Clear any stored user data
       localStorage.removeItem("sz_user");
       
