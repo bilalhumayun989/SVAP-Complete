@@ -184,7 +184,7 @@ function AppInner() {
         }
         
         // Define routes that strictly require authentication
-        const protectedRoutes = ['/profile', '/requests', '/orders', '/list-product', '/checkout', '/cart', '/notifications', '/create', '/edit'];
+        const protectedRoutes = ['/profile', '/requests', '/orders', '/list-product', '/checkout', '/cart', '/notifications', '/create', '/edit', '/support'];
         const isProtectedRoute = protectedRoutes.some(r => pathname.startsWith(r));
 
         // Redirect to login ONLY if they are trying to access a protected route
@@ -420,6 +420,7 @@ function AppInner() {
               <Route path="/notifications"      element={<NotificationsPage />} />
               <Route path="/create"             element={<CreatePage />} />
               <Route path="/help-support"       element={<HelpSupport />} />
+              <Route path="/support"           element={<HelpSupport />} />
               <Route path="/about"              element={<AboutUs />} />
               <Route path="/help-center"        element={<HelpCenter />} />
               <Route path="/safety-tips"        element={<SafetyTips />} />
