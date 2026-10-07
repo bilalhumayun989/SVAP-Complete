@@ -8,11 +8,14 @@ async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   return fetch(input, { ...init, headers });
 }
 
-export const API_URL = import.meta.env.VITE_API_URL || (
-  window.location.hostname === 'localhost'
-    ? 'http://localhost:5000/api'
-    : '/api'
-);
+const configuredApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+const configuredApiUrlIsLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(configuredApiUrl);
+
+// Production builds must never ship a developer's localhost URL to visitors.
+// On svap.pk, Nginx proxies the same-origin /api path to the VPS API.
+export const API_URL = import.meta.env.PROD
+  ? configuredApiUrl && !configuredApiUrlIsLocal ? configuredApiUrl : '/api'
+  : configuredApiUrl || 'http://localhost:5000/api';
 
 export const api = {
   // Auth
