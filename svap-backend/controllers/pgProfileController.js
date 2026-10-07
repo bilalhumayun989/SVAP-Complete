@@ -2,7 +2,7 @@ const pool = require('../db');
 const allowed = ['username', 'full_name', 'phone', 'avatar_url', 'city', 'address', 'notif_swaps', 'notif_orders', 'cnic_submitted'];
 
 function adaptProfile(profile) {
-  return { ...profile, completed_swaps: Number(profile.total_swaps || 0) };
+  return { ...profile, completed_swaps: Number(profile.completed_swaps ?? profile.total_swaps ?? 0), committed_swaps: Number(profile.committed_swaps || 0) };
 }
 
 async function ensureProfile(id, email, name, avatar = null) {
@@ -48,16 +48,14 @@ exports.getProfile = async (req, res) => {
 
     const email = requested[0].email;
     const query = email
-      ? `SELECT id,username,full_name,avatar_url,city,swap_score,total_swaps,
-                COALESCE(total_swaps,0)::int AS completed_swaps,total_listings,is_verified,created_at
+      ? `SELECT id,username,full_name,avatar_url,city,swap_score,reliability_score,total_swaps,committed_swaps,completed_swaps,total_listings,is_verified,created_at
          FROM profiles WHERE lower(email)=lower($1) ORDER BY created_at DESC NULLS LAST LIMIT 1`
-      : `SELECT id,username,full_name,avatar_url,city,swap_score,total_swaps,
-                COALESCE(total_swaps,0)::int AS completed_swaps,total_listings,is_verified,created_at
+      : `SELECT id,username,full_name,avatar_url,city,swap_score,reliability_score,total_swaps,committed_swaps,completed_swaps,total_listings,is_verified,created_at
          FROM profiles WHERE id=$1`;
     const { rows } = await pool.query(query, [email || requestedId]);
     if (!rows.length) return res.status(404).json({ error: 'Profile not found' });
     res.set('Cache-Control', 'no-store');
-    res.json({ data: rows[0] });
+    res.json({ data: adaptProfile(rows[0]) });
   } catch (error) {
     console.error('[pg get profile]', error.message);
     res.status(500).json({ error: 'Could not load profile' });
@@ -73,12 +71,11 @@ exports.updateProfile = async (req, res) => {
     const set = keys.map((key, index) => `${key}=$${index + 2}`).join(',');
     const { rows } = await pool.query(
       `UPDATE profiles SET ${set} WHERE id=$1
-       RETURNING id,username,full_name,avatar_url,city,swap_score,total_swaps,
-                 COALESCE(total_swaps,0)::int AS completed_swaps,total_listings,is_verified,created_at`,
+       RETURNING id,username,full_name,avatar_url,city,swap_score,reliability_score,total_swaps,committed_swaps,completed_swaps,total_listings,is_verified,created_at`,
       values
     );
     if (!rows.length) return res.status(404).json({ error: 'Profile not found' });
-    res.json({ data: rows[0] });
+    res.json({ data: adaptProfile(rows[0]) });
   } catch (error) {
     console.error('[pg profile update]', error.message);
     res.status(500).json({ error: 'Could not update profile' });

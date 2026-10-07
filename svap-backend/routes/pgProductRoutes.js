@@ -4,7 +4,7 @@ const { optionalAuth, requireAuth } = require('../middleware/auth');
 const profiles = require('../controllers/pgProfileController');
 const router = express.Router();
 const profileJoin = `LEFT JOIN LATERAL (
-  SELECT canonical.username, canonical.avatar_url, canonical.city, canonical.swap_score, canonical.total_swaps, COALESCE(canonical.total_swaps,0)::int AS completed_swaps, canonical.is_verified
+  SELECT canonical.username, canonical.avatar_url, canonical.city, canonical.swap_score, canonical.reliability_score, canonical.total_swaps, canonical.committed_swaps, canonical.completed_swaps, canonical.is_verified
   FROM profiles owner
   JOIN profiles canonical ON (
     (NULLIF(BTRIM(owner.email), '') IS NOT NULL AND LOWER(BTRIM(canonical.email))=LOWER(BTRIM(owner.email)))
@@ -14,7 +14,7 @@ const profileJoin = `LEFT JOIN LATERAL (
   ORDER BY canonical.created_at DESC NULLS LAST, canonical.id DESC
   LIMIT 1
 ) pr ON TRUE`;
-const productFields = `p.*, pr.username, pr.avatar_url, pr.city AS profile_city, pr.swap_score, pr.total_swaps, pr.completed_swaps, pr.is_verified`;
+const productFields = `p.*, pr.username, pr.avatar_url, pr.city AS profile_city, pr.swap_score, pr.reliability_score, pr.total_swaps, pr.committed_swaps, pr.completed_swaps, pr.is_verified`;
 function normalizeMediaUrl(value) {
   if (typeof value !== 'string') return value;
   const base = String(process.env.API_BASE_URL || '').replace(/\/+$/, '');
@@ -38,7 +38,7 @@ function adaptProduct(product) {
     thumbnail_url: normalizeMediaUrl(product.thumbnail_url || images[0] || null),
   };
 }
-const shape = (r) => { const { username, avatar_url, profile_city, swap_score, total_swaps, completed_swaps, is_verified, ...p } = r; return { ...adaptProduct(p), profiles: { username, avatar_url, city: profile_city, swap_score, total_swaps, completed_swaps, is_verified } }; };
+const shape = (r) => { const { username, avatar_url, profile_city, swap_score, reliability_score, total_swaps, committed_swaps, completed_swaps, is_verified, ...p } = r; return { ...adaptProduct(p), profiles: { username, avatar_url, city: profile_city, swap_score, reliability_score, total_swaps, committed_swaps, completed_swaps, is_verified } }; };
 
 router.get('/', optionalAuth, async (req, res) => {
   try {

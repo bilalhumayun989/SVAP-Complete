@@ -4,7 +4,29 @@ const { requireAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/admin');
 const router = express.Router();
 router.use(requireAuth, requireAdmin);
-
+async function cancelSwap(client, swapId, explicitResponsibleId = null) {
+  const { rows: found } = await client.query(
+    'SELECT from_user_id,to_user_id FROM swap_requests WHERE id=$1 FOR UPDATE', [swapId]
+  );
+  if (!found.length) return null;
+  const [fromUserId, toUserId] = [found[0].from_user_id, found[0].to_user_id];
+  let responsibleId = explicitResponsibleId;
+  if (!responsibleId) {
+    const { rows: checkedOut } = await client.query(
+      'SELECT DISTINCT from_user_id FROM orders WHERE swap_request_id=$1 AND from_user_id=ANY($2::uuid[])',
+      [swapId, [fromUserId, toUserId]]
+    );
+    if (checkedOut.length === 1) responsibleId = checkedOut[0].from_user_id === fromUserId ? toUserId : fromUserId;
+    else if (checkedOut.length === 0) responsibleId = toUserId;
+  }
+  const { rows } = await client.query(
+    `UPDATE swap_requests SET status='cancelled',cancelled_by_user_id=$2
+     WHERE id=$1 AND status NOT IN ('completed','cancelled')
+     RETURNING offered_product_id,requested_product_id,from_user_id,to_user_id`,
+    [swapId, responsibleId]
+  );
+  return rows[0] || null;
+}
 const swapSelect = `SELECT sr.id, sr.status, sr.created_at, sr.premium_amount, sr.from_user_id, sr.to_user_id,
  jsonb_build_object('id',sp.id,'username',sp.username,'full_name',sp.full_name,'email',sp.email,'phone',sp.phone) AS sender,
  jsonb_build_object('id',rp.id,'username',rp.username,'full_name',rp.full_name,'email',rp.email,'phone',rp.phone) AS receiver,
@@ -62,16 +84,16 @@ router.get('/orders/:id',async(req,res)=>{try{const {rows}=await pool.query('SEL
   const {rows:updated}=await client.query(`UPDATE orders SET ${keys.map((k,i)=>`${k}=$${i+2}`).join(',')} WHERE id=$1 RETURNING *`,values);
   if(action==='cancel'){
     await client.query("UPDATE orders SET status='cancelled' WHERE swap_request_id=$1 AND status NOT IN ('cancelled','delivered')",[o.swap_request_id]);
-    const {rows:swap}=await client.query("UPDATE swap_requests SET status='cancelled' WHERE id=$1 AND status<>'completed' RETURNING offered_product_id,requested_product_id,from_user_id,to_user_id",[o.swap_request_id]);
-    if(swap.length)await client.query("UPDATE products SET status='active' WHERE id=ANY($1::uuid[]) AND status='in_swap'",[[swap[0].offered_product_id,swap[0].requested_product_id].filter(Boolean)]);
+    const swap=await cancelSwap(client,o.swap_request_id);
+    if(swap)await client.query("UPDATE products SET status='active' WHERE id=ANY($1::uuid[]) AND status='in_swap'",[[swap.offered_product_id,swap.requested_product_id].filter(Boolean)]);
   } else if(action==='reject_payment'||action==='fail_product'){
-    const {rows:swap}=await client.query('SELECT offered_product_id,requested_product_id FROM swap_requests WHERE id=$1',[o.swap_request_id]);
-    if(swap.length)await client.query("UPDATE products SET status='active' WHERE id=ANY($1::uuid[]) AND status='in_swap'",[[swap[0].offered_product_id,swap[0].requested_product_id].filter(Boolean)]);
+    const swap=await cancelSwap(client,o.swap_request_id,o.from_user_id);
+    if(swap)await client.query("UPDATE products SET status='active' WHERE id=ANY($1::uuid[]) AND status='in_swap'",[[swap.offered_product_id,swap.requested_product_id].filter(Boolean)]);
   }
   if(action==='mark_delivered'){
     const {rows:remaining}=await client.query("SELECT id FROM orders WHERE swap_request_id=$1 AND status<>'delivered'",[o.swap_request_id]);
     const {rows:all}=await client.query('SELECT COUNT(*)::int total FROM orders WHERE swap_request_id=$1',[o.swap_request_id]);
-    if(all[0].total>=2&&!remaining.length){await client.query("UPDATE swap_requests SET status='completed' WHERE id=$1 AND status<>'completed'",[o.swap_request_id]);const {rows:s}=await client.query('SELECT offered_product_id,requested_product_id FROM swap_requests WHERE id=$1',[o.swap_request_id]);if(s.length)await client.query("UPDATE products SET status='swapped' WHERE id=ANY($1::uuid[])",[[s[0].offered_product_id,s[0].requested_product_id].filter(Boolean)]);}
+    if(all[0].total>=2&&!remaining.length){const {rows:completedSwap}=await client.query("UPDATE swap_requests SET status='completed' WHERE id=$1 AND status<>'completed' RETURNING from_user_id,to_user_id",[o.swap_request_id]);if(completedSwap.length)await client.query('UPDATE profiles SET total_swaps=COALESCE(total_swaps,0)+1 WHERE id=ANY($1::uuid[])',[[completedSwap[0].from_user_id,completedSwap[0].to_user_id]]);const {rows:s}=await client.query('SELECT offered_product_id,requested_product_id FROM swap_requests WHERE id=$1',[o.swap_request_id]);if(s.length)await client.query("UPDATE products SET status='swapped' WHERE id=ANY($1::uuid[])",[[s[0].offered_product_id,s[0].requested_product_id].filter(Boolean)]);}
   }
   if(title){await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status',$2,$3,'/orders')",[o.from_user_id,title,body]);const {rows:partner}=await client.query('SELECT from_user_id FROM orders WHERE swap_request_id=$1 AND id<>$2 LIMIT 1',[o.swap_request_id,o.id]);if(partner.length)await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status','SVAP Partner Update',$2,'/orders')",[partner[0].from_user_id,`Your SVAP partner's order status is now ${status}.`]);}
   await client.query('COMMIT');res.json({data:updated[0]});

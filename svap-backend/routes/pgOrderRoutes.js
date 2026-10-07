@@ -233,7 +233,10 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
               "UPDATE products SET status='swapped' WHERE id=ANY($1)",
               [[swap[0].offered_product_id, swap[0].requested_product_id].filter(Boolean)]
             );
-            // The shared DB trigger increments total_swaps once on the completed transition.
+            await client.query(
+              'UPDATE profiles SET total_swaps=COALESCE(total_swaps,0)+1 WHERE id=ANY($1::uuid[])',
+              [[swap[0].from_user_id, swap[0].to_user_id]]
+            );
 
           }
         }

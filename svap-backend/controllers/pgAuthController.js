@@ -43,7 +43,7 @@ exports.signup = async (req, res) => {
       'UPDATE profiles SET username=$1,full_name=$1,phone=$2 WHERE id=$3 RETURNING *',
       [username, phone || null, user.id],
     );
-    res.json({ data: { user: { id: user.id, email: user.email }, profile: { ...rows[0], completed_swaps: Number(rows[0].total_swaps || 0) } }, message: 'Profile saved. Sign in to continue.' });
+    res.json({ data: { user: { id: user.id, email: user.email }, profile: { ...rows[0], completed_swaps: Number(rows[0].completed_swaps ?? rows[0].total_swaps ?? 0), committed_swaps: Number(rows[0].committed_swaps || 0) } }, message: 'Profile saved. Sign in to continue.' });
   } catch (error) {
     console.error('[pg signup]', error.message);
     res.status(500).json({ error: 'Could not save profile' });

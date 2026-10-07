@@ -181,7 +181,7 @@ export default function MobileNavbar() {
     <div className="md:hidden fixed bottom-0 left-0 right-0 flex justify-center px-4 pb-4 sm:px-6 sm:pb-6 pointer-events-none z-50">
       <nav
         className={`pointer-events-auto flex items-center justify-between w-full max-w-md rounded-full transition-all duration-300 backdrop-blur-2xl ${
-          isScrolled ? "px-2.5 py-1.5" : "px-3 py-3.5"
+          isScrolled ? "px-2.5 py-1.5" : "px-3 py-1.5"
         } ${
           isDark
             ? "bg-[#18181b]/90 border border-white/15 shadow-[0_12px_40px_rgba(0,0,0,0.85)]"
@@ -216,7 +216,7 @@ export default function MobileNavbar() {
                 }
               }}
               className={`relative flex items-center justify-center rounded-full transition-all duration-300 ease-out active:scale-95 ${
-                isScrolled ? "py-1 px-2" : "py-2 px-3"
+                isScrolled ? "py-1 px-2" : "py-1.5 px-2"
               } ${activeItemClass}`}
               aria-label={item.path.replace("/", "") || "Home"}
               aria-current={isActive ? "page" : undefined}
@@ -226,7 +226,7 @@ export default function MobileNavbar() {
                   isMiddle
                     ? isScrolled
                       ? "w-9 h-9 rounded-full"
-                      : "w-12 h-12 rounded-full"
+                      : "w-10 h-10 rounded-full"
                     : isScrolled
                     ? "w-7 h-7"
                     : "w-8 h-8"

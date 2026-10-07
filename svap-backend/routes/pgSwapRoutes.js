@@ -16,7 +16,15 @@ const JOINS = `FROM swap_requests sr
 function adaptSwap(row) {
   return { ...row, status: row.status === 'declined' ? 'rejected' : row.status };
 }
-
+async function getResponsibleParticipant(swap, cancellerId) {
+  const { rows } = await pool.query(
+    'SELECT DISTINCT from_user_id FROM orders WHERE swap_request_id=$1 AND from_user_id=ANY($2::uuid[])',
+    [swap.id, [swap.from_user_id, swap.to_user_id]]
+  );
+  if (rows.length === 1) return rows[0].from_user_id === swap.from_user_id ? swap.to_user_id : swap.from_user_id;
+  if (rows.length === 0) return swap.to_user_id;
+  return cancellerId;
+}
 router.get('/user/:userId', requireAuth, async (req, res) => {
   try {
     if (req.params.userId !== req.userId) return res.status(403).json({ error: 'Forbidden' });
@@ -111,10 +119,16 @@ router.patch('/:id', requireAuth, async (req, res) => {
       }
     }
 
+    const responsibleId = status === 'cancelled' ? await getResponsibleParticipant(swap, req.userId) : null;
+
     const update = status === 'accepted'
       ? await pool.query(
           `UPDATE swap_requests SET status=$1,expires_at=now()+interval '48 hours'
            WHERE id=$2 AND status='pending' RETURNING *`, [dbStatus, swap.id]
+        )
+      : status === 'cancelled'
+      ? await pool.query(
+          'UPDATE swap_requests SET status=$1,cancelled_by_user_id=$2 WHERE id=$3 AND status=$4 RETURNING *', [dbStatus, responsibleId, swap.id, swap.status]
         )
       : await pool.query(
           'UPDATE swap_requests SET status=$1 WHERE id=$2 AND status=$3 RETURNING *',

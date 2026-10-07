@@ -6,8 +6,8 @@ import {
 } from "react-icons/fi";
 import { api } from "../../services/api";
 
-const CATEGORIES = ["Gaming", "Fashion", "Sports", "Books", "Home", "Toys", "Phones", "Clothing", "Furniture", "Jewelry", "Other"];
-const CONDITIONS = ["Brand New", "Like New", "Good", "Fair", "For Parts"];
+const CATEGORIES = ["Fashion", "Sports", "Books", "Clothing", "Furniture", "Jewelry", "Other"];
+const CONDITIONS = ["Brand New", "Like New", "Good", "Fair"];
 const MAX_PHOTOS = 6;
 
 type PhotoSlot = { file?: File; url: string };

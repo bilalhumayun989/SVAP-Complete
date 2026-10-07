@@ -111,6 +111,7 @@ const Profile = () => {
           email: savedUser.email || "",
           phone: savedUser.phone || "",
           swap_score: 0,
+          reliability_score: 0,
           total_swaps: 0,
           completed_swaps: 0,
           total_listings: 0,
@@ -156,6 +157,7 @@ const Profile = () => {
             setProfileUser((prev: any) => ({
               ...prev,
               swap_score: profileRes.data.swap_score ?? 0,
+              reliability_score: profileRes.data.reliability_score ?? 0,
               total_swaps: profileRes.data.total_swaps ?? 0,
               completed_swaps: profileRes.data.completed_swaps ?? 0,
               total_listings: profileRes.data.total_listings ?? 0,
@@ -398,9 +400,9 @@ const Profile = () => {
                 <div className="pf-stat-item">
                   <div className="pf-stat-icon" style={{color: '#E45821'}}><FiStar size={14} /></div>
                   <div className="pf-stat-val">
-                    {Number(profileUser.swap_score ?? 0).toFixed(1)}<span className="pf-stat-val-sub">/5</span>
+                    {Number(profileUser.reliability_score ?? 0).toFixed(1)}<span className="pf-stat-val-sub">/5</span>
                   </div>
-                  <div className="pf-stat-label">Svap Score</div>
+                  <div className="pf-stat-label">SVAP Score</div>
                 </div>
                 <div className="pf-stat-divider" />
                 <div className="pf-stat-item">

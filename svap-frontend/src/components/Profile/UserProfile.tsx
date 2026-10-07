@@ -12,6 +12,7 @@ interface UserData {
   avatar_url?: string;
   created_at?: string;
   swap_score?: number;
+  reliability_score?: number;
   completed_swaps?: number;
 }
 
@@ -157,10 +158,10 @@ const UserProfile = () => {
             <div className="up-stat-item">
               <div className="up-stat-icon" style={{color: '#E45821'}}><FiStar size={14} /></div>
               <div className="up-stat-val">
-                {Number(user.swap_score ?? 0).toFixed(1)}<span className="up-stat-val-sub">/5</span>
+                {Number(user.reliability_score ?? 0).toFixed(1)}<span className="up-stat-val-sub">/5</span>
                 <FiInfo size={10} className="up-stat-info-icon" />
               </div>
-              <div className="up-stat-label">Svap Score</div>
+              <div className="up-stat-label">SVAP Score</div>
             </div>
             <div className="up-stat-divider" />
             <div className="up-stat-item">
