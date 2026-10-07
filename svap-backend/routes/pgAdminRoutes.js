@@ -107,8 +107,102 @@ router.get('/dashboard', async (_req,res) => {
 router.get('/products',async(_req,res)=>{try{const {rows}=await pool.query('SELECT p.id,p.title,p.condition,p.image_urls,p.status,p.created_at,p.user_id AS owner_id,jsonb_build_object(\'username\',u.username,\'full_name\',u.full_name) AS owner FROM products p LEFT JOIN profiles u ON u.id=p.user_id ORDER BY p.created_at DESC');res.json({data:rows});}catch(e){console.error('[admin products]',e.message);res.status(500).json({error:'Could not load products'});}});
 router.patch('/products/:id',async(req,res)=>{if(req.body?.status!=='removed')return res.status(400).json({error:'Only product removal is supported'});try{const {rows}=await pool.query("UPDATE products SET status='removed' WHERE id=$1 RETURNING id,status",[req.params.id]);if(!rows.length)return res.status(404).json({error:'Product not found'});res.json({data:rows[0]});}catch(e){console.error('[admin remove product]',e.message);res.status(500).json({error:'Could not remove product'});}});
 router.get('/users',async(_req,res)=>{try{const {rows}=await pool.query('SELECT p.id,p.username,p.full_name,p.email,p.phone,p.city,p.avatar_url,p.created_at,(SELECT COUNT(*)::int FROM products x WHERE x.user_id=p.id) AS product_count FROM profiles p ORDER BY p.created_at DESC');res.json({data:rows});}catch(e){console.error('[admin users]',e.message);res.status(500).json({error:'Could not load users'});}});
-router.get('/support',async(_req,res)=>{try{const {rows}=await pool.query('SELECT t.id,t.user_id,t.subject,t.message,t.status,t.admin_reply,t.created_at,t.replied_at,t.closed_at,t.resolution_note,jsonb_build_object(\'username\',p.username,\'full_name\',p.full_name,\'email\',p.email) AS profile FROM support_tickets t LEFT JOIN profiles p ON p.id=t.user_id ORDER BY t.created_at DESC');res.json({data:rows});}catch(e){console.error('[admin support]',e.message);res.status(500).json({error:'Could not load support tickets'});}});
-router.patch('/support/:id/reply',async(req,res)=>{const reply=String(req.body?.admin_reply||'').trim();if(!reply)return res.status(400).json({error:'Reply is required'});try{const {rows}=await pool.query("UPDATE support_tickets SET admin_reply=$1,status='replied',replied_at=now() WHERE id=$2 RETURNING *",[reply,req.params.id]);if(!rows.length)return res.status(404).json({error:'Ticket not found'});await pool.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'support','Support Reply',$2,'/support')",[rows[0].user_id,`Admin replied to your support ticket: ${rows[0].subject}`]);res.json({data:rows[0]});}catch(e){console.error('[admin support reply]',e.message);res.status(500).json({error:'Could not reply to ticket'});}});
-router.patch('/support/:id/close',async(req,res)=>{const note=String(req.body?.resolution_note||'').trim();try{const {rows}=await pool.query("UPDATE support_tickets SET status='closed',closed_at=now(),resolution_note=$1 WHERE id=$2 RETURNING *",[note||null,req.params.id]);if(!rows.length)return res.status(404).json({error:'Ticket not found'});await pool.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'support','Support Ticket Closed',$2,'/support')",[rows[0].user_id,`Your support ticket \"${rows[0].subject}\" has been closed.`]);res.json({data:rows[0]});}catch(e){console.error('[admin support close]',e.message);res.status(500).json({error:'Could not close ticket'});}});
-router.patch('/support/:id/reopen',async(req,res)=>{try{const {rows}=await pool.query("UPDATE support_tickets SET status='open',closed_at=NULL,resolution_note=NULL WHERE id=$1 RETURNING *",[req.params.id]);if(!rows.length)return res.status(404).json({error:'Ticket not found'});res.json({data:rows[0]});}catch(e){console.error('[admin support reopen]',e.message);res.status(500).json({error:'Could not reopen ticket'});}});
+async function getSupportTicketColumns() {
+  const { rows } = await pool.query(
+    "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='support_tickets'"
+  );
+  return new Set(rows.map((row) => row.column_name));
+}
+
+router.get('/support', async (_req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT t.id,t.user_id,t.subject,t.message,t.status,
+        to_jsonb(t)->>'admin_reply' AS admin_reply,
+        to_jsonb(t)->>'created_at' AS created_at,
+        to_jsonb(t)->>'replied_at' AS replied_at,
+        to_jsonb(t)->>'closed_at' AS closed_at,
+        to_jsonb(t)->>'resolution_note' AS resolution_note,
+        jsonb_build_object('username',p.username,'full_name',p.full_name,'email',p.email) AS profile
+      FROM support_tickets t
+      LEFT JOIN profiles p ON p.id=t.user_id
+      ORDER BY to_jsonb(t)->>'created_at' DESC NULLS LAST
+    `);
+    res.json({ data: rows });
+  } catch (e) {
+    console.error('[admin support]', e.message);
+    res.status(500).json({ error: 'Could not load support tickets' });
+  }
+});
+
+router.patch('/support/:id/reply', async (req, res) => {
+  const reply = String(req.body?.admin_reply || '').trim();
+  if (!reply) return res.status(400).json({ error: 'Reply is required' });
+  try {
+    const columns = await getSupportTicketColumns();
+    if (!columns.has('admin_reply')) return res.status(500).json({ error: 'Support replies are not enabled in this database schema' });
+    const set = ["admin_reply=$1", "status='replied'"];
+    if (columns.has('replied_at')) set.push('replied_at=now()');
+    const { rows } = await pool.query(
+      `UPDATE support_tickets SET ${set.join(',')} WHERE id=$2 RETURNING *`,
+      [reply, req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Ticket not found' });
+    await pool.query(
+      "INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'support','Support Reply',$2,'/support')",
+      [rows[0].user_id, `Admin replied to your support ticket: ${rows[0].subject}`]
+    );
+    res.json({ data: rows[0] });
+  } catch (e) {
+    console.error('[admin support reply]', e.message);
+    res.status(500).json({ error: 'Could not reply to ticket' });
+  }
+});
+
+router.patch('/support/:id/close', async (req, res) => {
+  const note = String(req.body?.resolution_note || '').trim();
+  try {
+    const columns = await getSupportTicketColumns();
+    const set = ["status='closed'"];
+    const values = [];
+    if (columns.has('closed_at')) set.push('closed_at=now()');
+    if (columns.has('resolution_note')) {
+      values.push(note || null);
+      set.push(`resolution_note=$${values.length}`);
+    }
+    values.push(req.params.id);
+    const { rows } = await pool.query(
+      `UPDATE support_tickets SET ${set.join(',')} WHERE id=$${values.length} RETURNING *`,
+      values
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Ticket not found' });
+    await pool.query(
+      "INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'support','Support Ticket Closed',$2,'/support')",
+      [rows[0].user_id, `Your support ticket \"${rows[0].subject}\" has been closed.`]
+    );
+    res.json({ data: rows[0] });
+  } catch (e) {
+    console.error('[admin support close]', e.message);
+    res.status(500).json({ error: 'Could not close ticket' });
+  }
+});
+
+router.patch('/support/:id/reopen', async (req, res) => {
+  try {
+    const columns = await getSupportTicketColumns();
+    const set = ["status='open'"];
+    if (columns.has('closed_at')) set.push('closed_at=NULL');
+    if (columns.has('resolution_note')) set.push('resolution_note=NULL');
+    const { rows } = await pool.query(
+      `UPDATE support_tickets SET ${set.join(',')} WHERE id=$1 RETURNING *`,
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Ticket not found' });
+    res.json({ data: rows[0] });
+  } catch (e) {
+    console.error('[admin support reopen]', e.message);
+    res.status(500).json({ error: 'Could not reopen ticket' });
+  }
+});
+
 module.exports=router;
