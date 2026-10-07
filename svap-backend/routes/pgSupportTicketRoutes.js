@@ -10,7 +10,13 @@ router.get('/user/:userId', requireAuth, async (req, res) => {
   try {
     if (req.params.userId !== req.userId) return res.status(403).json({ error: 'Forbidden' });
     const { rows } = await pool.query(
-      'SELECT id,user_id,subject,message,status,admin_reply,replied_at,created_at FROM support_tickets WHERE user_id=$1 ORDER BY created_at DESC',
+      `SELECT t.id,t.user_id,t.subject,t.message,t.status,
+        to_jsonb(t)->>'admin_reply' AS admin_reply,
+        to_jsonb(t)->>'replied_at' AS replied_at,
+        to_jsonb(t)->>'created_at' AS created_at
+       FROM support_tickets t
+       WHERE t.user_id=$1
+       ORDER BY to_jsonb(t)->>'created_at' DESC NULLS LAST`,
       [req.userId]
     );
     res.json({ data: rows });
