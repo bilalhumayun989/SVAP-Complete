@@ -40,7 +40,9 @@ SET completed_swaps = GREATEST(COALESCE(p.completed_swaps,0), history.completed_
     committed_swaps = GREATEST(
       COALESCE(p.committed_swaps,0),
       history.completed_count + history.accepted_count
-    );
+    )
+FROM history
+WHERE history.id = p.id;
 
 CREATE OR REPLACE FUNCTION public.recalculate_reliability_for_users(p_user_ids uuid[])
 RETURNS void LANGUAGE sql AS $$
