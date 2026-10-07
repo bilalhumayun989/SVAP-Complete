@@ -156,7 +156,7 @@ const Signup = () => {
     if (!form.phone.trim()) return setError("Phone number is required"); if (form.phone.length !== 11) return setError("Phone number must be exactly 11 digits");
     if (!/^03\d{9}$/.test(form.phone)) return setError("Sahi Pakistani phone number likhein (jaisay 03001234567)");
     if (form.password.length < 6) return setError("Password must be at least 6 characters");
-    if (!/[!@#$%^&*(),.?\":{}|<>]/.test(form.password)) return setError("Password kam az kam 6 characters ka ho aur ek special character (!@#$% wagera) shamil karein");
+    if (!/[!@#$%^&*(),.?\":{}|<>]/.test(form.password)) return setError("Password atleast consist of 6 characters and one special character (!@#$% etc.)");
     if (form.password !== form.confirmPassword) return setError("Passwords do not match"); setLoading(true);
     try {
       localStorage.setItem(PENDING_SIGNUP_KEY, JSON.stringify({ email: form.email.trim().toLowerCase(), username: form.username.trim(), phone: form.phone }));

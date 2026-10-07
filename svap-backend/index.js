@@ -13,6 +13,7 @@ const uploadRoutes = require('./routes/pgUploadRoutes');
 const orderRoutes = require('./routes/pgOrderRoutes');
 const savedRoutes = require('./routes/pgSavedRoutes');
 const supportTicketRoutes = require('./routes/pgSupportTicketRoutes');
+const adminRoutes = require('./routes/pgAdminRoutes');
 
 const app = express();
 const port = process.env.PORT || 5004;
@@ -35,6 +36,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/saved', savedRoutes);
 app.use('/api/support-tickets', supportTicketRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use((req, res) => {
