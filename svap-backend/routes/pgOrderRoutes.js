@@ -9,8 +9,17 @@ const STANDARD = 479;
 const CASH_ONLY_DELIVERY = 300;
 const FEE_RATE = 0.08;
 
+function formatOrderNumber(order) {
+  const sourceId = order?.swap_request_id || order?.id || '';
+  return String(sourceId).replaceAll('-', '').slice(0, 8).toUpperCase();
+}
+
 function adaptOrder(order, pending = false) {
-  return { ...order, payment_method: pending ? 'Awaiting checkout' : 'bank_transfer' };
+  return {
+    ...order,
+    order_number: formatOrderNumber(order),
+    payment_method: pending ? 'Awaiting checkout' : 'bank_transfer',
+  };
 }
 
 router.get('/', requireAuth, async (req, res) => {
@@ -36,6 +45,7 @@ router.get('/', requireAuth, async (req, res) => {
       .map((s) => ({
         id: `checkout-${s.id}`,
         swap_request_id: s.id,
+        order_number: formatOrderNumber({ swap_request_id: s.id }),
         from_user_id: s.from_user_id,
         to_user_id: s.to_user_id,
         delivery_name: 'Checkout pending',
@@ -156,7 +166,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     await client.query(
       "INSERT INTO notifications(user_id, type, title, body, route) VALUES($1, 'order_update', 'Checkout submitted', $2, '/orders')",
-      [partner, `Your SVAP partner submitted checkout. Order ID: ${rows[0].id}`]
+      [partner, `Your SVAP partner submitted checkout. Order ID: ${formatOrderNumber(rows[0])}`]
     );
 
     await client.query('COMMIT');
@@ -209,7 +219,7 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
                ($3, 'order_status', 'Order status updated', $2, '/orders') RETURNING id`,
         [
           order.from_user_id,
-          `Your order status is now ${status}. Order ID: ${order.id}`,
+          `Your order status is now ${status}. Order ID: ${formatOrderNumber(order)}`,
           order.to_user_id,
         ]
       );

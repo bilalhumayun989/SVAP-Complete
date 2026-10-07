@@ -21,6 +21,7 @@ type OrderStatus =
 type RealOrder = {
   id: string;
   swap_request_id: string | null;
+  order_number?: string;
   from_user_id: string;
   to_user_id: string;
   delivery_name: string;
@@ -329,7 +330,7 @@ const OrdersPage = () => {
                   <div className="op-card-top">
                     <div className="op-card-left">
                       <div className="op-card-id">
-                        {"#" + order.id.slice(0, 8).toUpperCase()}
+                        {"#" + (order.order_number || String(order.swap_request_id || order.id).replaceAll("-", "").slice(0, 8).toUpperCase())}
                         {isSwap && <span className="op-swap-tag">SVAP</span>}
                       </div>
                       <span className="op-date">

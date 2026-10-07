@@ -178,7 +178,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
           (checkoutUsers.has(participantId) ? ' You will be contacted by support team for refund.' : '');
         await pool.query(
           'INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,$2,$3,$4,$5)',
-          [participantId, 'swap_cancelled', 'SVAP Cancelled', body, '/requests']
+          [participantId, isCanceller ? 'swap_cancelled' : 'swap_rejected', isCanceller ? 'SVAP Cancelled' : 'Request Rejected', body, '/requests']
         );
       }
     }
