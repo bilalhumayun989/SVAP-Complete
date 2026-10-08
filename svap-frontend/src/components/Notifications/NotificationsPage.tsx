@@ -20,7 +20,7 @@ interface Notif {
 const iconMap = (type: NotifType) => {
   if (type === "svap_request" || type === "svap_accepted" || type === "swap_accepted" || type === "swap_partner_checkout_completed" || type === "svap_rejected" || type === "swap_rejected" || type === "swap_cancelled" || type === "svap_unavailable")
     return <FiRepeat size={16} />;
-  if (type === "order_update") return <FiShoppingBag size={16} />;
+  if (type.startsWith("order_") || type === "order_status") return <FiShoppingBag size={16} />;
   if (type === "product_question" || type === "product_answer") return <FiMessageCircle size={16} />;
   return <FiBell size={16} />;
 };
@@ -29,7 +29,7 @@ const colorMap = (type: NotifType) => {
   if (type === "svap_request") return "#8DC63F";
   if (type === "svap_accepted" || type === "swap_accepted" || type === "swap_partner_checkout_completed") return "#22c55e";
   if (type === "svap_rejected" || type === "swap_rejected" || type === "swap_cancelled" || type === "svap_unavailable") return "#ef4444";
-  if (type === "order_update") return "#E45821";
+  if (type.startsWith("order_") || type === "order_status") return "#E45821";
   if (type === "product_question" || type === "product_answer") return "#0ea5e9";
   return "#8b5cf6";
 };
@@ -45,10 +45,13 @@ function timeAgo(dateStr: string): string {
   return `${d}d ago`;
 }
 
-type FilterTab = "all" | "svaps" | "system";
+type FilterTab = "all" | "svaps" | "orders" | "system";
 
 const isSvapNotification = (type: NotifType) =>
   type.startsWith("svap_") || type.startsWith("swap_");
+
+const isOrderNotification = (type: NotifType) =>
+  type.startsWith("order_") || type === "order_status";
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
@@ -112,7 +115,8 @@ const NotificationsPage = () => {
 
   const filtered = notifs.filter(n => {
     if (activeTab === "svaps") return isSvapNotification(n.type);
-    if (activeTab === "system") return !isSvapNotification(n.type);
+    if (activeTab === "orders") return isOrderNotification(n.type);
+    if (activeTab === "system") return !isSvapNotification(n.type) && !isOrderNotification(n.type);
     return true;
   });
 
@@ -193,13 +197,14 @@ const NotificationsPage = () => {
 
       {/* Filter tabs */}
       <div className="np-tabs">
-        {(["all", "svaps", "system"] as FilterTab[]).map(tab => (
+        {(["all", "svaps", "orders", "system"] as FilterTab[]).map(tab => (
           <button
             key={tab}
             className={`np-tab ${activeTab === tab ? "np-tab--active" : ""}`}
             onClick={() => setActiveTab(tab)}
+            aria-pressed={activeTab === tab}
           >
-            {tab === "all" ? "All" : tab === "svaps" ? "Svaps" : "System"}
+            {tab === "all" ? "All" : tab === "svaps" ? "Svaps" : tab === "orders" ? "Orders" : "System"}
           </button>
         ))}
       </div>

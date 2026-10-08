@@ -442,7 +442,7 @@
 //                   {!isCashOnlyOffer && cashOfferAmount > 0 && (
 //                     <div className="req-sweeten-box">
 //                       <span>
-//                         {req.direction === "received" ? "They're adding" : "You're adding"} PKR {cashOfferAmount.toLocaleString()} cash in this deal
+//                         {req.direction === "received" ? "They're adding" : "You're adding"} PKR {cashOfferAmount.toLocaleString()} in cash to this deal.
 //                       </span>
 //                     </div>
 //                   )}
@@ -462,7 +462,7 @@
 //                               ? "Complete checkout before time runs out"
 //                               : tab === "outgoing"
 //                                 ? "Waiting for their response"
-//                                 : "Accept before timer runs out"}
+//                                 : "Accept before the timer runs out"}
 //                           </span>
 //                         </div>
 //                         <span className="req-timer-time">
@@ -524,10 +524,10 @@
 //                     </div>
 //                   )}
 //                   {tab === "checkout" && !isCancelled && partnerHasOrder && partnerPaymentVerified && ownPaymentNotVerified && (
-//                     <div className="req-partner-checkout-note" role="status">Your svap partner's payment is verified by us. Now the item will be inspected</div>
+//                     <div className="req-partner-checkout-note" role="status">Your SVAP partner's payment has been verified. Their item will now be inspected.</div>
 //                   )}
 //                   {tab === "checkout" && !isCancelled && !ownOrder && partnerHasOrder && !partnerPaymentVerified && (
-//                     <div className="req-partner-checkout-note" role="status">Your svap partner has completed checkout. Complete your own checkout to continue.</div>
+//                     <div className="req-partner-checkout-note" role="status">Your SVAP partner has completed checkout. Complete your checkout to continue.</div>
 //                   )}
 
 //                   {tab === "checkout" && !isCancelled && (
@@ -1428,7 +1428,7 @@ const Requests = () => {
                   {!isCashOnlyOffer && cashOfferAmount > 0 && (
                     <div className="req-sweeten-box">
                       <span>
-                        {req.direction === "received" ? "They're adding" : "You're adding"} PKR {cashOfferAmount.toLocaleString()} cash in this deal
+                        {req.direction === "received" ? "They're adding" : "You're adding"} PKR {cashOfferAmount.toLocaleString()} in cash to this svap.
                       </span>
                     </div>
                   )}
@@ -1447,7 +1447,7 @@ const Requests = () => {
                               ? "Complete checkout before time runs out"
                               : tab === "outgoing"
                                 ? "Waiting for their response"
-                                : "Accept before timer runs out"}
+                                : "Accept before the timer runs out"}
                           </span>
                         </div>
                         <span className="req-timer-time">
@@ -1507,10 +1507,10 @@ const Requests = () => {
                     </div>
                   )}
                   {tab === "checkout" && !isCancelled && partnerHasOrder && partnerPaymentVerified && ownPaymentNotVerified && (
-                    <div className="req-partner-checkout-note" role="status">Your svap partner's payment is verified by us. Now the item will be inspected</div>
+                    <div className="req-partner-checkout-note" role="status">Your SVAP partner's payment has been verified.  We are checking item before dispatch</div>
                   )}
                   {tab === "checkout" && !isCancelled && !ownOrder && partnerHasOrder && !partnerPaymentVerified && (
-                    <div className="req-partner-checkout-note" role="status">Your svap partner has completed checkout. Complete your own checkout to continue.</div>
+                    <div className="req-partner-checkout-note" role="status">Your SVAP partner has completed checkout. Complete your checkout to continue.</div>
                   )}
 
                   {tab === "checkout" && !isCancelled && (
