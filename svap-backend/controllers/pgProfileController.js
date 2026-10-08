@@ -1,8 +1,21 @@
 const pool = require('../db');
 const allowed = ['username', 'full_name', 'phone', 'avatar_url', 'city', 'address', 'notif_swaps', 'notif_orders', 'cnic_submitted'];
-
+const reliabilityScoreSql = `CASE
+  WHEN COALESCE(committed_swaps,0) <= 0 THEN 0::numeric
+  ELSE LEAST(5::numeric, GREATEST(0::numeric, ROUND(COALESCE(completed_swaps,0)::numeric / committed_swaps * 5, 1)))
+END AS reliability_score`;
 function adaptProfile(profile) {
-  return { ...profile, completed_swaps: Number(profile.completed_swaps ?? profile.total_swaps ?? 0), committed_swaps: Number(profile.committed_swaps || 0) };
+  const completedSwaps = Number(profile.completed_swaps ?? profile.total_swaps ?? 0);
+  const committedSwaps = Number(profile.committed_swaps || 0);
+  const reliabilityScore = committedSwaps > 0
+    ? Math.min(5, Math.max(0, Math.round((completedSwaps / committedSwaps) * 50) / 10))
+    : 0;
+  return {
+    ...profile,
+    completed_swaps: completedSwaps,
+    committed_swaps: committedSwaps,
+    reliability_score: reliabilityScore,
+  };
 }
 
 async function ensureProfile(id, email, name, avatar = null) {
@@ -47,11 +60,10 @@ exports.getProfile = async (req, res) => {
     if (!requested.length) return res.status(404).json({ error: 'Profile not found' });
 
     const email = requested[0].email;
+    const profileFields = `id,username,full_name,avatar_url,city,swap_score,${reliabilityScoreSql},total_swaps,committed_swaps,completed_swaps,total_listings,is_verified,created_at`;
     const query = email
-      ? `SELECT id,username,full_name,avatar_url,city,swap_score,reliability_score,total_swaps,committed_swaps,completed_swaps,total_listings,is_verified,created_at
-         FROM profiles WHERE lower(email)=lower($1) ORDER BY created_at DESC NULLS LAST LIMIT 1`
-      : `SELECT id,username,full_name,avatar_url,city,swap_score,reliability_score,total_swaps,committed_swaps,completed_swaps,total_listings,is_verified,created_at
-         FROM profiles WHERE id=$1`;
+      ? `SELECT ${profileFields} FROM profiles WHERE lower(email)=lower($1) ORDER BY created_at DESC NULLS LAST LIMIT 1`
+      : `SELECT ${profileFields} FROM profiles WHERE id=$1`;
     const { rows } = await pool.query(query, [email || requestedId]);
     if (!rows.length) return res.status(404).json({ error: 'Profile not found' });
     res.set('Cache-Control', 'no-store');
@@ -71,7 +83,7 @@ exports.updateProfile = async (req, res) => {
     const set = keys.map((key, index) => `${key}=$${index + 2}`).join(',');
     const { rows } = await pool.query(
       `UPDATE profiles SET ${set} WHERE id=$1
-       RETURNING id,username,full_name,avatar_url,city,swap_score,reliability_score,total_swaps,committed_swaps,completed_swaps,total_listings,is_verified,created_at`,
+       RETURNING id,username,full_name,avatar_url,city,swap_score,total_swaps,committed_swaps,completed_swaps,total_listings,is_verified,created_at`,
       values
     );
     if (!rows.length) return res.status(404).json({ error: 'Profile not found' });

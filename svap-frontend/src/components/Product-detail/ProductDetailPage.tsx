@@ -27,6 +27,7 @@ interface DetailProduct {
   views: number
   condition?: string
   swapFor?: string
+  estimatedValue?: number | null
   category?: string
   reel?: string
   owner_id: string
@@ -150,6 +151,7 @@ const ProductDetailPage = () => {
             views: data.saved_count || 0,
             condition: data.condition || '',
             swapFor: data.swap_for || '',
+            estimatedValue: data.estimated_value ?? null,
             category: data.category || '',
             reel: data.video_url || '',
             owner_id: data.user_id || '',
@@ -389,6 +391,13 @@ const ProductDetailPage = () => {
 
           {product.description && (
             <p className="pdp-desc">{product.description}</p>
+          )}
+
+          {Number(product.estimatedValue) > 0 && (
+            <div className="pdp-est-value">
+              <p className="pdp-est-value-label">Estimated value</p>
+              <p className="pdp-est-value-amount">PKR {Number(product.estimatedValue).toLocaleString()}</p>
+            </div>
           )}
 
           <div className="pdp-divider" />
@@ -986,6 +995,32 @@ const ProductDetailPage = () => {
           color: var(--text-mid);
           font-size: 0.95rem;
           line-height: 1.75;
+          margin: 0;
+        }
+
+        .pdp-est-value {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 14px 18px;
+          border-radius: 14px;
+          background: var(--bg-section);
+          border: 1px solid rgba(165,194,111,0.28);
+          border-left: 3px solid var(--svap-lime);
+        }
+        .pdp-est-value-label {
+          color: var(--text-muted);
+          font-size: 0.72rem;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          margin: 0;
+        }
+        .pdp-est-value-amount {
+          color: var(--text-dark);
+          font-size: 1rem;
+          font-weight: 700;
           margin: 0;
         }
 

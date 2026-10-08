@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/admin');
+const formatOrderNumber = require('../helpers/formatOrderNumber');
 const router = express.Router();
 router.use(requireAuth, requireAdmin);
 async function cancelSwap(client, swapId, explicitResponsibleId = null) {
@@ -63,7 +64,7 @@ router.get('/orders/:id',async(req,res)=>{try{const {rows}=await pool.query('SEL
   await client.query('BEGIN');
   const {rows}=await client.query('SELECT * FROM orders WHERE id=$1 FOR UPDATE',[req.params.id]);
   if(!rows.length){await client.query('ROLLBACK');return res.status(404).json({error:'Order not found'});}
-  const o=rows[0]; let status=o.status, fields={}, title='', body='';
+  const o=rows[0]; let status=o.status, fields={}, title='', body='', relatedOrder=null;
   switch(action){
    case 'approve_payment': if(status!=='payment_verification')break; status='product_verification'; title='Payment Verified';body='Your payment has been verified. We are now checking your item before dispatch.';break;
    case 'reject_payment': if(status!=='payment_verification')break; status='cancelled';title='Payment Rejected';body='Your payment could not be verified. Please contact support for assistance.';break;
@@ -87,6 +88,14 @@ router.get('/orders/:id',async(req,res)=>{try{const {rows}=await pool.query('SEL
     const swap=await cancelSwap(client,o.swap_request_id);
     if(swap)await client.query("UPDATE products SET status='active' WHERE id=ANY($1::uuid[]) AND status='in_swap'",[[swap.offered_product_id,swap.requested_product_id].filter(Boolean)]);
   } else if(action==='reject_payment'||action==='fail_product'){
+    const {rows:related}=await client.query(
+      'SELECT * FROM orders WHERE swap_request_id=$1 AND id<>$2 ORDER BY created_at LIMIT 1 FOR UPDATE',
+      [o.swap_request_id,o.id]
+    );
+    relatedOrder=related[0]||null;
+    if(relatedOrder && relatedOrder.status!=='delivered'){
+      await client.query("UPDATE orders SET status='cancelled' WHERE id=$1 AND status<>'cancelled'",[relatedOrder.id]);
+    }
     const swap=await cancelSwap(client,o.swap_request_id,o.from_user_id);
     if(swap)await client.query("UPDATE products SET status='active' WHERE id=ANY($1::uuid[]) AND status='in_swap'",[[swap.offered_product_id,swap.requested_product_id].filter(Boolean)]);
   }
@@ -95,7 +104,33 @@ router.get('/orders/:id',async(req,res)=>{try{const {rows}=await pool.query('SEL
     const {rows:all}=await client.query('SELECT COUNT(*)::int total FROM orders WHERE swap_request_id=$1',[o.swap_request_id]);
     if(all[0].total>=2&&!remaining.length){const {rows:completedSwap}=await client.query("UPDATE swap_requests SET status='completed' WHERE id=$1 AND status<>'completed' RETURNING from_user_id,to_user_id",[o.swap_request_id]);if(completedSwap.length)await client.query('UPDATE profiles SET total_swaps=COALESCE(total_swaps,0)+1 WHERE id=ANY($1::uuid[])',[[completedSwap[0].from_user_id,completedSwap[0].to_user_id]]);const {rows:s}=await client.query('SELECT offered_product_id,requested_product_id FROM swap_requests WHERE id=$1',[o.swap_request_id]);if(s.length)await client.query("UPDATE products SET status='swapped' WHERE id=ANY($1::uuid[])",[[s[0].offered_product_id,s[0].requested_product_id].filter(Boolean)]);}
   }
-  if(title){await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status',$2,$3,'/orders')",[o.from_user_id,title,body]);const {rows:partner}=await client.query('SELECT from_user_id FROM orders WHERE swap_request_id=$1 AND id<>$2 LIMIT 1',[o.swap_request_id,o.id]);if(partner.length)await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status','SVAP Partner Update',$2,'/orders')",[partner[0].from_user_id,`Your SVAP partner's order status is now ${status}.`]);}
+  if(title){
+    const orderId=formatOrderNumber(o);
+    let ownBody=body;
+    if(action==='reject_payment')ownBody+=' If money was deducted, support will contact you about a refund.';
+    if(action==='fail_product')ownBody+=' Your payment was verified; support will contact you about your refund.';
+    await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status',$2,$3,'/orders')",[o.from_user_id,title,`${ownBody} Order ID: ${orderId}`]);
+    if(relatedOrder){
+      const paidStatuses=['product_verification','item_verification','shipped','delivered'];
+      const itemPassedStatuses=['item_verification','shipped','delivered'];
+      const partnerPaid=paidStatuses.includes(relatedOrder.status);
+      let partnerBody=`Your SVAP partner's order status is now cancelled.`;
+      let partnerTitle='SVAP Partner Update';
+      if(action==='reject_payment'&&partnerPaid){
+        partnerTitle='SVAP Cancelled - Refund Follow-up';
+        partnerBody=`Your payment was verified, but your SVAP partner's payment could not be verified. Support will contact you to arrange your refund.`;
+      } else if(action==='fail_product'&&partnerPaid){
+        partnerTitle='SVAP Cancelled - Refund Follow-up';
+        partnerBody=itemPassedStatuses.includes(relatedOrder.status)
+          ? `Your payment was verified and your item passed inspection, but your SVAP partner's item failed inspection. Support will contact you to arrange your refund.`
+          : `Your payment was verified, but your SVAP partner's item failed inspection. Support will contact you to arrange your refund.`;
+      }
+      await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status',$2,$3,'/orders')",[relatedOrder.from_user_id,partnerTitle,`${partnerBody} Order ID: ${orderId}`]);
+    } else {
+      const {rows:partner}=await client.query('SELECT from_user_id FROM orders WHERE swap_request_id=$1 AND id<>$2 LIMIT 1',[o.swap_request_id,o.id]);
+      if(partner.length)await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status','SVAP Partner Update',$2,'/orders')",[partner[0].from_user_id,`Your SVAP partner's order status is now ${status}. Order ID: ${orderId}`]);
+    }
+  }
   await client.query('COMMIT');res.json({data:updated[0]});
  } catch(e){await client.query('ROLLBACK');console.error('[admin order action]',e.message);res.status(500).json({error:'Could not update order'});} finally{client.release();}
 });

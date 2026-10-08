@@ -15,9 +15,26 @@ interface StorySlide {
 
 const StoriesRow = () => {
   const navigate = useNavigate();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
+    try { return JSON.parse(localStorage.getItem("sz_user") || "{}").id || null; }
+    catch { return null; }
+  });
   const [stories, setStories] = useState<StorySlide[]>([]);
   const [selectedStory, setSelectedStory] = useState<StorySlide | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const syncUser = () => {
+      try { setCurrentUserId(JSON.parse(localStorage.getItem("sz_user") || "{}").id || null); }
+      catch { setCurrentUserId(null); }
+    };
+    window.addEventListener("sz_auth_change", syncUser);
+    window.addEventListener("storage", syncUser);
+    return () => {
+      window.removeEventListener("sz_auth_change", syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchStories = async () => {
@@ -26,7 +43,7 @@ const StoriesRow = () => {
         if (response?.error) throw new Error(response.error);
 
         // One story item per product, but viewer shows ALL images of that product
-        const mappedStories = (response.data || []).map((product: any) => ({
+        const mappedStories = (response.data || []).filter((product: any) => !currentUserId || product.user_id !== currentUserId).map((product: any) => ({
           id: product.id,
           productId: product.id,
           title: product.title,
@@ -48,7 +65,7 @@ const StoriesRow = () => {
       }
     };
     fetchStories();
-  }, []);
+  }, [currentUserId]);
 
   const handleStoryClick = (story: StorySlide) => setSelectedStory(story);
   const handleViewListing = () => {

@@ -2,16 +2,20 @@ const express = require('express');
 const pool = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/admin');
+const formatOrderNumber = require('../helpers/formatOrderNumber');
 
 const router = express.Router();
 
 const STANDARD = 479;
 const CASH_ONLY_DELIVERY = 300;
-const FEE_RATE = 0.08;
+const FEE_RATE = 0.10;
 
-function formatOrderNumber(order) {
-  const sourceId = order?.swap_request_id || order?.id || '';
-  return String(sourceId).replaceAll('-', '').slice(0, 8).toUpperCase();
+function normalizePakistaniPhone(value) {
+  const compact = String(value || '').replace(/[\s()-]/g, '');
+  if (/^03\d{9}$/.test(compact)) return compact;
+  if (/^\+923\d{9}$/.test(compact)) return '0' + compact.slice(3);
+  if (/^923\d{9}$/.test(compact)) return '0' + compact.slice(2);
+  return null;
 }
 
 function adaptOrder(order, pending = false) {
@@ -71,6 +75,10 @@ router.get('/', requireAuth, async (req, res) => {
 router.post('/', requireAuth, async (req, res) => {
   const b = req.body || {};
   const uid = req.userId;
+  const deliveryPhone = normalizePakistaniPhone(b.delivery_phone);
+  if (!deliveryPhone) {
+    return res.status(400).json({ error: 'Enter a valid Pakistani mobile number (03XXXXXXXXX)' });
+  }
   const client = await pool.connect();
 
   try {
@@ -88,7 +96,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     if (
       !r.length ||
-      !['accepted', 'completed'].includes(r[0].status) ||
+      !['pending', 'accepted', 'completed'].includes(r[0].status) ||
       new Date(r[0].expires_at) <= new Date()
     ) {
       await client.query('ROLLBACK');
@@ -96,11 +104,28 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     const sr = r[0];
+    const firstCheckoutAcceptsRequest = sr.status === 'pending';
 
     if (uid !== sr.from_user_id && uid !== sr.to_user_id) {
       await client.query('ROLLBACK');
       return res.status(403).json({ error: 'Not a swap participant' });
     }
+    if (firstCheckoutAcceptsRequest && uid !== sr.to_user_id) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Only the request receiver can accept by checking out first' });
+    }
+    if (firstCheckoutAcceptsRequest) {
+      const productIds = [sr.offered_product_id, sr.requested_product_id].filter(Boolean);
+      const { rows: products } = await client.query(
+        'SELECT id,status FROM products WHERE id=ANY($1) ORDER BY id FOR UPDATE',
+        [productIds]
+      );
+      if (products.length !== productIds.length || products.some((product) => product.status !== 'active')) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'A listing in this SVAP is no longer available' });
+      }
+    }
+
 
     const old = await client.query(
       'SELECT id FROM orders WHERE swap_request_id=$1 AND from_user_id=$2',
@@ -115,7 +140,7 @@ router.post('/', requireAuth, async (req, res) => {
     const amount = Number(sr.premium_amount || 0);
     const onlyCash = !sr.offered_product_id;
     const cashPayer = uid === sr.from_user_id;
-    // Only the acceptor of a cash-only offer pays the 8% platform fee.
+    // Only the acceptor of a cash-only offer pays the 10% platform fee.
     const fee = onlyCash && !cashPayer ? Math.round(amount * FEE_RATE) : 0;
 
     const shipping = onlyCash && cashPayer ? CASH_ONLY_DELIVERY : onlyCash ? 0 : STANDARD;
@@ -141,7 +166,7 @@ router.post('/', requireAuth, async (req, res) => {
         uid,
         partner,
         b.delivery_name || '',
-        b.delivery_phone || '',
+        deliveryPhone,
         b.delivery_address || '',
         b.delivery_city || '',
         shipping,
@@ -153,6 +178,23 @@ router.post('/', requireAuth, async (req, res) => {
       ]
     );
 
+    if (firstCheckoutAcceptsRequest) {
+      const { rows: accepted } = await client.query(
+        `UPDATE swap_requests SET status='accepted', expires_at=now()+interval '48 hours'
+         WHERE id=$1 AND status='pending' RETURNING id`,
+        [sr.id]
+      );
+      if (!accepted.length) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'Request changed; refresh and retry' });
+      }
+      await client.query("UPDATE products SET status='in_swap' WHERE id=ANY($1)", [[sr.offered_product_id, sr.requested_product_id].filter(Boolean)]);
+      await client.query(
+        `INSERT INTO notifications(user_id,type,title,body,route)
+         VALUES($1,'swap_accepted','SVAP accepted',$2,'/requests')`,
+        [sr.from_user_id, `Your SVAP request was accepted after checkout. Order ID: ${formatOrderNumber(sr.id)}`]
+      );
+    }
     const { rows: checkoutState } = await client.query(
       'SELECT COUNT(DISTINCT from_user_id)::int AS participant_count FROM orders WHERE swap_request_id=$1 AND from_user_id=ANY($2)',
       [b.swap_request_id, [sr.from_user_id, sr.to_user_id]]

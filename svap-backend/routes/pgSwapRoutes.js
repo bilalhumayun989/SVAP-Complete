@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const formatOrderNumber = require('../helpers/formatOrderNumber');
 
 const router = express.Router();
 const SELECT = `sr.*, jsonb_build_object('title', op.title, 'image_urls', op.image_urls) offered,
@@ -86,8 +87,8 @@ router.post('/', requireAuth, async (req, res) => {
     );
     await pool.query(
       `INSERT INTO notifications(user_id,type,title,body,route)
-       VALUES($1,'swap_request','New SVAP Offer','You have received a new SVAP request.','/requests')`,
-      [body.to_user_id]
+       VALUES($1,'swap_request','New SVAP Offer',$2,'/requests')`,
+      [body.to_user_id, `You have received a new SVAP request. Order ID: ${formatOrderNumber(rows[0].id)}`]
     );
     const { rows: full } = await pool.query(`SELECT ${SELECT} ${JOINS} WHERE sr.id=$1`, [rows[0].id]);
     res.status(201).json({ data: adaptSwap(full[0]) });
@@ -107,6 +108,14 @@ router.patch('/:id', requireAuth, async (req, res) => {
     const { rows: found } = await pool.query('SELECT * FROM swap_requests WHERE id=$1', [req.params.id]);
     if (!found.length) return res.status(404).json({ error: 'Request not found' });
     const swap = found[0];
+    if (status === 'accepted') {
+      if (req.userId !== swap.to_user_id) return res.status(403).json({ error: 'Only receiver may accept or reject' });
+      if (swap.status !== 'pending' || new Date(swap.expires_at) <= new Date()) {
+        return res.status(409).json({ error: 'Request expired or no longer pending' });
+      }
+      // Keep it pending until the receiver submits checkout; the order transaction accepts it.
+      return res.json({ data: adaptSwap(swap), checkout_required: true });
+    }
     if (status === 'cancelled') {
       if (req.userId !== swap.from_user_id && req.userId !== swap.to_user_id) {
         return res.status(403).json({ error: 'Not a participant' });
@@ -120,13 +129,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
     }
 
     const responsibleId = status === 'cancelled' ? await getResponsibleParticipant(swap, req.userId) : null;
-
-    const update = status === 'accepted'
-      ? await pool.query(
-          `UPDATE swap_requests SET status=$1,expires_at=now()+interval '48 hours'
-           WHERE id=$2 AND status='pending' RETURNING *`, [dbStatus, swap.id]
-        )
-      : status === 'cancelled'
+    const update = status === 'cancelled'
       ? await pool.query(
           'UPDATE swap_requests SET status=$1,cancelled_by_user_id=$2 WHERE id=$3 AND status=$4 RETURNING *', [dbStatus, responsibleId, swap.id, swap.status]
         )
@@ -136,26 +139,15 @@ router.patch('/:id', requireAuth, async (req, res) => {
         );
     if (!update.rows.length) return res.status(409).json({ error: 'Request changed; refresh and retry' });
 
-    if (status === 'accepted') {
-      // The mobile backend reserves accepted listings using this existing status.
-      await pool.query(
-        "UPDATE products SET status='in_swap' WHERE id=ANY($1)",
-        [[swap.offered_product_id, swap.requested_product_id].filter(Boolean)]
-      );
-      await pool.query(
-        `INSERT INTO notifications(user_id,type,title,body,route)
-         VALUES($1,'swap_accepted','SVAP accepted','Your SVAP request was accepted.','/requests')`,
-        [swap.from_user_id]
-      );
-    } else if (status === 'rejected') {
+    if (status === 'rejected') {
       await pool.query(
         `UPDATE products SET status='active' WHERE id=ANY($1) AND status='in_swap'`,
         [[swap.offered_product_id, swap.requested_product_id].filter(Boolean)]
       );
       await pool.query(
         `INSERT INTO notifications(user_id,type,title,body,route)
-         VALUES($1,'swap_rejected','Request Rejected','Your SVAP request has been rejected.','/requests')`,
-        [swap.from_user_id]
+         VALUES($1,'swap_rejected','Request Rejected',$2,'/requests')`,
+        [swap.from_user_id, `Your SVAP request has been rejected. Order ID: ${formatOrderNumber(swap.id)}`]
       );
     } else {
       const { rows: orders } = await pool.query(
@@ -167,15 +159,15 @@ router.patch('/:id', requireAuth, async (req, res) => {
         [[swap.offered_product_id, swap.requested_product_id].filter(Boolean)]
       );
       await pool.query(
-        `UPDATE orders SET status='cancelled',
-          admin_notes=concat_ws(E'\n',NULLIF(admin_notes,''),$2)
+        `UPDATE orders SET status='cancelled', admin_notes=concat_ws(E'\n',NULLIF(admin_notes,''),$2)
          WHERE swap_request_id=$1 AND status<>'cancelled'`,
         [swap.id, checkoutUsers.size ? 'SVAP cancelled by a participant; support refund follow-up is required.' : 'SVAP cancelled by a participant.']
       );
       for (const participantId of [swap.from_user_id, swap.to_user_id]) {
         const isCanceller = participantId === req.userId;
         const body = (isCanceller ? 'You have cancelled this SVAP offer.' : 'Your SVAP request has been rejected.') +
-          (checkoutUsers.has(participantId) ? ' You will be contacted by support team for refund.' : '');
+          (checkoutUsers.has(participantId) ? ' You will be contacted by support team for refund.' : '') +
+          ` Order ID: ${formatOrderNumber(swap.id)}`;
         await pool.query(
           'INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,$2,$3,$4,$5)',
           [participantId, isCanceller ? 'swap_cancelled' : 'swap_rejected', isCanceller ? 'SVAP Cancelled' : 'Request Rejected', body, '/requests']
@@ -190,5 +182,4 @@ router.patch('/:id', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Could not update request' });
   }
 });
-
 module.exports = router;

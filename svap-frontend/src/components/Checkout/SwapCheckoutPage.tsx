@@ -42,7 +42,15 @@ type FormErrors = Partial<Record<keyof FormData | 'paymentScreenshot', string>>;
 
 // ─── Bank & Delivery Config ──────────────────────────────────────────────────
 const CASH_ONLY_DELIVERY_FEE = 300;
-const CASH_OFFER_PLATFORM_FEE_RATE = 0.08;
+const CASH_OFFER_PLATFORM_FEE_RATE = 0.10;
+
+const normalizePakistaniPhone = (value: string) => {
+  const compact = value.replace(/[\s()-]/g, '');
+  if (/^03\d{9}$/.test(compact)) return compact;
+  if (/^\+923\d{9}$/.test(compact)) return '0' + compact.slice(3);
+  if (/^923\d{9}$/.test(compact)) return '0' + compact.slice(2);
+  return compact;
+};
 
 const BANK_DETAILS = {
   deliveryFee: 479,
@@ -163,8 +171,8 @@ export const SwapCheckoutPage = () => {
     const e: FormErrors = {};
     if (!form.fullName.trim()) e.fullName = 'Full name is required';
     if (!form.phone.trim()) e.phone = 'Phone number is required';
-    else if (!/^(\+92|0)?[0-9]{10,11}$/.test(form.phone.replace(/\s/g, '')))
-      e.phone = 'Enter a valid Pakistani mobile number';
+    else if (!/^03\d{9}$/.test(normalizePakistaniPhone(form.phone)))
+      e.phone = 'Enter a valid Pakistani mobile number (03XXXXXXXXX)';
     if (!form.city.trim()) e.city = 'City is required';
     if (!form.area.trim()) e.area = 'Please select your area';
     if (!form.streetAddress.trim()) e.streetAddress = 'Street address is required';
@@ -219,7 +227,7 @@ export const SwapCheckoutPage = () => {
         from_user_id: userId,
         to_user_id: toUserId,
         delivery_name: form.fullName.trim(),
-        delivery_phone: form.phone.trim(),
+        delivery_phone: normalizePakistaniPhone(form.phone),
         delivery_address: fullAddress,
         delivery_city: form.city.trim(),
         payment_method: 'Bank Transfer / EasyPaisa / JazzCash',
@@ -291,10 +299,10 @@ export const SwapCheckoutPage = () => {
         <div className="order-status-summary">
           <div className="status-summary-row"><span>Status</span><span className="status-summary-badge">Pending Verification</span></div>
           <div className="status-summary-row"><span>Delivery Fee</span><span>{deliveryCharge === 0 ? 'No delivery charge' : `PKR ${deliveryCharge.toLocaleString()}`}</span></div>
-          {platformFee > 0 && <div className="status-summary-row"><span>Platform fee (8%)</span><span>PKR {platformFee.toLocaleString()}</span></div>}
+          {platformFee > 0 && <div className="status-summary-row"><span>Platform fee (10%)</span><span>PKR {platformFee.toLocaleString()}</span></div>}
           {summaryCashAmount > 0 && (
             <div className="status-summary-row status-summary-row--cash">
-              <span>{isCashOnlyOffer ? 'Cash Offer' : (isSender ? 'Cash you offer' : 'Cash you receive')}</span>
+              <span>{isCashOnlyOffer ? (isSender ? 'Cash offer payment' : 'Cash you will receive') : (isSender ? 'Cash you offer' : 'Cash you receive')}</span>
               <strong>PKR {summaryCashAmount.toLocaleString()}{isCashOnlyOffer ? ' (cash only)' : ''}</strong>
             </div>
           )}
@@ -443,10 +451,13 @@ export const SwapCheckoutPage = () => {
         <div className="input-wrapper">
           <FiPhone className="input-icon" />
           <input
-            type="text"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            maxLength={18}
             value={form.phone}
             onChange={(e) => setField('phone', e.target.value)}
-            placeholder="03xx-xxxxxxx"
+            placeholder="03XXXXXXXXX"
           />
         </div>
         {errors.phone && <span className="err-msg">{errors.phone}</span>}
@@ -516,7 +527,7 @@ export const SwapCheckoutPage = () => {
         <div className="delivery-price">{deliveryCharge === 0 ? 'No delivery charge' : `PKR ${deliveryCharge.toLocaleString()}`}</div>
       </div>
       <div className="info-note muted-text">
-        <FiInfo size={13} /> {isCashOfferAcceptor ? `No delivery charge applies. You only pay the 8% platform fee of PKR ${platformFee.toLocaleString()}.` : isCashOnlyOfferPayer ? `PKR ${CASH_ONLY_DELIVERY_FEE} covers pickup from the other person, item inspection, and delivery to you.` : `PKR ${deliveryCharge} covers pickup from your location, delivery of the svaped item to you, and a PKR 100 item inspection fee.`}
+        <FiInfo size={13} /> {isCashOfferAcceptor ? `No delivery charge applies. You only pay the 10% platform fee of PKR ${platformFee.toLocaleString()}.` : isCashOnlyOfferPayer ? `PKR ${CASH_ONLY_DELIVERY_FEE} covers pickup from the other person, item inspection, and delivery to you.` : `PKR ${deliveryCharge} covers pickup from your location, delivery of the svaped item to you, and a PKR 100 item inspection fee.`}
       </div>
 
       {/* Bank & Wallets */}
@@ -617,7 +628,7 @@ export const SwapCheckoutPage = () => {
         
         {deliveryCharge > 0 && <div className="summary-row">
           <div>
-            <div className="summary-label">{isCashOnlyOfferPayer ? "Pickup, inspection & delivery" : "Delivery (Standard)"}</div>
+            <div className="summary-label">{isCashOnlyOfferPayer ? "Pickup, inspection & delivery" : "Platform fee"}</div>
             <div className="summary-sublabel">{isCashOnlyOfferPayer ? "Cash-only offer delivery service." : "Includes pickup, delivery & PKR 100 inspection fee."}</div>
           </div>
           <div className="summary-val">PKR {deliveryCharge.toLocaleString()}</div>
@@ -626,17 +637,17 @@ export const SwapCheckoutPage = () => {
         {cashTopUpAmount > 0 && (
           <div className="summary-row">
             <div>
-              <div className="summary-label">{isCashOnlyOffer ? (isSender ? "Cash offer payment" : "Cash offer amount") : (isSender ? "Cash you offer" : "Cash you receive")}</div>
+              <div className="summary-label">{isCashOnlyOffer ? (isSender ? "Cash offer payment" : "Cash you will receive") : (isSender ? "Cash you offer" : "Cash you receive")}</div>
               {!isCashOnlyOffer && <div className="summary-sublabel">{isSender ? "Included in your bank transfer." : "Included in the offerer bank transfer."}</div>}
               {isCashOnlyOfferPayer && <div className="summary-sublabel">PKR 300 delivery service is added to this cash offer.</div>}
-              {isCashOfferAcceptor && <div className="summary-sublabel">8% platform fee applies to this cash offer.</div>}
+              {isCashOfferAcceptor && <div className="summary-sublabel">You will receive PKR {cashTopUpAmount.toLocaleString()} from the offerer.</div>}
             </div>
             <div className="summary-val">PKR {cashTopUpAmount.toLocaleString()}</div>
           </div>
         )}
 
         {platformFee > 0 && <div className="summary-row">
-          <div><div className="summary-label">Platform fee (8%)</div><div className="summary-sublabel">8% of the cash offer.</div></div>
+          <div><div className="summary-label">Platform fee (10%)</div><div className="summary-sublabel">10% of the cash offer.</div></div>
           <div className="summary-val">PKR {platformFee.toLocaleString()}</div>
         </div>}
         <div className="summary-divider" />

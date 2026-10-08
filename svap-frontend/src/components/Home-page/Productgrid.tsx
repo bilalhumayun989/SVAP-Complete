@@ -19,6 +19,10 @@ const SkeletonCard = () => (
 
 const ProductGrid = () => {
   const navigate = useNavigate();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
+    try { return JSON.parse(localStorage.getItem("sz_user") || "{}").id || null; }
+    catch { return null; }
+  });
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +30,19 @@ const ProductGrid = () => {
   const [isCompactViewport, setIsCompactViewport] = useState(() =>
     window.matchMedia("(max-width: 1024px)").matches
   );
+
+  useEffect(() => {
+    const syncUser = () => {
+      try { setCurrentUserId(JSON.parse(localStorage.getItem("sz_user") || "{}").id || null); }
+      catch { setCurrentUserId(null); }
+    };
+    window.addEventListener("sz_auth_change", syncUser);
+    window.addEventListener("storage", syncUser);
+    return () => {
+      window.removeEventListener("sz_auth_change", syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
+  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 1024px)");
@@ -81,8 +98,9 @@ const ProductGrid = () => {
     fetchProducts();
   }, []);
 
-  const visibleProducts = isCompactViewport ? products : products.slice(0, visibleCount);
-  const hasMore = !isCompactViewport && visibleCount < products.length;
+  const homeProducts = currentUserId ? products.filter((product) => product.userId !== currentUserId) : products;
+  const visibleProducts = isCompactViewport ? homeProducts : homeProducts.slice(0, visibleCount);
+  const hasMore = !isCompactViewport && visibleCount < homeProducts.length;
 
   return (
     <>

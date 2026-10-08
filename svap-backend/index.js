@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cron = require('node-cron');
+const formatOrderNumber = require('./helpers/formatOrderNumber');
 const pool = require('./db');
 const uploadRoot = require('./config/uploadRoot');
 
@@ -60,9 +61,8 @@ const runSwapExpirySweep = async () => {
       if (!changed.rowCount) continue;
       await client.query(`UPDATE orders SET status='cancelled',admin_notes=concat_ws(E'\\n',NULLIF(admin_notes,''),'Auto-cancelled: SVAP checkout deadline expired. Refund review required.') WHERE swap_request_id=$1 AND status<>'cancelled'`,[sr.id]);
       await client.query(`UPDATE products SET status='active' WHERE id=ANY($1) AND status='in_swap'`,[[sr.offered_product_id,sr.requested_product_id].filter(Boolean)]);
-      const {rows:orderRows}=await client.query('SELECT id FROM orders WHERE swap_request_id=$1 ORDER BY created_at LIMIT 1',[sr.id]);
-      const orderSuffix=orderRows.length?` Order ID: ${orderRows[0].id}`:'';
-      const body=participantCount?`Your SVAP was cancelled because checkout was not completed within 48 hours. Support will contact the paying user about a refund.${orderSuffix}`:'Your SVAP request expired after 48 hours without acceptance.';
+      const orderSuffix=` Order ID: ${formatOrderNumber(sr.id)}`;
+      const body=participantCount?`Your SVAP was cancelled because checkout was not completed within 48 hours. Support will contact the paying user about a refund.${orderSuffix}`:`Your SVAP request expired after 48 hours without acceptance.${orderSuffix}`;
       await client.query(`INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'swap_timeout','SVAP cancelled - timeout',$2,'/requests'),($3,'swap_timeout','SVAP cancelled - timeout',$2,'/requests')`,[sr.from_user_id,body,sr.to_user_id]);
       expired++;
     }

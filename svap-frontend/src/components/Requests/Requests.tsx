@@ -1050,7 +1050,6 @@ const Requests = () => {
   const [requests, setRequests] = useState<SwapRequest[]>([]);
   const [checkoutOrders, setCheckoutOrders] = useState<CheckoutOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [cancellingRequestId, setCancellingRequestId] = useState<string | null>(null);
   
   // Notification Unread Count State
   const [unreadNotifCount, setUnreadNotifCount] = useState<number>(0);
@@ -1199,29 +1198,10 @@ const Requests = () => {
       await updateRequestStatus(id, "rejected", userId || undefined);
       refresh();
     } else {
-      await updateRequestStatus(id, "accepted", userId || undefined);
-      refresh();
       navigate(`/checkout/${id}`);
     }
   };
 
-  const handleCancelAcceptedSwap = async (requestId: string) => {
-    if (!userId || cancellingRequestId) return;
-    if (!window.confirm("Cancel this accepted svap?")) return;
-    setCancellingRequestId(requestId);
-    try {
-      const result = await api.updateSwapRequestStatus(requestId, "cancelled", userId);
-      if (result.error) throw new Error(result.error);
-      localStorage.setItem(`sz_cancelled_by_${requestId}`, userId);
-      await refresh();
-      window.dispatchEvent(new Event("sz_requests_change"));
-    } catch (error: any) {
-      window.alert(error.message || "Could not cancel this svap.");
-      await refresh();
-    } finally {
-      setCancellingRequestId(null);
-    }
-  };
 
   const pendingIncomingCount = incoming.filter(
     (r) => r.status === "pending"
@@ -1340,7 +1320,6 @@ const Requests = () => {
                 req.direction === "received"
                   ? req.from_profile
                   : req.to_profile;
-              const canCancelAcceptedSwap = tab === "checkout" && req.status === "accepted";
               const ownOrder = checkoutOrderByRequest.get(req.id);
               const partnerOrder = checkoutOrders.find((order) => order.swap_request_id === req.id && order.from_user_id !== userId && !order.is_checkout_pending && !String(order.id || "").startsWith("checkout-"));
               const partnerHasOrder = Boolean(partnerOrder);
@@ -1536,13 +1515,8 @@ const Requests = () => {
 
                   {tab === "checkout" && !isCancelled && (
                     <div className="req-checkout-actions">
-                      {canCancelAcceptedSwap && (
-                        <button className="req-btn req-btn--reject" disabled={cancellingRequestId === req.id} onClick={() => handleCancelAcceptedSwap(req.id)}>
-                          {cancellingRequestId === req.id ? "CANCELLING..." : "CANCEL SvAP"}
-                        </button>
-                      )}
                       <button disabled={isExpired && !checkoutOrderByRequest.has(req.id)} className={"req-btn " + (checkoutOrderByRequest.has(req.id) ? "req-btn--order-placed" : "req-btn--accept")} onClick={() => checkoutOrderByRequest.has(req.id) ? navigate("/orders") : navigate("/checkout/" + req.id)}>
-                        {checkoutOrderByRequest.has(req.id) ? "Order placed · Waiting for other user" : isExpired ? "Expired" : "PROCEED TO CHECKOUT"}
+                        {checkoutOrderByRequest.has(req.id) ? "Order placed · Waiting for other user" : isExpired ? "Expired" : "CONTINUE TO CHECKOUT"}
                       </button>
                     </div>
                   )}

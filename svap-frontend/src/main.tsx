@@ -4,10 +4,11 @@ import './index.css'
 import App from './App.tsx'
 
 const savedTheme = localStorage.getItem('sz_theme')
-if (savedTheme === 'dark') {
+if (savedTheme !== 'light') {
   document.documentElement.setAttribute('data-theme', 'dark')
   document.documentElement.classList.add('dark')
-} else if (savedTheme === 'light') {
+  if (!savedTheme) localStorage.setItem('sz_theme', 'dark')
+} else {
   document.documentElement.removeAttribute('data-theme')
   document.documentElement.classList.remove('dark')
 }

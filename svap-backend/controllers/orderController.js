@@ -1,4 +1,5 @@
-﻿const { supabaseAdmin } = require('../config/supabase');
+const { supabaseAdmin } = require('../config/supabase');
+const formatOrderNumber = require('../helpers/formatOrderNumber');
 
 const STANDARD_DELIVERY_FEE = 479;
 const CASH_ONLY_DELIVERY_FEE = 300;
@@ -128,7 +129,7 @@ exports.createOrder = async (req, res) => {
             user_id: swapRequest.from_user_id,
             type: 'swap_partner_checkout_completed',
             title: 'SVAP Partner Checked Out',
-            body: 'Your SVAP partner has completed checkout. Complete your own checkout to continue. Order ID: ' + data.id,
+            body: 'Your SVAP partner has completed checkout. Complete your own checkout to continue. Order ID: ' + formatOrderNumber(data),
             route: '/requests',
             is_read: false,
           });
@@ -189,7 +190,7 @@ exports.createOrder = async (req, res) => {
                 user_id: request.from_user_id,
                 type: 'swap_unavailable',
                 title: 'Product Is In Another SVAP',
-                body: 'This product is now part of another SVAP. Order ID: ' + data.id,
+                body: 'This product is now part of another SVAP. Order ID: ' + formatOrderNumber(data),
                 route: '/requests',
                 is_read: false,
               })
@@ -217,7 +218,7 @@ exports.createOrder = async (req, res) => {
                 user_id: request.from_user_id,
                 type: 'swap_unavailable',
                 title: 'Product Is In Another SVAP',
-                body: 'This product is now part of another SVAP. Order ID: ' + data.id,
+                body: 'This product is now part of another SVAP. Order ID: ' + formatOrderNumber(data),
                 route: '/requests',
                 is_read: false,
               })

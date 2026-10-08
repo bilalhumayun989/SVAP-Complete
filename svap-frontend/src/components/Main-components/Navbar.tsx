@@ -104,7 +104,7 @@ const Navbar = () => {
   const [requestCount, setRequestCount] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem("sz_theme");
-    return saved === "dark";
+    return saved !== "light";
   });
 
   // Sync auth

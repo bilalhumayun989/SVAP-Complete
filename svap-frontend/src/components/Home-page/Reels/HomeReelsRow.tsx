@@ -13,6 +13,7 @@ interface HomeReel {
 
 interface ProductRow {
   id: string;
+  user_id?: string | null;
   title?: string | null;
   image_urls?: string[] | null;
   video_url?: string | null;
@@ -29,8 +30,25 @@ const HomeReelsRow = () => {
   const navigate = useNavigate();
   const rowRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
+    try { return JSON.parse(localStorage.getItem("sz_user") || "{}").id || null; }
+    catch { return null; }
+  });
   const [reels, setReels] = useState<HomeReel[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const syncUser = () => {
+      try { setCurrentUserId(JSON.parse(localStorage.getItem("sz_user") || "{}").id || null); }
+      catch { setCurrentUserId(null); }
+    };
+    window.addEventListener("sz_auth_change", syncUser);
+    window.addEventListener("storage", syncUser);
+    return () => {
+      window.removeEventListener("sz_auth_change", syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -41,7 +59,7 @@ const HomeReelsRow = () => {
         if (response.error) { setReels([]); return; }
         setReels(
           ((response.data || []) as ProductRow[])
-            .filter((product) => Boolean(product.video_url))
+            .filter((product) => Boolean(product.video_url) && (!currentUserId || product.user_id !== currentUserId))
             .sort((a, b) => {
               const aTime = new Date(a.reel_uploaded_at || a.created_at || 0).getTime();
               const bTime = new Date(b.reel_uploaded_at || b.created_at || 0).getTime();
@@ -65,7 +83,7 @@ const HomeReelsRow = () => {
     };
     loadReels();
     return () => { ignore = true; };
-  }, []);
+  }, [currentUserId]);
 
   const scrollNext = () => {
     rowRef.current?.scrollBy({

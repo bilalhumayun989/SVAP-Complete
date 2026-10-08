@@ -4,7 +4,7 @@ const { optionalAuth, requireAuth } = require('../middleware/auth');
 const profiles = require('../controllers/pgProfileController');
 const router = express.Router();
 const profileJoin = `LEFT JOIN LATERAL (
-  SELECT canonical.username, canonical.avatar_url, canonical.city, canonical.swap_score, canonical.reliability_score, canonical.total_swaps, canonical.committed_swaps, canonical.completed_swaps, canonical.is_verified
+  SELECT canonical.username, canonical.avatar_url, canonical.city, canonical.swap_score, CASE WHEN COALESCE(canonical.committed_swaps,0) <= 0 THEN 0::numeric ELSE LEAST(5::numeric, GREATEST(0::numeric, ROUND(COALESCE(canonical.completed_swaps,0)::numeric / canonical.committed_swaps * 5, 1))) END AS reliability_score, canonical.total_swaps, canonical.committed_swaps, canonical.completed_swaps, canonical.is_verified
   FROM profiles owner
   JOIN profiles canonical ON (
     (NULLIF(BTRIM(owner.email), '') IS NOT NULL AND LOWER(BTRIM(canonical.email))=LOWER(BTRIM(owner.email)))
