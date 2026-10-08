@@ -67,16 +67,16 @@ router.get('/orders/:id',async(req,res)=>{try{const {rows}=await pool.query('SEL
   const o=rows[0]; let status=o.status, fields={}, title='', body='', relatedOrder=null;
   switch(action){
    case 'approve_payment': if(status!=='payment_verification')break; status='product_verification'; title='Payment Verified';body='Your payment has been verified. We are now checking your item before dispatch.';break;
-   case 'reject_payment': if(status!=='payment_verification')break; status='cancelled';title='Payment Rejected';body='Your payment could not be verified. Please contact support for assistance.';break;
+   case 'reject_payment': if(status!=='payment_verification')break; status='cancelled';title='Payment Rejected';body='Your payment could not be verified.';break;
    case 'verify_product': if(status!=='product_verification')break;status='item_verification';title='Product Verified';body='Your product has been verified. We are now performing a final item check before shipping.';break;
-   case 'fail_product': if(status!=='product_verification')break;status='cancelled';title='Item Verification Failed';body='Your item did not pass verification. Your order has been cancelled. Please contact support for assistance.';break;
+   case 'fail_product': if(status!=='product_verification')break;status='cancelled';title='Item Verification Failed';body='Your item did not pass verification. Your order has been cancelled. ';break;
    case 'undo_payment': if(status!=='product_verification')break;status='payment_verification';title='Payment Review Reopened';body='Your payment is pending review again.';break;
    case 'undo_product': if(status!=='item_verification')break;status='product_verification';title='Item Review Reopened';body='Your item is pending verification again.';break;
    case 'assign_delivery': if(status!=='item_verification'||!['courier','self'].includes(req.body?.delivery_type)){await client.query('ROLLBACK');return res.status(400).json({error:'Choose courier or self delivery after item verification'});} fields.delivery_type=req.body.delivery_type;break;
    case 'mark_shipped': if(status!=='item_verification'||!o.delivery_type)break;status='shipped';fields.tracking_number=String(req.body?.tracking_number||'').trim()||null;title='Order Shipped';body=`Your order has been shipped via ${o.delivery_type==='self'?'SVAP delivery':'courier'}.${fields.tracking_number?` Tracking: ${fields.tracking_number}`:''}`;break;
    case 'mark_delivered': if(status!=='shipped')break;status='delivered';title='Order Delivered';body='Your item has been delivered. Enjoy your SVAP!';break;
    case 'save_note': fields.admin_notes=String(req.body?.note||'').trim()||null;break;
-   case 'cancel': if(['cancelled','delivered'].includes(status))break;status='cancelled';title='Order Cancelled';body=o.transaction_ref?'Your order was cancelled. Support will contact you about your payment refund.':'Your order was cancelled and this SVAP will not proceed.';break;
+   case 'cancel': if(['cancelled','delivered'].includes(status))break;status='cancelled';title='Order Cancelled';body=o.transaction_ref?'Your order was cancelled.You’ll be contacted by support team for refund':'Your order was cancelled and this SVAP will not proceed.';break;
    default: await client.query('ROLLBACK');return res.status(400).json({error:'Unknown order action'});
   }
   if(status===o.status&&!Object.keys(fields).length){await client.query('ROLLBACK');return res.status(409).json({error:'This action is not valid for the current order status'});}
@@ -107,7 +107,7 @@ router.get('/orders/:id',async(req,res)=>{try{const {rows}=await pool.query('SEL
   if(title){
     const orderId=formatOrderNumber(o);
     let ownBody=body;
-    if(action==='reject_payment')ownBody+=' If money was deducted, support will contact you about a refund.';
+    if(action==='reject_payment')ownBody+=' If payment was deducted, support will contact you about a refund.';
     if(action==='fail_product')ownBody+=' Your payment was verified; support will contact you about your refund.';
     await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status',$2,$3,'/orders')",[o.from_user_id,title,`${ownBody} Order ID: ${orderId}`]);
     if(relatedOrder){

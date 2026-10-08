@@ -108,7 +108,7 @@ export const SwapCheckoutPage = () => {
         setForm(prev => ({
           ...prev,
           fullName: user.name || prev.fullName,
-          phone: user.phone || prev.phone,
+          phone: normalizePakistaniPhone(user.phone || '') || String(user.phone || '').replace(/\D/g, '').slice(0, 11) || prev.phone,
           city: user.city || 'Karachi',
         }));
       } catch { /* ignore */ }
@@ -452,11 +452,11 @@ export const SwapCheckoutPage = () => {
           <FiPhone className="input-icon" />
           <input
             type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            maxLength={18}
+            inputMode="numeric"
+            autoComplete="tel-national"
+            maxLength={11}
             value={form.phone}
-            onChange={(e) => setField('phone', e.target.value)}
+            onChange={(e) => setField('phone', e.target.value.replace(/\D/g, '').slice(0, 11))}
             placeholder="03XXXXXXXXX"
           />
         </div>
