@@ -66,15 +66,15 @@ router.get('/orders/:id',async(req,res)=>{try{const {rows}=await pool.query('SEL
   if(!rows.length){await client.query('ROLLBACK');return res.status(404).json({error:'Order not found'});}
   const o=rows[0]; let status=o.status, fields={}, title='', body='', relatedOrder=null;
   switch(action){
-   case 'approve_payment': if(status!=='payment_verification')break; status='product_verification'; title='Payment Verified';body='Your payment has been verified. We are now checking your item before dispatch.';break;
+   case 'approve_payment': if(status!=='payment_verification')break; status='product_verification'; title='Payment Verified';body='Payment confirmed! We will now be checking your item.';break;
    case 'reject_payment': if(status!=='payment_verification')break; status='cancelled';title='Payment Rejected';body='Your payment could not be verified.';break;
    case 'verify_product': if(status!=='product_verification')break;status='item_verification';title='Product Verified';body='Your product has been verified. We are now performing a final item check before shipping.';break;
    case 'fail_product': if(status!=='product_verification')break;status='cancelled';title='Item Verification Failed';body='Your item did not pass verification. Your order has been cancelled. ';break;
    case 'undo_payment': if(status!=='product_verification')break;status='payment_verification';title='Payment Review Reopened';body='Your payment is pending review again.';break;
    case 'undo_product': if(status!=='item_verification')break;status='product_verification';title='Item Review Reopened';body='Your item is pending verification again.';break;
    case 'assign_delivery': if(status!=='item_verification'||!['courier','self'].includes(req.body?.delivery_type)){await client.query('ROLLBACK');return res.status(400).json({error:'Choose courier or self delivery after item verification'});} fields.delivery_type=req.body.delivery_type;break;
-   case 'mark_shipped': if(status!=='item_verification'||!o.delivery_type)break;status='shipped';fields.tracking_number=String(req.body?.tracking_number||'').trim()||null;title='Order Shipped';body=`Your order has been shipped via ${o.delivery_type==='self'?'SVAP delivery':'courier'}.${fields.tracking_number?` Tracking: ${fields.tracking_number}`:''}`;break;
-   case 'mark_delivered': if(status!=='shipped')break;status='delivered';title='Order Delivered';body='Your item has been delivered. Enjoy your SVAP!';break;
+   case 'mark_shipped': if(status!=='item_verification'||!o.delivery_type)break;status='shipped';fields.tracking_number=String(req.body?.tracking_number||'').trim()||null;title='Order Shipped';body='Your order has been shipped via Svap delivery.';break;
+   case 'mark_delivered': if(status!=='shipped')break;status='delivered';title='Order Delivered';body='Your item has been delivered to the other svapper. Enjoy your Svap!';break;
    case 'save_note': fields.admin_notes=String(req.body?.note||'').trim()||null;break;
    case 'cancel': if(['cancelled','delivered'].includes(status))break;status='cancelled';title='Order Cancelled';body=o.transaction_ref?'Your order was cancelled.You’ll be contacted by support team for refund':'Your order was cancelled and this SVAP will not proceed.';break;
    default: await client.query('ROLLBACK');return res.status(400).json({error:'Unknown order action'});
@@ -107,28 +107,36 @@ router.get('/orders/:id',async(req,res)=>{try{const {rows}=await pool.query('SEL
   if(title){
     const orderId=formatOrderNumber(o);
     let ownBody=body;
-    if(action==='reject_payment')ownBody+=' If payment was deducted, support will contact you about a refund.';
-    if(action==='fail_product')ownBody+=' Your payment was verified; support will contact you about your refund.';
+    if(action==='reject_payment')ownBody='Your svap order has been cancelled. Contact support if you have questions. If payment was deducted, support will contact you about a refund.';
+    if(action==='fail_product')ownBody='Your svap order has been cancelled. Contact support if you have questions. Your payment was verified; support will contact you about your refund.';
+    if(action==='cancel')ownBody='Your svap order has been cancelled. Contact support if you have questions.'+(o.transaction_ref?' Support will contact you about your refund.':'');
     await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status',$2,$3,'/orders')",[o.from_user_id,title,`${ownBody} Order ID: ${orderId}`]);
     if(relatedOrder){
       const paidStatuses=['product_verification','item_verification','shipped','delivered'];
       const itemPassedStatuses=['item_verification','shipped','delivered'];
       const partnerPaid=paidStatuses.includes(relatedOrder.status);
-      let partnerBody=`Your SVAP partner's order status is now cancelled.`;
+      let partnerBody='Your svap order has been cancelled. Contact support if you have questions.';
       let partnerTitle='SVAP Partner Update';
       if(action==='reject_payment'&&partnerPaid){
         partnerTitle='SVAP Cancelled - Refund Follow-up';
-        partnerBody=`Your payment was verified, but your SVAP partner's payment could not be verified. Support will contact you to arrange your refund.`;
+        partnerBody+=' Your payment was verified. Support will contact you to arrange your refund.';
       } else if(action==='fail_product'&&partnerPaid){
         partnerTitle='SVAP Cancelled - Refund Follow-up';
-        partnerBody=itemPassedStatuses.includes(relatedOrder.status)
-          ? `Your payment was verified and your item passed inspection, but your SVAP partner's item failed inspection. Support will contact you to arrange your refund.`
-          : `Your payment was verified, but your SVAP partner's item failed inspection. Support will contact you to arrange your refund.`;
+        partnerBody+=itemPassedStatuses.includes(relatedOrder.status)
+          ? ' Your payment was verified and your item passed inspection. Support will contact you to arrange your refund.'
+          : ' Your payment was verified. Support will contact you to arrange your refund.';
       }
       await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status',$2,$3,'/orders')",[relatedOrder.from_user_id,partnerTitle,`${partnerBody} Order ID: ${orderId}`]);
     } else {
-      const {rows:partner}=await client.query('SELECT from_user_id FROM orders WHERE swap_request_id=$1 AND id<>$2 LIMIT 1',[o.swap_request_id,o.id]);
-      if(partner.length)await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status','SVAP Partner Update',$2,'/orders')",[partner[0].from_user_id,`Your SVAP partner's order status is now ${status}. Order ID: ${orderId}`]);
+      const partnerUserId=o.to_user_id;
+      if(partnerUserId){
+        let partnerBody=`Your SVAP partner's order status is now ${status}.`;
+        if(action==='approve_payment')partnerBody="Your svap partner's payment has been verified \u2705 \u2014 they've paid their share. Your svap is moving forward!";
+        if(action==='mark_shipped')partnerBody="Your swap partner's item is on its way to you. You'll receive it shortly.";
+        if(action==='mark_delivered')partnerBody='Your item has been delivered to the other svapper. Enjoy your Svap!';
+        if(action==='cancel')partnerBody='Your svap order has been cancelled. Contact support if you have questions.';
+        await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status','SVAP Partner Update',$2,'/orders')",[partnerUserId,`${partnerBody} Order ID: ${orderId}`]);
+      }
     }
   }
   await client.query('COMMIT');res.json({data:updated[0]});

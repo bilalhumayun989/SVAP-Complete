@@ -161,7 +161,7 @@ export const OrderSummary = ({
 
       {transactionType === 'svap' && (
         <div className="swap-note">
-          <p>💡 You'll pay the cash difference plus delivery and service fees</p>
+          <p>You'll pay the cash difference plus delivery and service fees</p>
         </div>
       )}
 
