@@ -106,37 +106,31 @@ router.get('/orders/:id',async(req,res)=>{try{const {rows}=await pool.query('SEL
   }
   if(title){
     const orderId=formatOrderNumber(o);
-    let ownBody=body;
-    if(action==='reject_payment')ownBody='Your svap order has been cancelled. Contact support if you have questions. If payment was deducted, support will contact you about a refund.';
-    if(action==='fail_product')ownBody='Your svap order has been cancelled. Contact support if you have questions. Your payment was verified; support will contact you about your refund.';
-    if(action==='cancel')ownBody='Your svap order has been cancelled. Contact support if you have questions.'+(o.transaction_ref?' Support will contact you about your refund.':'');
+    const ownerMessages={
+      approve_payment:'Payment confirmed! We will now be checking your item.',
+      verify_product:'Your item has been verified ✅ — it will now be delivered to your Svap partner.',
+      mark_shipped:'Your item has been handed over to Svap delivery and is on its way to your Svap partner.',
+      mark_delivered:'Your item has been delivered to your Svap partner. Enjoy your Svap!',
+      fail_product:'Your item could not be verified. Your Svap has been cancelled.',
+      reject_payment:'Your payment verification was unsuccessful. Your Svap has been cancelled. Please contact support for further assistance.',
+      cancel:'Your Svap order has been cancelled. Contact support if you have any questions.',
+    };
+    const partnerMessages={
+      approve_payment:"Your Svap partner’s payment has been verified ✅ — they’ve paid their share. Your Svap is moving forward!",
+      verify_product:'Your Svap partner’s item has been verified ✅ — it will now be delivered to you.',
+      mark_shipped:'Your Svap partner’s item is on its way to you. You’ll receive it shortly.',
+      mark_delivered:'Your Svap partner’s item has been delivered to you. Enjoy your Svap!',
+      fail_product:'Your Svap partner’s item verification has failed. Your payment will be refunded. If your item is currently with us, it will also be returned to you.',
+      reject_payment:'Your Svap partner’s payment verification has failed. Your payment will be refunded.',
+      cancel:'Your Svap order has been cancelled. Contact support if you have any questions.',
+    };
+    const ownBody=ownerMessages[action] || body;
     await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status',$2,$3,'/orders')",[o.from_user_id,title,`${ownBody} Order ID: ${orderId}`]);
-    if(relatedOrder){
-      const paidStatuses=['product_verification','item_verification','shipped','delivered'];
-      const itemPassedStatuses=['item_verification','shipped','delivered'];
-      const partnerPaid=paidStatuses.includes(relatedOrder.status);
-      let partnerBody='Your svap order has been cancelled. Contact support if you have questions.';
-      let partnerTitle='SVAP Partner Update';
-      if(action==='reject_payment'&&partnerPaid){
-        partnerTitle='SVAP Cancelled - Refund Follow-up';
-        partnerBody+=' Your payment was verified. Support will contact you to arrange your refund.';
-      } else if(action==='fail_product'&&partnerPaid){
-        partnerTitle='SVAP Cancelled - Refund Follow-up';
-        partnerBody+=itemPassedStatuses.includes(relatedOrder.status)
-          ? ' Your payment was verified and your item passed inspection. Support will contact you to arrange your refund.'
-          : ' Your payment was verified. Support will contact you to arrange your refund.';
-      }
-      await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status',$2,$3,'/orders')",[relatedOrder.from_user_id,partnerTitle,`${partnerBody} Order ID: ${orderId}`]);
-    } else {
-      const partnerUserId=o.to_user_id;
-      if(partnerUserId){
-        let partnerBody=`Your SVAP partner's order status is now ${status}.`;
-        if(action==='approve_payment')partnerBody="Your svap partner's payment has been verified \u2705 \u2014 they've paid their share. Your svap is moving forward!";
-        if(action==='mark_shipped')partnerBody="Your swap partner's item is on its way to you. You'll receive it shortly.";
-        if(action==='mark_delivered')partnerBody='Your item has been delivered to the other svapper. Enjoy your Svap!';
-        if(action==='cancel')partnerBody='Your svap order has been cancelled. Contact support if you have questions.';
-        await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status','SVAP Partner Update',$2,'/orders')",[partnerUserId,`${partnerBody} Order ID: ${orderId}`]);
-      }
+
+    const partnerUserId=relatedOrder?.from_user_id || o.to_user_id;
+    if(partnerUserId){
+      const partnerBody=partnerMessages[action] || `Your SVAP partner's order status is now ${status}.`;
+      await client.query("INSERT INTO notifications(user_id,type,title,body,route) VALUES($1,'order_status','SVAP Partner Update',$2,'/orders')",[partnerUserId,`${partnerBody} Order ID: ${orderId}`]);
     }
   }
   await client.query('COMMIT');res.json({data:updated[0]});

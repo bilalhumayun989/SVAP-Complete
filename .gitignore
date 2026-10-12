@@ -3,6 +3,7 @@ svap-backend/node_modules/
 svap-backend/.env
 svap-backend/dist/
 svap-backend/build/
+/admin/
 
 # Frontend
 svap-frontend/node_modules/
