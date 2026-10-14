@@ -1,2 +1,0 @@
--- RETIRED: do not execute. Authentication remains in Supabase Auth, while application profile data is in shared PostgreSQL.
--- This legacy script creates/replaces Supabase public.profiles triggers and is not part of current web deployment.

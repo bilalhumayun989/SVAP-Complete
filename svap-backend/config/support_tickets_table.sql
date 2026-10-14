@@ -1,1 +1,0 @@
--- RETIRED: do not execute. support_tickets already exists in the shared production PostgreSQL database.

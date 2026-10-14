@@ -1,1 +1,0 @@
--- RETIRED: do not execute. Web OTP uses Supabase Auth; no otp_verifications table is required.
